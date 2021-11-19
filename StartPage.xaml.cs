@@ -16,6 +16,8 @@ using System.Windows.Shapes;
 
 using DiscordRPC;
 
+using BetterLiveScreen.Users;
+
 namespace BetterLiveScreen
 {
     /// <summary>

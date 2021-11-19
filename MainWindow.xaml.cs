@@ -16,10 +16,15 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+
 using OpenCvSharp;
 using OpenCvSharp.WpfExtensions;
 
 using DiscordRPC;
+
+using BetterLiveScreen.Recording;
+using BetterLiveScreen.Rooms;
+using BetterLiveScreen.Users;
 
 namespace BetterLiveScreen
 {
@@ -29,37 +34,41 @@ namespace BetterLiveScreen
     public partial class MainWindow : System.Windows.Window
     {
         public static DiscordRpcClient DiscordClient { get; set; } = new DiscordRpcClient("909043000053760012");
+
         public static UserInfo User { get; set; }
+        public static List<UserInfo> Users { get; set; } = new List<UserInfo>();
 
         public MainWindow()
         {
             InitializeComponent();
-
             DiscordClient.Initialize();
         }
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            Rescreen.Refreshed += (object s, Bitmap bitmap) =>
-            {
-                var bitmapSource = FScreen.ToImage(bitmap);
-                bitmapSource.Freeze();
-
-                Dispatcher.BeginInvoke(new Action(() => screen_main.Source = bitmapSource));
-            };
-
             var startPage = new StartPage();
 
             startPage.Closing += (s, ee) =>
             {
+                name1.Content = User.Name;
+                name1.ToolTip = $"#{User.Discriminator}";
+
                 this.IsEnabled = true;
             };
+
+            InitializeUI();
 
             startPage.Show();
             this.IsEnabled = false;
         }
 
-
+        private void InitializeUI()
+        {
+            name1.Content = string.Empty;
+            name2.Content = string.Empty;
+            name3.Content = string.Empty;
+            name4.Content = string.Empty;
+        }
 
         private void goLive_Click(object sender, RoutedEventArgs e)
         {
@@ -69,6 +78,30 @@ namespace BetterLiveScreen
         private void stopLive_Click(object sender, RoutedEventArgs e)
         {
             Rescreen.Stop();
+        }
+
+        public void SendScreen()
+        {
+            while (Rescreen.IsRecording)
+            {
+
+            }
+        }
+
+        public void ReceiveScreen()
+        {
+            while (RoomManager.IsConnected)
+            {
+
+            }
+        }
+
+        public void DescribeScreen()
+        {
+            while (RoomManager.IsConnected)
+            {
+
+            }
         }
     }
 }

@@ -7,17 +7,10 @@
         mc:Ignorable="d"
         Title="BetterLiveScreen" Height="546" Width="1046" Loaded="MainWindow_Loaded">
     <Grid HorizontalAlignment="Left" Width="1036">
-        <ListView x:Name="listViewName" Margin="668,10,243,109">
-            <ListView.View>
-                <GridView>
-                    <GridViewColumn/>
-                </GridView>
-            </ListView.View>
-        </ListView>
-        <Image x:Name="thumbnail1" HorizontalAlignment="Left" Height="90" Margin="812,10,0,0" VerticalAlignment="Top" Width="150" Source="/Resources/black_screen.png" Stretch="UniformToFill"/>
-        <Image x:Name="thumbnail2" HorizontalAlignment="Left" Height="90" Margin="812,121,0,0" VerticalAlignment="Top" Width="150" Stretch="UniformToFill" Source="/Resources/black_screen.png"/>
-        <Image x:Name="thumbnail3" HorizontalAlignment="Left" Height="90" Margin="812,228,0,0" VerticalAlignment="Top" Width="150" Stretch="UniformToFill" Source="/Resources/black_screen.png"/>
-        <Image x:Name="thumbnail4" HorizontalAlignment="Left" Height="90" Margin="812,331,0,0" VerticalAlignment="Top" Width="150" Stretch="UniformToFill" Source="/Resources/black_screen.png"/>
+        <Image x:Name="thumbnail1" HorizontalAlignment="Left" Height="90" Margin="721,10,0,0" VerticalAlignment="Top" Width="150" Source="/Resources/black_screen.png" Stretch="UniformToFill"/>
+        <Image x:Name="thumbnail2" HorizontalAlignment="Left" Height="90" Margin="721,121,0,0" VerticalAlignment="Top" Width="150" Stretch="UniformToFill" Source="/Resources/black_screen.png"/>
+        <Image x:Name="thumbnail3" HorizontalAlignment="Left" Height="90" Margin="721,228,0,0" VerticalAlignment="Top" Width="150" Stretch="UniformToFill" Source="/Resources/black_screen.png"/>
+        <Image x:Name="thumbnail4" HorizontalAlignment="Left" Height="90" Margin="721,331,0,0" VerticalAlignment="Top" Width="150" Stretch="UniformToFill" Source="/Resources/black_screen.png"/>
         <Image x:Name="screen_main" HorizontalAlignment="Left" Height="365" Margin="10,56,0,0" VerticalAlignment="Top" Width="644" Source="/Resources/black_screen.png" Stretch="UniformToFill"/>
         <Label Content="Made by MineEric64#6456" HorizontalAlignment="Left" Margin="865,479,0,0" VerticalAlignment="Top" Cursor="" Background="#00000000">
             <Label.Foreground>
@@ -47,6 +40,10 @@
                 <RadioButton x:Name="chk_60" Content="60fps"/>
             </StackPanel>
         </GroupBox>
+        <Label x:Name="name1" Content="User1" HorizontalAlignment="Left" Margin="886,76,0,0" VerticalAlignment="Top"/>
+        <Label x:Name="name2" Content="User2" HorizontalAlignment="Left" Margin="886,187,0,0" VerticalAlignment="Top"/>
+        <Label x:Name="name3" Content="User3" HorizontalAlignment="Left" Margin="886,294,0,0" VerticalAlignment="Top"/>
+        <Label x:Name="name4" Content="User4" HorizontalAlignment="Left" Margin="886,397,0,0" VerticalAlignment="Top"/>
 
     </Grid>
 </Window>

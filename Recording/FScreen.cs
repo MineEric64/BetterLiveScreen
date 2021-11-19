@@ -1,34 +1,20 @@
-﻿using Microsoft.SqlServer.Server;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Diagnostics;
 using System.Drawing.Imaging;
 using System.Drawing;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
+
 using SharpDX;
 using SharpDX.DXGI;
-using System.Runtime.InteropServices;
 using SharpDX.Direct3D11;
-using MessagePack;
-using System.Windows.Markup;
-using OpenCvSharp;
-using OpenCvSharp.Extensions;
-using System.Windows.Media.Imaging;
 
-namespace BetterLiveScreen
+namespace BetterLiveScreen.Recording
 {
     /// <summary>
     /// some codes from https://github.com/Nextop-OpenCV/ProjectReinforced/
     /// </summary>
-    public class FScreen
+    internal class FScreen
     {
-        /// <summary>
-        /// MessagePack을 위한 LZ4 압축 옵션
-        /// </summary>
-        public static MessagePackSerializerOptions LZ4_OPTIONS = MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray);
-
         private bool _run, _init;
 
         public int Size { get; private set; }
@@ -140,35 +126,5 @@ namespace BetterLiveScreen
         }
 
         public EventHandler<Bitmap> ScreenRefreshed;
-
-        public static BitmapImage ToImage(byte[] array)
-        {
-            using (var ms = new System.IO.MemoryStream(array))
-            {
-                var image = new BitmapImage();
-                image.BeginInit();
-                image.CacheOption = BitmapCacheOption.OnLoad; // here
-                image.StreamSource = ms;
-                image.EndInit();
-                return image;
-            }
-        }
-
-        public static BitmapSource ToImage(Bitmap bitmap)
-        {
-            var bitmapData = bitmap.LockBits(
-                new Rectangle(0, 0, bitmap.Width, bitmap.Height),
-                ImageLockMode.ReadOnly, bitmap.PixelFormat);
-
-            var bitmapSource = BitmapSource.Create(
-                bitmapData.Width, bitmapData.Height,
-                bitmap.HorizontalResolution, bitmap.VerticalResolution,
-                System.Windows.Media.PixelFormats.Bgra32, null,
-                bitmapData.Scan0, bitmapData.Stride * bitmapData.Height, bitmapData.Stride);
-
-            bitmap.UnlockBits(bitmapData);
-
-            return bitmapSource;
-        }
     }
 }
