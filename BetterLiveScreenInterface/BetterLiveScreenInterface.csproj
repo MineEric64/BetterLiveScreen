@@ -71,6 +71,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BitmapInfo.cs" />
+    <Compile Include="ReceiveInfo.cs" />
     <Compile Include="SendType.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

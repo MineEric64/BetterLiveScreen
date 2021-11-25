@@ -7,4 +7,12 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="MessagePack" Version="2.3.85" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BetterLiveScreenInterface\BetterLiveScreenInterface.csproj" />
+  </ItemGroup>
+
 </Project>

@@ -16,6 +16,7 @@ using System.Windows.Shapes;
 
 using DiscordRPC;
 
+using BetterLiveScreen.Extensions;
 using BetterLiveScreen.Users;
 
 namespace BetterLiveScreen
@@ -25,6 +26,8 @@ namespace BetterLiveScreen
     /// </summary>
     public partial class StartPage : Window
     {
+        public bool IsAccepted { get; set; } = false;
+
         public StartPage()
         {
             InitializeComponent();
@@ -46,7 +49,7 @@ namespace BetterLiveScreen
         {
             username.Text = MainWindow.User.Name;
             userauth.Content = $"#{MainWindow.User.Discriminator}";
-            usericon.Source = MainWindow.User.GetAvatarImage();
+            usericon.Fill = BitmapConverter.CreateImageBrush(MainWindow.User.GetAvatarImage());
         }
 
         public bool TryDiscord()
@@ -76,6 +79,7 @@ namespace BetterLiveScreen
 
         private void ok_Click(object sender, RoutedEventArgs e)
         {
+            IsAccepted = true;
             this.Close();
         }
 

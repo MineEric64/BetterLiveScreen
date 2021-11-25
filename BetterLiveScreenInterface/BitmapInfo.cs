@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 using MessagePack;
 
-namespace BetterLiveScreen.Interface
+namespace BetterLiveScreen.Interfaces
 {
     [MessagePackObject]
     public class BitmapInfo
@@ -23,6 +23,9 @@ namespace BetterLiveScreen.Interface
 
         [Key(3)]
         public int BufferLength { get; set; }
+
+        [IgnoreMember]
+        public static BitmapInfo Empty => new BitmapInfo(0, 0, PixelFormat.Undefined, 0);
 
         public BitmapInfo(int width, int height, PixelFormat pixelFormat, int bufferLength)
         {

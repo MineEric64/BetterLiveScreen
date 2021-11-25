@@ -137,6 +137,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Clients\ClientOne.cs" />
     <Compile Include="Extensions\BitmapConverter.cs" />
     <Compile Include="Recording\Rescreen.cs" />
     <Compile Include="Recording\Types\ScreenShare.cs" />
@@ -197,7 +198,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Resource>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="BetterLiveScreenInterface\BetterLiveScreenInterface.csproj">
+      <Project>{70e0b235-cf65-4c23-a17b-c719f375f487}</Project>
+      <Name>BetterLiveScreenInterface</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>

@@ -18,12 +18,15 @@ using System.Windows.Shapes;
 using System.Windows.Threading;
 using System.Net;
 using System.Net.Sockets;
+using System.ComponentModel;
 
 using OpenCvSharp;
 using OpenCvSharp.WpfExtensions;
 
 using DiscordRPC;
 
+using BetterLiveScreen.Clients;
+using BetterLiveScreen.Extensions;
 using BetterLiveScreen.Recording;
 using BetterLiveScreen.Rooms;
 using BetterLiveScreen.Users;
@@ -40,10 +43,14 @@ namespace BetterLiveScreen
         public static UserInfo User { get; set; }
         public static List<UserInfo> Users { get; set; } = new List<UserInfo>();
 
+        public static ClientOne Client { get; set; }
+
         public MainWindow()
         {
             InitializeComponent();
             DiscordClient.Initialize();
+
+            this.Closing += MainWindow_Closing;
         }
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -52,10 +59,18 @@ namespace BetterLiveScreen
 
             startPage.Closing += (s, ee) =>
             {
-                name1.Content = User.Name;
-                name1.ToolTip = $"#{User.Discriminator}";
+                if (startPage.IsAccepted)
+                {
+                    usericon.Fill = BitmapConverter.CreateImageBrush(User.GetAvatarImage());
+                    username.Content = User.Name;
+                    username.ToolTip = $"#{User.Discriminator}";
 
-                this.IsEnabled = true;
+                    this.IsEnabled = true;
+                }
+                else
+                {
+                    this.Close();
+                }
             };
 
             InitializeUI();
@@ -70,6 +85,11 @@ namespace BetterLiveScreen
             name2.Content = string.Empty;
             name3.Content = string.Empty;
             name4.Content = string.Empty;
+        }
+
+        private void MainWindow_Closing(object sender, CancelEventArgs e)
+        {
+            Client?.Close();
         }
 
         private void goLive_Click(object sender, RoutedEventArgs e)
@@ -104,6 +124,17 @@ namespace BetterLiveScreen
             {
 
             }
+        }
+
+        private void serverIpConnect_Click(object sender, RoutedEventArgs e)
+        {
+            string id = serverIp.Text;
+            RoomManager.Connect(id);
+        }
+
+        private void serverCreate_Click(object sender, RoutedEventArgs e)
+        {
+            
         }
     }
 }

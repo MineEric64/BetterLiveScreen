@@ -18,6 +18,7 @@ namespace BetterLiveScreen.Extensions
         /// MessagePack을 위한 LZ4 압축 옵션
         /// </summary>
         public static MessagePackSerializerOptions LZ4_OPTIONS = MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray);
+        public static BitmapSource BLACK_IMAGE { get; } = CreateBlackImage();
 
         public static BitmapImage ToImage(this byte[] array)
         {
@@ -81,6 +82,38 @@ namespace BetterLiveScreen.Extensions
         public static byte[] Decompress(this byte[] compressed)
         {
             return MessagePackSerializer.Deserialize<byte[]>(compressed, LZ4_OPTIONS);
+        }
+
+        private static BitmapSource CreateBlackImage()
+        {
+            int width = 1280;
+            int height = 720;
+            int stride = width / 8;
+            byte[] pixels = new byte[height * stride];
+
+            List<System.Windows.Media.Color> colors = new List<System.Windows.Media.Color>();
+            colors.Add(System.Windows.Media.Color.FromRgb(0, 0, 0));
+            BitmapPalette myPalette = new BitmapPalette(colors);
+
+            BitmapSource image = BitmapSource.Create(
+                width,
+                height,
+                96,
+                96,
+                System.Windows.Media.PixelFormats.Indexed1,
+                myPalette,
+                pixels,
+                stride);
+
+            return image;
+        }
+
+        public static System.Windows.Media.ImageBrush CreateImageBrush(System.Windows.Media.ImageSource source)
+        {
+            System.Windows.Media.ImageBrush brush = new System.Windows.Media.ImageBrush();
+            brush.ImageSource = source;
+
+            return brush;
         }
     }
 }

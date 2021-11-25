@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
+using BetterLiveScreen.Extensions;
+
 namespace BetterLiveScreen.Users
 {
     public class UserInfo
@@ -37,13 +39,7 @@ namespace BetterLiveScreen.Users
         {
             if (string.IsNullOrWhiteSpace(AvatarURL))
             {
-                var bmp = new BitmapImage();
-
-                bmp.BeginInit();
-                bmp.UriSource = new Uri("/Resources/black_screen.png", UriKind.Relative);
-                bmp.EndInit();
-
-                return bmp;
+                return BitmapConverter.BLACK_IMAGE;
             }
 
             var bitmapImage = new BitmapImage();
