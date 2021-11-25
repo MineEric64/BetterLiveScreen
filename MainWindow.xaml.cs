@@ -16,6 +16,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using System.Net;
+using System.Net.Sockets;
 
 using OpenCvSharp;
 using OpenCvSharp.WpfExtensions;

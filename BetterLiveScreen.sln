@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31521.260
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BetterLiveScreen", "BetterLiveScreen.csproj", "{C7E65E64-AE4C-4598-9033-9348083D5472}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BetterLiveScreenServer", "BetterLiveScreenServer\BetterLiveScreenServer.csproj", "{0C125363-28BA-49C2-80CD-ED977D3D5367}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{C7E65E64-AE4C-4598-9033-9348083D5472}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C7E65E64-AE4C-4598-9033-9348083D5472}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C7E65E64-AE4C-4598-9033-9348083D5472}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0C125363-28BA-49C2-80CD-ED977D3D5367}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0C125363-28BA-49C2-80CD-ED977D3D5367}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0C125363-28BA-49C2-80CD-ED977D3D5367}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0C125363-28BA-49C2-80CD-ED977D3D5367}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
