@@ -1,2 +1,2 @@
 # BetterLiveScreen
- Screen Live Share that is better than discord
+Made by **MineEric64**
