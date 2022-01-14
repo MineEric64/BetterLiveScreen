@@ -4,6 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using BetterLiveScreen.Interfaces;
+
+using MessagePack;
+
 namespace BetterLiveScreen.Rooms
 {
     public class RoomManager
@@ -11,35 +15,62 @@ namespace BetterLiveScreen.Rooms
         public static bool IsConnected { get; private set; } = false;
         public static RoomInfo CurrentRoom { get; private set; }
 
-        public static void Connect(string id, string password = null)
+        public static async Task<bool> ConnectAsync(string id, string password = "")
         {
-            var info = GetRoomInfo(id);
+            var info = await GetRoomInfoAsync(id);
 
-            if (info != null || (info.PasswordRequired && string.IsNullOrEmpty(password)))
+            if (info == null || (info.PasswordRequired && string.IsNullOrEmpty(password)))
             {
-                return;
+                return false;
             }
 
-            IsConnected = true;
+            var response = await MainWindow.Client.ConnectAsync(id, password);
+
+            if (response.SendType == SendTypes.OK)
+            {
+                CurrentRoom = info;
+                IsConnected = true;
+
+                return true;
+            }
+
+            return false;
         }
         
-        public static void Disconnect()
+        public static async Task<bool> DisconnectAsync()
         {
+            var response = await MainWindow.Client.DisconnectAsync();
 
+            if (response.SendType == SendTypes.OK)
+            {
+                CurrentRoom = null;
+                IsConnected = false;
 
-            CurrentRoom = null;
-            IsConnected = false;
+                return true;
+            }
+
+            return false;
         }
 
-        public static void Create(string name, string description = null, string password = null)
+        public static async Task<bool> CreateAsync(string ip, int port, string id, string name, string description = "", string password = "")
         {
-            var info = new RoomInfo(name, description, GetRandomId(), string.IsNullOrEmpty(password));
+            var info = new RoomInfo(name, description, id, string.IsNullOrWhiteSpace(password));
+            var response = await MainWindow.Client.CreateRoomAsync(info, password);
 
-            Connect(info.Id);
+            if (response.SendType == SendTypes.OK)
+            {
+                await ConnectAsync(info.Id);
+                return true;
+            }
+
+            return false;
         }
 
-        public static RoomInfo GetRoomInfo(string id)
+        public static async Task<RoomInfo> GetRoomInfoAsync(string id)
         {
+            var response = await MainWindow.Client.GetRoomInfoAsync(id);
+            string json = MessagePackSerializer.Deserialize<string>(response.Buffer);
+
             return null;
         }
 

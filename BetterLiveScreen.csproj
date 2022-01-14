@@ -137,6 +137,9 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="BetterShare\BetterShare.xaml.cs">
+      <DependentUpon>BetterShare.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Clients\ClientOne.cs" />
     <Compile Include="Extensions\BitmapConverter.cs" />
     <Compile Include="Recording\Rescreen.cs" />
@@ -148,6 +151,10 @@
     </Compile>
     <Compile Include="Users\UserInfo.cs" />
     <Compile Include="Recording\Types\VideoLike.cs" />
+    <Page Include="BetterShare\BetterShare.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -199,9 +206,9 @@
     </Resource>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="BetterLiveScreenInterface\BetterLiveScreenInterface.csproj">
+    <ProjectReference Include="BetterLiveScreenInterface\BLSI.csproj">
       <Project>{70e0b235-cf65-4c23-a17b-c719f375f487}</Project>
-      <Name>BetterLiveScreenInterface</Name>
+      <Name>BLSI</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

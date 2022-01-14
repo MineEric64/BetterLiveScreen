@@ -41,6 +41,7 @@ namespace BetterLiveScreen
         public static DiscordRpcClient DiscordClient { get; set; } = new DiscordRpcClient("909043000053760012");
 
         public static UserInfo User { get; set; }
+        internal static string UserToken { get; } = Guid.NewGuid().ToString();
         public static List<UserInfo> Users { get; set; } = new List<UserInfo>();
 
         public static ClientOne Client { get; set; }
@@ -87,9 +88,9 @@ namespace BetterLiveScreen
             name4.Content = string.Empty;
         }
 
-        private void MainWindow_Closing(object sender, CancelEventArgs e)
+        private async void MainWindow_Closing(object sender, CancelEventArgs e)
         {
-            Client?.Close();
+            await Client?.CloseAsync();
         }
 
         private void goLive_Click(object sender, RoutedEventArgs e)
@@ -102,39 +103,46 @@ namespace BetterLiveScreen
             Rescreen.Stop();
         }
 
-        public void SendScreen()
+        public void AnalyzeReceive()
         {
-            while (Rescreen.IsRecording)
+            while (true)
             {
 
             }
         }
 
-        public void ReceiveScreen()
-        {
-            while (RoomManager.IsConnected)
-            {
-
-            }
-        }
-
-        public void DescribeScreen()
-        {
-            while (RoomManager.IsConnected)
-            {
-
-            }
-        }
-
-        private void serverIpConnect_Click(object sender, RoutedEventArgs e)
+        private async void serverIpConnect_Click(object sender, RoutedEventArgs e)
         {
             string id = serverIp.Text;
-            RoomManager.Connect(id);
+            
+            if(await RoomManager.ConnectAsync(id))
+            {
+
+            }
+            else
+            {
+
+            }
         }
 
-        private void serverCreate_Click(object sender, RoutedEventArgs e)
+        private async void serverCreate_Click(object sender, RoutedEventArgs e)
         {
-            
+            string[] ip = serverIp.Text.Split(':');
+            int port = 0;
+
+            if (ip.Length < 2 || !int.TryParse(ip[1], out port))
+            {
+                return;
+            }
+
+            if (await RoomManager.CreateAsync(ip[0], port, serverId.Text, $"{User}'s Server"))
+            {
+
+            }
+            else
+            {
+
+            }
         }
     }
 }

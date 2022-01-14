@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\BetterLiveScreenInterface\BetterLiveScreenInterface.csproj" />
+    <ProjectReference Include="..\BetterLiveScreenInterface\BLSI.csproj" />
   </ItemGroup>
 
 </Project>
