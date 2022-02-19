@@ -31,6 +31,8 @@ using BetterLiveScreen.Recording;
 using BetterLiveScreen.Rooms;
 using BetterLiveScreen.Users;
 
+using BetterLiveScreen.BetterShare;
+
 namespace BetterLiveScreen
 {
     /// <summary>
@@ -38,13 +40,18 @@ namespace BetterLiveScreen
     /// </summary>
     public partial class MainWindow : System.Windows.Window
     {
-        public static DiscordRpcClient DiscordClient { get; set; } = new DiscordRpcClient("909043000053760012");
+        public const string DISCORD_APPLICATION_ID = "909043000053760012";
+        public static DiscordRpcClient DiscordClient { get; set; } = new DiscordRpcClient(DISCORD_APPLICATION_ID);
 
         public static UserInfo User { get; set; }
         internal static string UserToken { get; } = Guid.NewGuid().ToString();
         public static List<UserInfo> Users { get; set; } = new List<UserInfo>();
 
-        public static ClientOne Client { get; set; }
+        public static ClientOne Client { get; set; } = new ClientOne();
+
+        public static BetterShareWindow ShareWindow { get; private set; } = new BetterShareWindow();
+
+        public static bool IsDevMode { get; private set; } = false;
 
         public MainWindow()
         {
@@ -63,8 +70,8 @@ namespace BetterLiveScreen
                 if (startPage.IsAccepted)
                 {
                     usericon.Fill = BitmapConverter.CreateImageBrush(User.GetAvatarImage());
-                    username.Content = User.Name;
-                    username.ToolTip = $"#{User.Discriminator}";
+                    username.Content = User.NameInfo.Name;
+                    username.ToolTip = $"#{User.NameInfo.Discriminator}";
 
                     this.IsEnabled = true;
                 }
@@ -93,6 +100,16 @@ namespace BetterLiveScreen
             await Client?.CloseAsync();
         }
 
+        private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            //Developer Mode
+            if (Keyboard.IsKeyDown(Key.LeftCtrl) && Keyboard.IsKeyDown(Key.LeftShift) && Keyboard.IsKeyDown(Key.LeftAlt) && Keyboard.IsKeyDown(Key.Y))
+            {
+                IsDevMode = !IsDevMode;
+                credit.Content = string.Concat("[ Dev Moded ]", IsDevMode ? " !" : " ?");
+            }
+        }
+
         private void goLive_Click(object sender, RoutedEventArgs e)
         {
             Rescreen.Start();
@@ -113,9 +130,51 @@ namespace BetterLiveScreen
 
         private async void serverIpConnect_Click(object sender, RoutedEventArgs e)
         {
-            string id = serverIp.Text;
+            string[] info = serverIp.Text.Trim().Split(':');
+
+            if (info.Length == 0)
+            {
+                return;
+            }
+
+            await Client.ApplyEndPointAsync(info[0]);
+
+            if (IsDevMode)
+            {
+                await ConnectAsync("y oshi");
+                return;
+            }
+
+            if (info.Length > 1)
+            {
+                await ConnectAsync(info[1]);
+            }
+            else
+            {
+
+            }
             
-            if(await RoomManager.ConnectAsync(id))
+            async Task ConnectAsync(string id)
+            {
+                if (await RoomManager.ConnectAsync(id))
+                {
+                    MessageBox.Show("OK");
+                }
+                else
+                {
+
+                }
+            }
+        }
+
+        private async void serverCreate_Click(object sender, RoutedEventArgs e)
+        {
+            if (!Client.IsReady)
+            {
+                await Client.ApplyEndPointAsync(serverIp.Text.Trim());
+            }
+
+            if (await RoomManager.CreateAsync("test", $"{User.NameInfo.Name}'s Server"))
             {
 
             }
@@ -125,24 +184,10 @@ namespace BetterLiveScreen
             }
         }
 
-        private async void serverCreate_Click(object sender, RoutedEventArgs e)
+        private void serverBetterShare_Click(object sender, RoutedEventArgs e)
         {
-            string[] ip = serverIp.Text.Split(':');
-            int port = 0;
-
-            if (ip.Length < 2 || !int.TryParse(ip[1], out port))
-            {
-                return;
-            }
-
-            if (await RoomManager.CreateAsync(ip[0], port, serverId.Text, $"{User}'s Server"))
-            {
-
-            }
-            else
-            {
-
-            }
+            if (ShareWindow.IsClosed) ShareWindow = new BetterShareWindow();
+            ShareWindow.Show();
         }
     }
 }

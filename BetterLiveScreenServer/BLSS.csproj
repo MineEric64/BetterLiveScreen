@@ -15,4 +15,8 @@
     <ProjectReference Include="..\BetterLiveScreenInterface\BLSI.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Servers\" />
+  </ItemGroup>
+
 </Project>

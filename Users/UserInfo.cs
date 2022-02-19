@@ -6,41 +6,34 @@ using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
+using BetterLiveScreen.Interfaces.Users;
 using BetterLiveScreen.Extensions;
 
 namespace BetterLiveScreen.Users
 {
     public class UserInfo
     {
-        public string Name { get; set; }
-        public string Discriminator { get; set; }
+        public UserNameInfo NameInfo { get; set; }
         public string AvatarURL { get; set; }
 
-        public static UserInfo GuestUser => new UserInfo(GetGuestUserName(), "Guest", string.Empty);
+        public static UserInfo GuestUser => new UserInfo(UserNameInfo.GuestUser, string.Empty);
 
-        public UserInfo(string name, string discriminator, string avatarUrl)
+        public UserInfo(string user, string avatarUrl)
         {
-            Name = name;
-            Discriminator = discriminator;
+            NameInfo = new UserNameInfo(user);
             AvatarURL = avatarUrl;
         }
 
-        public override string ToString()
+        public UserInfo(string name, string discriminator, string avatarUrl)
         {
-            return string.Join("#", Name, Discriminator);
+            NameInfo = new UserNameInfo(name, discriminator);
+            AvatarURL = avatarUrl;
         }
 
-        public UserInfo FromString(string str, string avatarUrl = "")
+        public UserInfo(UserNameInfo nameInfo, string avatarUrl)
         {
-            string[] info = str.Split('#');
-
-            if (info.Length < 2) return GuestUser;
-            return new UserInfo(info[0], info[1], (!string.IsNullOrWhiteSpace(avatarUrl) ? avatarUrl : GuestUser.AvatarURL));
-        }
-
-        public static string GetGuestUserName()
-        {
-            return string.Join(string.Empty, "Guest", Guid.NewGuid().ToString().Substring(0, 4).ToUpper());
+            NameInfo = nameInfo;
+            AvatarURL = avatarUrl;
         }
 
         public ImageSource GetAvatarImage()

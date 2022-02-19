@@ -47,8 +47,8 @@ namespace BetterLiveScreen
 
         public void ApplyUserInfo()
         {
-            username.Text = MainWindow.User.Name;
-            userauth.Content = $"#{MainWindow.User.Discriminator}";
+            username.Text = MainWindow.User.NameInfo.Name;
+            userauth.Content = $"#{MainWindow.User.NameInfo.Discriminator}";
             usericon.Fill = BitmapConverter.CreateImageBrush(MainWindow.User.GetAvatarImage());
         }
 

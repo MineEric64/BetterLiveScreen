@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -17,6 +18,10 @@ namespace BetterLiveScreen.Rooms
 
         public static async Task<bool> ConnectAsync(string id, string password = "")
         {
+            var a = await MainWindow.Client.ConnectAsync(id, password);
+            Debug.WriteLine(a.SendType.ToString());
+            return true;
+
             var info = await GetRoomInfoAsync(id);
 
             if (info == null || (info.PasswordRequired && string.IsNullOrEmpty(password)))
@@ -52,7 +57,7 @@ namespace BetterLiveScreen.Rooms
             return false;
         }
 
-        public static async Task<bool> CreateAsync(string ip, int port, string id, string name, string description = "", string password = "")
+        public static async Task<bool> CreateAsync(string id, string name, string description = "", string password = "")
         {
             var info = new RoomInfo(name, description, id, string.IsNullOrWhiteSpace(password));
             var response = await MainWindow.Client.CreateRoomAsync(info, password);

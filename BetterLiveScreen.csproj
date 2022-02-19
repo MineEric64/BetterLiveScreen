@@ -137,8 +137,8 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="BetterShare\BetterShare.xaml.cs">
-      <DependentUpon>BetterShare.xaml</DependentUpon>
+    <Compile Include="BetterShare\BetterShareWindow.xaml.cs">
+      <DependentUpon>BetterShareWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="Clients\ClientOne.cs" />
     <Compile Include="Extensions\BitmapConverter.cs" />
@@ -151,7 +151,7 @@
     </Compile>
     <Compile Include="Users\UserInfo.cs" />
     <Compile Include="Recording\Types\VideoLike.cs" />
-    <Page Include="BetterShare\BetterShare.xaml">
+    <Page Include="BetterShare\BetterShareWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

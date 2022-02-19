@@ -8,17 +8,18 @@ using System.Threading.Tasks;
 
 using MessagePack;
 
-using BetterLiveScreen.Interfaces;
 using BetterLiveScreen.Server.Extensions;
+using BetterLiveScreen.Server.Users;
+using BetterLiveScreen.Interfaces;
 
 namespace BetterLiveScreen.Server
 {
     public class Program
     {
         public static ServerOne One { get; set; } = new ServerOne();
-        public static List<IPEndPoint> EndPoints { get; set; } = new List<IPEndPoint>();
+        internal static Dictionary<string, UserInfo> Users { get; set; } = new Dictionary<string, UserInfo>();
 
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             AppDomain.CurrentDomain.ProcessExit += new EventHandler(Program_ProcessExited);
             WriteServerInfo();
@@ -28,10 +29,7 @@ namespace BetterLiveScreen.Server
                 IPEndPoint remoteEP = new IPEndPoint(IPAddress.Any, 0);
                 ReceiveInfo info = ReceiveInfo.Empty;
 
-                byte[] buffer = One.Server.Receive(ref remoteEP);
-                if (!EndPoints.Contains(remoteEP)) EndPoints.Add(remoteEP);
-
-                foreach (IPEndPoint ep in EndPoints) if (ep != remoteEP) One.Server.Send(buffer, buffer.Length, ep);
+               
             }
         }
 
@@ -43,7 +41,7 @@ namespace BetterLiveScreen.Server
         static void WriteServerInfo()
         {
             IPAddress ip = NetworkManager.GetExternal();
-            Console.WriteLine($"Server Address : {ip}:{ServerOne.PORT_NUMBER}");
+            Console.WriteLine($"Server Address : {ip}");
         }
     }
 }

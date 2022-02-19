@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using MessagePack;
 
 using BetterLiveScreen.Server.Extensions;
+using BetterLiveScreen.Interfaces;
 
 namespace BetterLiveScreen.Server
 {
@@ -34,6 +35,20 @@ namespace BetterLiveScreen.Server
             _ = MessagePackSerializer.Deserialize<byte[]>(compressed);
 
             IsReady = true;
+        }
+
+        public async Task SendBufferAsync(ReceiveInfo info, IPEndPoint remoteEP)
+        {
+            byte[] buffer = MessagePackSerializer.Serialize(info);
+            await Server.SendAsync(buffer, buffer.Length, remoteEP);
+        }
+
+        public async Task<(ReceiveInfo, IPEndPoint)> ReceiveBufferAsync()
+        {
+            var response = await Server.ReceiveAsync();
+            var info = MessagePackSerializer.Deserialize<ReceiveInfo>(response.Buffer);
+
+            return (info, response.RemoteEndPoint);
         }
 
         public void Close()

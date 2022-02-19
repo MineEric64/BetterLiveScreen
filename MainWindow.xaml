@@ -5,14 +5,14 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:BetterLiveScreen"
         mc:Ignorable="d"
-        Title="Better Live Screen" Height="624" Width="1046" Loaded="MainWindow_Loaded">
+        Title="Better Live Screen" Height="624" Width="1046" Loaded="MainWindow_Loaded" PreviewKeyDown="MainWindow_PreviewKeyDown">
     <Grid HorizontalAlignment="Left" Width="1036" VerticalAlignment="Stretch">
         <Image x:Name="thumbnail1" HorizontalAlignment="Left" Height="90" Margin="731,72,0,0" VerticalAlignment="Top" Width="150" Source="/Resources/black_screen.png" Stretch="UniformToFill"/>
         <Image x:Name="thumbnail2" HorizontalAlignment="Left" Height="90" Margin="731,183,0,0" VerticalAlignment="Top" Width="150" Stretch="UniformToFill" Source="/Resources/black_screen.png"/>
         <Image x:Name="thumbnail3" HorizontalAlignment="Left" Height="90" Margin="731,290,0,0" VerticalAlignment="Top" Width="150" Stretch="UniformToFill" Source="/Resources/black_screen.png"/>
         <Image x:Name="thumbnail4" HorizontalAlignment="Left" Height="90" Margin="731,393,0,0" VerticalAlignment="Top" Width="150" Stretch="UniformToFill" Source="/Resources/black_screen.png"/>
         <Image x:Name="screen_main" HorizontalAlignment="Left" Height="365" Margin="20,71,0,0" VerticalAlignment="Top" Width="644" Source="/Resources/black_screen.png" Stretch="UniformToFill"/>
-        <Label Content="Made by MineEric64#6456" HorizontalAlignment="Left" Margin="858,547,0,0" VerticalAlignment="Top" Cursor="" Background="#00000000">
+        <Label x:Name="credit" Content="Made by y oshi#7997" HorizontalAlignment="Left" Margin="896,547,0,0" VerticalAlignment="Top" Cursor="" Background="#00000000">
             <Label.Foreground>
                 <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
                     <GradientStop Color="Black" Offset="0"/>
@@ -44,13 +44,13 @@
         <Label x:Name="name2" Content="User2" HorizontalAlignment="Left" Margin="896,249,0,0" VerticalAlignment="Top"/>
         <Label x:Name="name3" Content="User3" HorizontalAlignment="Left" Margin="896,356,0,0" VerticalAlignment="Top"/>
         <Label x:Name="name4" Content="User4" HorizontalAlignment="Left" Margin="896,459,0,0" VerticalAlignment="Top"/>
-        <Button x:Name="serverIpConnect" Content="Connect" HorizontalAlignment="Left" Margin="255,30,0,0" VerticalAlignment="Top" Width="89" Height="23" Click="serverIpConnect_Click"/>
+        <Button x:Name="serverIpConnect" Content="Connect" HorizontalAlignment="Left" Margin="223,30,0,0" VerticalAlignment="Top" Width="89" Height="23" Click="serverIpConnect_Click"/>
         <Label x:Name="userConnected" Content="0 / 4 Users Connected" HorizontalAlignment="Left" Margin="536,30,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.803,-0.429" FontWeight="Bold"/>
-        <TextBox x:Name="serverIp" HorizontalAlignment="Left" Margin="20,30,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="87" FontSize="20" Background="WhiteSmoke"/>
+        <TextBox x:Name="serverIp" HorizontalAlignment="Left" Margin="20,30,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="188" FontSize="20" Background="WhiteSmoke"/>
         <Ellipse x:Name="usericon" HorizontalAlignment="Left" Height="52" Margin="731,10,0,0" VerticalAlignment="Top" Width="52" Fill="Black" Stretch="UniformToFill"/>
         <Label x:Name="username" Content="User" HorizontalAlignment="Left" Margin="798,20,0,0" VerticalAlignment="Top" FontSize="20" FontWeight="Normal"/>
-        <Button x:Name="serverCreate" Content="Create Room" HorizontalAlignment="Left" Margin="364,30,0,0" VerticalAlignment="Top" Width="89" Height="23" Click="serverCreate_Click"/>
-        <TextBox x:Name="serverId" HorizontalAlignment="Left" Margin="129,30,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="109" FontSize="20" Background="WhiteSmoke"/>
+        <Button x:Name="serverCreate" Content="Create Room" HorizontalAlignment="Left" Margin="324,30,0,0" VerticalAlignment="Top" Width="88" Height="23" Click="serverCreate_Click" RenderTransformOrigin="0.066,0.517"/>
+        <Button x:Name="serverBetterShare" Content="Better Share" HorizontalAlignment="Left" Margin="425,30,0,0" VerticalAlignment="Top" Width="93" Height="23" Click="serverBetterShare_Click" RenderTransformOrigin="1.131,0.427"/>
 
     </Grid>
 </Window>

@@ -32,14 +32,19 @@ namespace BetterLiveScreen.Clients
 
         public bool IsReady { get; set; } = false;
 
-        public ClientOne(string ip)
+        public ClientOne()
         {
             //for serialize optimization
             //for details, see at https://github.com/neuecc/MessagePack-CSharp/issues/1350
             _ = MessagePackSerializer.Serialize(BitmapInfo.Empty);
 
-            IPEP = new IPEndPoint(IPAddress.Parse(ip), PORT_NUMBER);
             Client = new UdpClient();
+        }
+
+        public async Task ApplyEndPointAsync(string ip)
+        {
+            IPEP = new IPEndPoint(IPAddress.TryParse(ip, out var address) ? address : (await Dns.GetHostAddressesAsync(ip))[0], PORT_NUMBER);
+            Client.Client.Bind(IPEP);
 
             IsReady = true;
         }
@@ -62,7 +67,7 @@ namespace BetterLiveScreen.Clients
             {
                 { "id", room.Id },
                 { "password", !string.IsNullOrEmpty(password) ? SHA512.Hash(password) : string.Empty },
-                { "user", MainWindow.User.ToString() },
+                { "user", MainWindow.User.NameInfo.ToString() },
                 { "user_url", MainWindow.User.AvatarURL },
                 { "name", room.Name },
                 { "description", room.Description }
@@ -81,12 +86,12 @@ namespace BetterLiveScreen.Clients
             {
                 { "id", id },
                 { "password", !string.IsNullOrEmpty(password) ? SHA512.Hash(password) : string.Empty },
-                { "user", MainWindow.User.ToString() },
+                { "user", MainWindow.User.NameInfo.ToString() },
                 { "user_url", MainWindow.User.AvatarURL }
             };
             byte[] buffer = MessagePackSerializer.Serialize(json.ToString(), LZ4_OPTIONS);
 
-            var info = new ReceiveInfo(SendTypes.Connected, 0, buffer);
+            var info = new ReceiveInfo(SendTypes.Connected, buffer);
             await SendBufferAsync(info);
 
             return await ReceiveBufferAsync();
@@ -96,12 +101,12 @@ namespace BetterLiveScreen.Clients
         {
             var json = new JObject
             {
-                { "id", RoomManager.CurrentRoom.Id }
-                { "user", MainWindow.User.ToString() }
+                { "id", RoomManager.CurrentRoom.Id },
+                { "user", MainWindow.User.NameInfo.ToString() }
             };
             byte[] buffer = MessagePackSerializer.Serialize(json.ToString(), LZ4_OPTIONS);
 
-            var info = new ReceiveInfo(SendTypes.Disconnected, 0, buffer);
+            var info = new ReceiveInfo(SendTypes.Disconnected, buffer);
             await SendBufferAsync(info);
 
             return await ReceiveBufferAsync();
@@ -115,7 +120,7 @@ namespace BetterLiveScreen.Clients
             };
             byte[] buffer = MessagePackSerializer.Serialize(json.ToString(), LZ4_OPTIONS);
 
-            var info = new ReceiveInfo(SendTypes.Requested, 0, buffer);
+            var info = new ReceiveInfo(SendTypes.Requested, buffer);
             await SendBufferAsync(info);
 
             return await ReceiveBufferAsync();
