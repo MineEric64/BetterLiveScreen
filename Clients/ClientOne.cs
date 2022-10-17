@@ -43,7 +43,10 @@ namespace BetterLiveScreen.Clients
 
         public async Task ApplyEndPointAsync(string ip)
         {
-            IPEP = new IPEndPoint(IPAddress.TryParse(ip, out var address) ? address : (await Dns.GetHostAddressesAsync(ip))[0], PORT_NUMBER);
+            IPAddress address;
+            if (!IPAddress.TryParse(ip, out address)) address = (await Dns.GetHostAddressesAsync(ip))[0];
+
+            IPEP = new IPEndPoint(address, PORT_NUMBER);
             Client.Client.Bind(IPEP);
 
             IsReady = true;

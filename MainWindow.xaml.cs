@@ -21,6 +21,7 @@ using System.Net.Sockets;
 using System.ComponentModel;
 
 using OpenCvSharp;
+using OpenCvSharp.Extensions;
 using OpenCvSharp.WpfExtensions;
 
 using DiscordRPC;
@@ -32,6 +33,12 @@ using BetterLiveScreen.Rooms;
 using BetterLiveScreen.Users;
 
 using BetterLiveScreen.BetterShare;
+
+using Path = System.IO.Path;
+using CvSize = OpenCvSharp.Size;
+using BitmapConverter = BetterLiveScreen.Extensions.BitmapConverter;
+using System.Runtime.InteropServices;
+using System.Windows.Media.Media3D;
 
 namespace BetterLiveScreen
 {
@@ -98,6 +105,7 @@ namespace BetterLiveScreen
         private async void MainWindow_Closing(object sender, CancelEventArgs e)
         {
             await Client?.CloseAsync();
+            Application.Current.Shutdown();
         }
 
         private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -130,6 +138,34 @@ namespace BetterLiveScreen
 
         private async void serverIpConnect_Click(object sender, RoutedEventArgs e)
         {
+            Rescreen.Start();
+            await Task.Delay(10000);
+            Rescreen.Stop();
+
+            var writer = new VideoWriter();
+
+            writer.Open(@"C:\Users\erics\Downloads\cv.mp4", FourCC.H264, 30.0, new CvSize(2560, 1440));
+            if (writer.IsOpened()) MessageBox.Show("hurary!");
+            else MessageBox.Show("tlsqkf");
+            
+            while (Rescreen.VideoStreams[User.ToString()].ScreenQueue.Count > 0)
+            {
+                byte[] buffer = Rescreen.VideoStreams[User.ToString()].ScreenQueue.Dequeue();
+                byte[] raw = buffer.Decompress();
+
+                var src = new Mat(720, 1280, MatType.CV_8UC4);
+                int length = 1280 * 720 * 4; // or src.Height * src.Step;
+                Marshal.Copy(raw, 0, src.Data, length);
+
+                writer.Write(src);
+                src.Dispose();
+            }
+
+            writer.Dispose();
+
+            MessageBox.Show("Done");
+            return;
+
             string[] info = serverIp.Text.Trim().Split(':');
 
             if (info.Length == 0)
@@ -137,7 +173,10 @@ namespace BetterLiveScreen
                 return;
             }
 
-            await Client.ApplyEndPointAsync(info[0]);
+            if (!Client.IsReady)
+            {
+                await Client.ApplyEndPointAsync(info[0]);
+            }
 
             if (IsDevMode)
             {

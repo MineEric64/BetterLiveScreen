@@ -6,11 +6,17 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Media.Imaging;
 using System.Diagnostics;
 
 using BetterLiveScreen.Recording.Types;
 using BetterLiveScreen.Extensions;
+
+using Size = System.Drawing.Size;
+using System.Runtime.InteropServices;
+using Newtonsoft.Json.Linq;
+using OpenCvSharp;
 
 namespace BetterLiveScreen.Recording
 {
@@ -18,7 +24,6 @@ namespace BetterLiveScreen.Recording
     {
         private static FScreen _raw = new FScreen();
         private static Stopwatch _flow = new Stopwatch();
-
         public static EventHandler<Bitmap> Refreshed { get; set; }
         
         public static Dictionary<string, VideoLike> VideoStreams { get; set; } = new Dictionary<string, VideoLike>();
@@ -36,31 +41,18 @@ namespace BetterLiveScreen.Recording
             }
 
             int dpf = 1000 / Fps; //delay per frame
-            var isInitialized = false;
 
-            _raw.ScreenRefreshed += (object sender, Bitmap e) =>
+            _raw.ScreenRefreshed += (object sender, IntPtr e) =>
             {
-                var bmp = e.Size != ScreenSize ? new Bitmap(e, ScreenSize) : e;
-                var buffer = bmp.ToArray(); //Bitmap -> byte[]
+                var buffer = new byte[1280 * 720 * 4];
+
+                Marshal.Copy(e, buffer, 0, buffer.Length);
                 var compressed = buffer.Compress(); //byte[] -> compressed byte[]
 
                 VideoStreams[MainWindow.User.ToString()].ScreenQueue.Enqueue(compressed);
-                _flow.Stop();
-
-                int delay = dpf - (int)_flow.ElapsedMilliseconds;
-
-                if (isInitialized && delay >= 5)
-                {
-                    Thread.Sleep(delay);
-                }
-                else if (!isInitialized)
-                {
-                    isInitialized = true;
-                }
-
-                _flow.Restart();
             };
-            _raw.Start(); 
+            _raw.Start();
+            _flow.Start();
 
             IsRecording = true;
         }
@@ -70,6 +62,9 @@ namespace BetterLiveScreen.Recording
             _raw.Stop();
             _flow.Stop();
 
+            MessageBox.Show((VideoStreams[MainWindow.User.ToString()].ScreenQueue.Count / _flow.Elapsed.TotalSeconds).ToString());
+
+            _flow.Reset();
             IsRecording = false;
         }
     }
