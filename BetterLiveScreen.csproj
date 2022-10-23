@@ -58,9 +58,8 @@
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Composition.WindowsRuntimeHelpers_NETStd, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>bin\x64\Debug\Composition.WindowsRuntimeHelpers_NETStd.dll</HintPath>
+    <Reference Include="Composition.WindowsRuntimeHelpers_NETStd">
+      <HintPath>DLLs\Composition.WindowsRuntimeHelpers_NETStd.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -170,9 +169,6 @@
     </PackageReference>
     <PackageReference Include="Microsoft.Windows.SDK.Contracts">
       <Version>10.0.25211-preview</Version>
-    </PackageReference>
-    <PackageReference Include="Microsoft.WindowsAppSDK.Foundation">
-      <Version>1.0.0-experimental1</Version>
     </PackageReference>
     <PackageReference Include="OpenCvSharp4.runtime.win">
       <Version>4.5.3.20210817</Version>
