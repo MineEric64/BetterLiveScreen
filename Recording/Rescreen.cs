@@ -29,11 +29,12 @@ namespace BetterLiveScreen.Recording
         public static Dictionary<string, VideoLike> VideoStreams { get; set; } = new Dictionary<string, VideoLike>();
 
         public static int Fps { get; set; } = 30;
+
         public static Size ScreenSize { get; set; } = new Size(1280, 720);
 
         public static bool IsRecording { get; private set; } = false;
 
-        public static void Start()
+        public static void Start(bool isHalf = false)
         {
             if (!VideoStreams.ContainsKey(MainWindow.User.ToString()))
             {
@@ -42,16 +43,12 @@ namespace BetterLiveScreen.Recording
 
             int dpf = 1000 / Fps; //delay per frame
 
-            _raw.ScreenRefreshed += (object sender, IntPtr e) =>
+            _raw.ScreenRefreshed += (object sender, byte[] e) =>
             {
-                var buffer = new byte[1280 * 720 * 4];
-
-                Marshal.Copy(e, buffer, 0, buffer.Length);
-                var compressed = buffer.Compress(); //byte[] -> compressed byte[]
-
+                var compressed = e.Compress(); //byte[] -> compressed byte[]
                 VideoStreams[MainWindow.User.ToString()].ScreenQueue.Enqueue(compressed);
             };
-            _raw.Start();
+            _raw.Start(isHalf);
             _flow.Start();
 
             IsRecording = true;
@@ -62,7 +59,7 @@ namespace BetterLiveScreen.Recording
             _raw.Stop();
             _flow.Stop();
 
-            MessageBox.Show((VideoStreams[MainWindow.User.ToString()].ScreenQueue.Count / _flow.Elapsed.TotalSeconds).ToString());
+            MessageBox.Show((VideoStreams[MainWindow.User.ToString()].ScreenQueue.Count / _flow.Elapsed.TotalSeconds).ToString("0.##"));
 
             _flow.Reset();
             IsRecording = false;

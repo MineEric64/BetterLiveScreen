@@ -2,11 +2,13 @@
 using System.Diagnostics;
 using System.Drawing.Imaging;
 using System.Drawing;
+using System.Threading;
 using System.Threading.Tasks;
 
 using SharpDX;
 using SharpDX.DXGI;
 using SharpDX.Direct3D11;
+using System.Runtime.InteropServices;
 
 namespace BetterLiveScreen.Recording
 {
@@ -23,7 +25,7 @@ namespace BetterLiveScreen.Recording
 
         }
 
-        public void Start()
+        public void Start(bool isHalf)
         {
             _run = true;
             var factory = new Factory1();
@@ -39,21 +41,26 @@ namespace BetterLiveScreen.Recording
             int width = output.Description.DesktopBounds.Right;
             int height = output.Description.DesktopBounds.Bottom;
 
+            int aw = isHalf ? width / 2 : width;
+            int ah = isHalf ? height / 2 : height;
+
+            int timeOut = 1000 / Rescreen.Fps;
+            
             // Create Staging texture CPU-accessible
             var textureDesc = new Texture2DDescription
             {
                 CpuAccessFlags = CpuAccessFlags.Read,
                 BindFlags = BindFlags.None,
                 Format = SharpDX.DXGI.Format.B8G8R8A8_UNorm,
-                Width = width,
-                Height = height,
+                Width = aw,
+                Height = ah,
                 OptionFlags = ResourceOptionFlags.None,
                 MipLevels = 1,
                 ArraySize = 1,
                 SampleDescription = { Count = 1, Quality = 0 },
                 Usage = ResourceUsage.Staging
             };
-
+            
             var stagingTexture = new Texture2D(device, textureDesc);
 
             // Create Staging texture CPU-accessible
@@ -78,6 +85,10 @@ namespace BetterLiveScreen.Recording
                 // Duplicate the output
                 using (var duplicatedOutput = output1.DuplicateOutput(device))
                 {
+                    var startDate = DateTime.MinValue;
+                    int needElapsed = 0;
+                    int deltaRes = 0;
+
                     while (_run)
                     {
                         try
@@ -86,51 +97,72 @@ namespace BetterLiveScreen.Recording
                             OutputDuplicateFrameInformation duplicateFrameInformation;
 
                             // Try to get duplicated frame within given time is ms
-                            duplicatedOutput.AcquireNextFrame(5, out duplicateFrameInformation, out screenResource);
+                            var result = duplicatedOutput.TryAcquireNextFrame(timeOut, out duplicateFrameInformation, out screenResource);
+                            var delta = DateTime.Now - startDate;
+
+                            if (result.Failure)
+                            {
+                                continue;
+                            }
+                            else if (startDate == DateTime.MinValue)
+                            {
+                                startDate = DateTime.Now;
+                            }
+                            else if (needElapsed - deltaRes > (int)delta.TotalMilliseconds)
+                            {
+                                Thread.Sleep(needElapsed - deltaRes - (int)delta.TotalMilliseconds);
+                            }
+
+                            var startResDate = DateTime.Now;
+                            needElapsed += timeOut;
 
                             // copy resource into memory that can be accessed by the CPU
                             using (var screenTexture2D = screenResource.QueryInterface<Texture2D>())
-                                device.ImmediateContext.CopyResource(screenTexture2D, smallerTexture);
+                                if (isHalf) device.ImmediateContext.CopySubresourceRegion(screenTexture2D, 0, null, smallerTexture, 0);
+                                else device.ImmediateContext.CopyResource(screenTexture2D, stagingTexture);
 
-                            // Generates the mipmap of the screen
-                            device.ImmediateContext.GenerateMips(smallerTextureView);
+                            if (isHalf)
+                            {
+                                // Generates the mipmap of the screen
+                                device.ImmediateContext.GenerateMips(smallerTextureView);
 
-                            // Copy the mipmap 1 of smallerTexture (size/2) to the staging texture
-                            device.ImmediateContext.CopySubresourceRegion(smallerTexture, 1, null, stagingTexture, 0);
+                                // Copy the mipmap 1 of smallerTexture (size/2) to the staging texture
+                                device.ImmediateContext.CopySubresourceRegion(smallerTexture, 1, null, stagingTexture, 0);
+                            }
 
                             // Get the desktop capture texture
                             var mapSource = device.ImmediateContext.MapSubresource(stagingTexture, 0, MapMode.Read, SharpDX.Direct3D11.MapFlags.None);
-
+                            
                             var sourcePtr = mapSource.DataPointer;
-                            var destPtr = new IntPtr();
+                            var destRaw = new byte[aw * ah * 4];
 
-                            for (int y = 0; y < height / 2; y++)
+                            for (int y = 0; y < ah; y++)
                             {
-                                // Copy a single line 
-                                Utilities.CopyMemory(destPtr, sourcePtr, width / 2 * 4);
+                                // Copy a single line
+                                int offset = y * aw * 4;
+                                Marshal.Copy(sourcePtr, destRaw, offset, aw * 4);
 
                                 // Advance pointers
                                 sourcePtr = IntPtr.Add(sourcePtr, mapSource.RowPitch);
-                                destPtr = IntPtr.Add(destPtr, width / 2 * 4);
                             }
                             device.ImmediateContext.UnmapSubresource(stagingTexture, 0);
 
-                            ScreenRefreshed?.Invoke(this, destPtr);
+                            ScreenRefreshed?.Invoke(this, destRaw);
                             _init = true;
 
-                            //// Create Drawing.Bitmap
-                            //using (var bitmap = new Bitmap(width, height, PixelFormat.Format32bppArgb))
+                            // Create Drawing.Bitmap
+                            //using (var bitmap = new Bitmap(width / 2, height / 2, PixelFormat.Format32bppArgb))
                             //{
-                            //    var boundsRect = new Rectangle(0, 0, width, height);
+                            //    var boundsRect = new Rectangle(0, 0, width / 2, height / 2);
 
                             //    // Copy pixels from screen capture Texture to GDI bitmap
                             //    var mapDest = bitmap.LockBits(boundsRect, ImageLockMode.WriteOnly, bitmap.PixelFormat);
                             //    var sourcePtr = mapSource.DataPointer;
                             //    var destPtr = mapDest.Scan0;
-                            //    for (int y = 0; y < height; y++)
+                            //    for (int y = 0; y < height / 2; y++)
                             //    {
                             //        // Copy a single line 
-                            //        Utilities.CopyMemory(destPtr, sourcePtr, width * 4);
+                            //        Utilities.CopyMemory(destPtr, sourcePtr, width * 4 / 2);
 
                             //        // Advance pointers
                             //        sourcePtr = IntPtr.Add(sourcePtr, mapSource.RowPitch);
@@ -139,13 +171,17 @@ namespace BetterLiveScreen.Recording
 
                             //    // Release source and dest locks
                             //    bitmap.UnlockBits(mapDest);
-                            //    device.ImmediateContext.UnmapSubresource(screenTexture, 0);
+                            //    device.ImmediateContext.UnmapSubresource(stagingTexture, 0);
 
-                            //    ScreenRefreshed?.Invoke(this, bitmap);
+                            //    bitmap.Save(@"C:\Users\erics\Downloads\fsc.jpg");
+
+                            //    //ScreenRefreshed?.Invoke(this, bitmap);
                             //    _init = true;
                             //}
                             screenResource.Dispose();
                             duplicatedOutput.ReleaseFrame();
+
+                            deltaRes = (int)(DateTime.Now - startResDate).TotalMilliseconds;
                         }
                         catch (SharpDXException e)
                         {
@@ -166,6 +202,6 @@ namespace BetterLiveScreen.Recording
             _run = false;
         }
 
-        public EventHandler<IntPtr> ScreenRefreshed;
+        public EventHandler<byte[]> ScreenRefreshed;
     }
 }

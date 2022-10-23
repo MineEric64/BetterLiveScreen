@@ -115,5 +115,10 @@ namespace BetterLiveScreen.Extensions
 
             return brush;
         }
+
+        public static OpenCvSharp.Size ToCvSize(this Size size)
+        {
+            return new OpenCvSharp.Size(size.Width, size.Height);
+        }
     }
 }

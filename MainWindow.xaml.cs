@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -13,12 +14,16 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Media.Media3D;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using System.Net;
 using System.Net.Sockets;
-using System.ComponentModel;
+using System.Runtime.InteropServices;
+using Windows.UI.Xaml.Documents;
+
+using SharpDX.DXGI;
 
 using OpenCvSharp;
 using OpenCvSharp.Extensions;
@@ -37,8 +42,6 @@ using BetterLiveScreen.BetterShare;
 using Path = System.IO.Path;
 using CvSize = OpenCvSharp.Size;
 using BitmapConverter = BetterLiveScreen.Extensions.BitmapConverter;
-using System.Runtime.InteropServices;
-using System.Windows.Media.Media3D;
 
 namespace BetterLiveScreen
 {
@@ -66,6 +69,7 @@ namespace BetterLiveScreen
             DiscordClient.Initialize();
 
             this.Closing += MainWindow_Closing;
+            AppDomain.CurrentDomain.UnhandledException += MainWindow_UnhandledException;
         }
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -102,6 +106,26 @@ namespace BetterLiveScreen
             name4.Content = string.Empty;
         }
 
+        private void InitializeOption()
+        {
+            var factory = new Factory1();
+
+            foreach (Adapter1 adapter in factory.Adapters1)
+            {
+                for (int i = 0; i < adapter.Outputs.Length; i++)
+                {
+                    var output = adapter.Outputs[i];
+                    Console.WriteLine($"[{i}] {output.Description.DeviceName} : ({output.Description.DesktopBounds.Right}x{output.Description.DesktopBounds.Bottom})");
+                }
+            }
+
+            //var adapter = factory.GetAdapter1(0);
+            //var output = adapter.GetOutput(0);
+
+            //int width = output.Description.DesktopBounds.Right;
+            //int height = output.Description.DesktopBounds.Bottom;
+        }
+
         private async void MainWindow_Closing(object sender, CancelEventArgs e)
         {
             await Client?.CloseAsync();
@@ -116,6 +140,16 @@ namespace BetterLiveScreen
                 IsDevMode = !IsDevMode;
                 credit.Content = string.Concat("[ Dev Moded ]", IsDevMode ? " !" : " ?");
             }
+        }
+
+        private void MainWindow_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            var ex = (Exception)e.ExceptionObject;
+
+            MessageBox.Show(ex.Message, "BetterLiveScreen: Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(ex.Source);
+            MessageBox.Show(ex.StackTrace);
+            MessageBox.Show(ex.TargetSite.ToString());
         }
 
         private void goLive_Click(object sender, RoutedEventArgs e)
@@ -138,13 +172,13 @@ namespace BetterLiveScreen
 
         private async void serverIpConnect_Click(object sender, RoutedEventArgs e)
         {
-            Rescreen.Start();
+            Rescreen.Start(true);
             await Task.Delay(10000);
             Rescreen.Stop();
 
             var writer = new VideoWriter();
 
-            writer.Open(@"C:\Users\erics\Downloads\cv.mp4", FourCC.H264, 30.0, new CvSize(2560, 1440));
+            writer.Open(@"C:\Users\erics\Downloads\cv.mp4", FourCC.H264, Rescreen.Fps, Rescreen.ScreenSize.ToCvSize());
             if (writer.IsOpened()) MessageBox.Show("hurary!");
             else MessageBox.Show("tlsqkf");
             
@@ -153,8 +187,8 @@ namespace BetterLiveScreen
                 byte[] buffer = Rescreen.VideoStreams[User.ToString()].ScreenQueue.Dequeue();
                 byte[] raw = buffer.Decompress();
 
-                var src = new Mat(720, 1280, MatType.CV_8UC4);
-                int length = 1280 * 720 * 4; // or src.Height * src.Step;
+                var src = new Mat(Rescreen.ScreenSize.Height, Rescreen.ScreenSize.Width, MatType.CV_8UC4);
+                int length = Rescreen.ScreenSize.Width * Rescreen.ScreenSize.Height * 4; // or src.Height * src.Step;
                 Marshal.Copy(raw, 0, src.Data, length);
 
                 writer.Write(src);

@@ -28,18 +28,6 @@
                 <CheckBox x:Name="chk_enableAudio" Content="Enable Audio" IsChecked="True"/>
             </StackPanel>
         </GroupBox>
-        <GroupBox Header="Quality" Margin="504,506,452,27">
-            <StackPanel Margin="0,0,-2,0">
-                <RadioButton x:Name="chk_720" Content="720p" IsChecked="True"/>
-                <RadioButton x:Name="chk_1080" Content="1080p"/>
-            </StackPanel>
-        </GroupBox>
-        <GroupBox Header="Frame" Margin="589,506,367,27">
-            <StackPanel Margin="0,0,-2,0">
-                <RadioButton x:Name="chk_30" Content="30fps" IsChecked="True"/>
-                <RadioButton x:Name="chk_60" Content="60fps"/>
-            </StackPanel>
-        </GroupBox>
         <Label x:Name="name1" Content="User1" HorizontalAlignment="Left" Margin="896,138,0,0" VerticalAlignment="Top"/>
         <Label x:Name="name2" Content="User2" HorizontalAlignment="Left" Margin="896,249,0,0" VerticalAlignment="Top"/>
         <Label x:Name="name3" Content="User3" HorizontalAlignment="Left" Margin="896,356,0,0" VerticalAlignment="Top"/>
