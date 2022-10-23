@@ -58,6 +58,7 @@ namespace BetterLiveScreen.Recording
         {
             _raw.Stop();
             _flow.Stop();
+            MessageBox.Show(_raw.deltaRess.Average().ToString("0.##"));
 
             MessageBox.Show((VideoStreams[MainWindow.User.ToString()].ScreenQueue.Count / _flow.Elapsed.TotalSeconds).ToString("0.##"));
 

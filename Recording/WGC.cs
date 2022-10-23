@@ -1,6 +1,6 @@
-﻿using BetterLiveScreen.Recording.Types;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,8 +9,10 @@ using System.Windows.Documents;
 using Windows.Graphics.Capture;
 using Windows.Foundation.Metadata;
 using Windows.Foundation;
-using System.Diagnostics;
+
 using Composition.WindowsRuntimeHelpers_NETStd;
+
+using BetterLiveScreen.Recording.Types;
 
 namespace BetterLiveScreen.Recording
 {

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing.Imaging;
 using System.Drawing;
@@ -9,6 +10,8 @@ using SharpDX;
 using SharpDX.DXGI;
 using SharpDX.Direct3D11;
 using System.Runtime.InteropServices;
+using System.Windows.Documents;
+using System.Collections;
 
 namespace BetterLiveScreen.Recording
 {
@@ -18,6 +21,9 @@ namespace BetterLiveScreen.Recording
     internal class FScreen
     {
         private bool _run, _init;
+        [DllImport("kernel32.dll", EntryPoint = "CopyMemory", SetLastError = false)]
+        public static extern void CopyMemory(IntPtr dest, IntPtr src, uint count);
+        public List<int> deltaRess = new List<int>();
 
         public int Size { get; private set; }
         public FScreen()
@@ -88,7 +94,7 @@ namespace BetterLiveScreen.Recording
                     var startDate = DateTime.MinValue;
                     int needElapsed = 0;
                     int deltaRes = 0;
-
+                    
                     while (_run)
                     {
                         try
@@ -132,7 +138,7 @@ namespace BetterLiveScreen.Recording
 
                             // Get the desktop capture texture
                             var mapSource = device.ImmediateContext.MapSubresource(stagingTexture, 0, MapMode.Read, SharpDX.Direct3D11.MapFlags.None);
-                            
+
                             var sourcePtr = mapSource.DataPointer;
                             var destRaw = new byte[aw * ah * 4];
 
@@ -145,6 +151,7 @@ namespace BetterLiveScreen.Recording
                                 // Advance pointers
                                 sourcePtr = IntPtr.Add(sourcePtr, mapSource.RowPitch);
                             }
+                            
                             device.ImmediateContext.UnmapSubresource(stagingTexture, 0);
 
                             ScreenRefreshed?.Invoke(this, destRaw);
@@ -182,6 +189,7 @@ namespace BetterLiveScreen.Recording
                             duplicatedOutput.ReleaseFrame();
 
                             deltaRes = (int)(DateTime.Now - startResDate).TotalMilliseconds;
+                            deltaRess.Add(deltaRes);
                         }
                         catch (SharpDXException e)
                         {

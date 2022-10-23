@@ -145,11 +145,7 @@ namespace BetterLiveScreen
         private void MainWindow_UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
             var ex = (Exception)e.ExceptionObject;
-
-            MessageBox.Show(ex.Message, "BetterLiveScreen: Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            MessageBox.Show(ex.Source);
-            MessageBox.Show(ex.StackTrace);
-            MessageBox.Show(ex.TargetSite.ToString());
+            MessageBox.Show($"{ex.Message}\n{ex.Source}\n{ex.StackTrace}", "BetterLiveScreen: Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
 
         private void goLive_Click(object sender, RoutedEventArgs e)
