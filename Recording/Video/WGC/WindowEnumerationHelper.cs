@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BetterLiveScreen.Recording
+namespace BetterLiveScreen.Recording.Video.WGC
 {
     public class WindowEnumerationHelper
     {

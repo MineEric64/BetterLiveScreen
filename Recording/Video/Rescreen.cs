@@ -1,24 +1,27 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media.Imaging;
-using System.Diagnostics;
 
+using OpenCvSharp;
+
+using BetterLiveScreen.Recording;
+using BetterLiveScreen.Recording.Audio;
 using BetterLiveScreen.Recording.Types;
 using BetterLiveScreen.Extensions;
 
 using Size = System.Drawing.Size;
-using System.Runtime.InteropServices;
-using Newtonsoft.Json.Linq;
-using OpenCvSharp;
+using WasapiCapture = BetterLiveScreen.Recording.Audio.WasapiCapture;
 
-namespace BetterLiveScreen.Recording
+namespace BetterLiveScreen.Recording.Video
 {
     public class Rescreen
     {
@@ -49,6 +52,7 @@ namespace BetterLiveScreen.Recording
                 VideoStreams[MainWindow.User.ToString()].ScreenQueue.Enqueue(compressed);
             };
             _raw.Start(isHalf);
+            WasapiCapture.Record();
             _flow.Start();
 
             IsRecording = true;
@@ -57,9 +61,10 @@ namespace BetterLiveScreen.Recording
         public static void Stop()
         {
             _raw.Stop();
+            WasapiCapture.Stop();
             _flow.Stop();
-            MessageBox.Show(_raw.deltaRess.Average().ToString("0.##"));
 
+            MessageBox.Show(_raw.deltaRess.Average().ToString("0.##"));
             MessageBox.Show((VideoStreams[MainWindow.User.ToString()].ScreenQueue.Count / _flow.Elapsed.TotalSeconds).ToString("0.##"));
 
             _flow.Reset();

@@ -1,19 +1,19 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing.Imaging;
 using System.Drawing;
+using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Documents;
 
 using SharpDX;
 using SharpDX.DXGI;
 using SharpDX.Direct3D11;
-using System.Runtime.InteropServices;
-using System.Windows.Documents;
-using System.Collections;
 
-namespace BetterLiveScreen.Recording
+namespace BetterLiveScreen.Recording.Video
 {
     /// <summary>
     /// some codes from https://github.com/Nextop-OpenCV/ProjectReinforced/
@@ -21,8 +21,10 @@ namespace BetterLiveScreen.Recording
     internal class FScreen
     {
         private bool _run, _init;
+
         [DllImport("kernel32.dll", EntryPoint = "CopyMemory", SetLastError = false)]
         public static extern void CopyMemory(IntPtr dest, IntPtr src, uint count);
+
         public List<int> deltaRess = new List<int>();
 
         public int Size { get; private set; }

@@ -1,0 +1,15 @@
+﻿<Window x:Class="BetterLiveScreen.RecordingTest"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:BetterLiveScreen.Recording"
+        mc:Ignorable="d"
+        Title="BetterLiveScreen : Recording Test" Height="993" Width="1350">
+    <Grid>
+        <MediaElement x:Name="xMedia" HorizontalAlignment="Left" Height="720" Margin="26,23,0,0" VerticalAlignment="Top" Width="1280"/>
+        <Button x:Name="xPlay" Content="▶" HorizontalAlignment="Left" Margin="611,868,0,0" VerticalAlignment="Top" Height="50" Width="50" FontSize="24" FontWeight="Bold" Click="xPlay_Click"/>
+        <Button x:Name="xStop" Content="■" HorizontalAlignment="Left" Margin="675,868,0,0" VerticalAlignment="Top" Height="50" Width="50" FontSize="24" Click="xStop_Click"/>
+
+    </Grid>
+</Window>

@@ -34,6 +34,7 @@ using DiscordRPC;
 using BetterLiveScreen.Clients;
 using BetterLiveScreen.Extensions;
 using BetterLiveScreen.Recording;
+using BetterLiveScreen.Recording.Video;
 using BetterLiveScreen.Rooms;
 using BetterLiveScreen.Users;
 
@@ -42,6 +43,8 @@ using BetterLiveScreen.BetterShare;
 using Path = System.IO.Path;
 using CvSize = OpenCvSharp.Size;
 using BitmapConverter = BetterLiveScreen.Extensions.BitmapConverter;
+using BetterLiveScreen.Recording.Audio;
+using NAudio.Wave;
 
 namespace BetterLiveScreen
 {
@@ -168,32 +171,13 @@ namespace BetterLiveScreen
 
         private async void serverIpConnect_Click(object sender, RoutedEventArgs e)
         {
-            Rescreen.Start(true);
-            await Task.Delay(10000);
-            Rescreen.Stop();
-
-            var writer = new VideoWriter();
-
-            writer.Open(@"C:\Users\erics\Downloads\cv.mp4", FourCC.H264, Rescreen.Fps, Rescreen.ScreenSize.ToCvSize());
-            if (writer.IsOpened()) MessageBox.Show("hurary!");
-            else MessageBox.Show("tlsqkf");
-            
-            while (Rescreen.VideoStreams[User.ToString()].ScreenQueue.Count > 0)
-            {
-                byte[] buffer = Rescreen.VideoStreams[User.ToString()].ScreenQueue.Dequeue();
-                byte[] raw = buffer.Decompress();
-
-                var src = new Mat(Rescreen.ScreenSize.Height, Rescreen.ScreenSize.Width, MatType.CV_8UC4);
-                int length = Rescreen.ScreenSize.Width * Rescreen.ScreenSize.Height * 4; // or src.Height * src.Step;
-                Marshal.Copy(raw, 0, src.Data, length);
-
-                writer.Write(src);
-                src.Dispose();
-            }
-
-            writer.Dispose();
-
-            MessageBox.Show("Done");
+            await RecordingTest.RecordTestAsync(
+                milliseconds: 10000,
+                width: 2560,
+                height: 1440,
+                fps: 30,
+                isHalf: true
+                );
             return;
 
             string[] info = serverIp.Text.Trim().Split(':');

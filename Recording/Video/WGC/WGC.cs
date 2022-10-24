@@ -14,7 +14,7 @@ using Composition.WindowsRuntimeHelpers_NETStd;
 
 using BetterLiveScreen.Recording.Types;
 
-namespace BetterLiveScreen.Recording
+namespace BetterLiveScreen.Recording.Video.WGC
 {
     public class WGC
     {
