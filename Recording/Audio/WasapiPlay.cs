@@ -21,8 +21,9 @@ namespace BetterLiveScreen.Recording.Audio
         private static string _prevDeviceId = string.Empty;
         private static Mp3FileReader _reader = null;
 
-        public static float Volume { get; set; } = 1.0F;
         public static bool IsInitialized { get; private set; } = false;
+        public static bool IsRead { get; private set; } = false;
+        public static bool IsReady { get; private set; } = false;
         public static bool IsPlaying { get; private set; } = false;
         public static bool IsPaused { get; private set; } = false;
 
@@ -41,50 +42,39 @@ namespace BetterLiveScreen.Recording.Audio
                 IsInitialized = true;
             }
         }
+       
+        public static void Read(string path)
+        {
+            _reader = new Mp3FileReader(path);
+            IsRead = true;
+        }
 
-        public static void Play(string path, int millisecondsToPlay = -1)
+        public static void Ready()
+        {
+            if (!IsInitialized || !IsRead) return;
+            _wasapiOut.Init(_reader);
+            IsReady = true;
+        }
+
+        public static void SetTime(TimeSpan position)
+        {
+            _reader.CurrentTime = position;
+        }
+
+        public static bool Play()
         {
             MMDevice device = WasapiCapture.DefaultMMDevice;
 
-            if (IsInitialized && device != null)
-            {
-                if (_prevDeviceId != device.ID)
-                {
-                    Initialize();
-                    Play(path);
-                }
-                else
-                {
-                    if (!IsPaused)
-                    {
-                        _reader?.Dispose();
-                        _reader = new Mp3FileReader(path);
+            if (!IsInitialized || device == null) return false;
+            if (!IsRead) return false;
+            if (!IsReady) return false;
+            if (_prevDeviceId != device.ID) Initialize();
 
-                        ISampleProvider final = _reader.ToSampleProvider();
+            _wasapiOut.Play();
+            IsPlaying = true;
+            IsPaused = false;
 
-                        if (Volume != 1.0F)
-                        {
-                            var volumed = new VolumeSampleProvider(final)
-                            {
-                                Volume = Volume
-                            };
-                            final = volumed;
-                        }
-                        if (millisecondsToPlay != -1)
-                        {
-                            var trimmed = new OffsetSampleProvider(final);
-                            trimmed.SkipOver = TimeSpan.FromMilliseconds(millisecondsToPlay);
-
-                            final = trimmed;
-                        }
-
-                        _wasapiOut.Init(final);
-                    }
-                    _wasapiOut.Play();
-                    IsPlaying = true;
-                    IsPaused = false;
-                }
-            }
+            return true;
         }
 
         public static void Pause()
@@ -102,6 +92,18 @@ namespace BetterLiveScreen.Recording.Audio
             _reader.Position = 0;
             IsPlaying = false;
             IsPaused = true;
+        }
+
+        public static void Close()
+        {
+            _wasapiOut?.Dispose();
+            _reader?.Dispose();
+
+            IsPlaying = false;
+            IsPaused = false;
+            IsInitialized = false;
+            IsRead = false;
+            IsReady = false;
         }
     }
 }

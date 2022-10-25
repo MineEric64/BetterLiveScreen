@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
@@ -15,6 +16,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 
 using OpenCvSharp;
 
@@ -32,6 +34,7 @@ using Window = System.Windows.Window;
 using Path = System.IO.Path;
 using Size = System.Drawing.Size;
 using WasapiCapture = BetterLiveScreen.Recording.Audio.WasapiCapture;
+using Windows.ApplicationModel.Contacts;
 
 namespace BetterLiveScreen
 {
@@ -41,6 +44,8 @@ namespace BetterLiveScreen
     public partial class RecordingTest : Window
     {
         private static Stopwatch _sw = new Stopwatch();
+        private static bool _playSliderDragStarted = false;
+
         public static string TestDirectory { get; set; } = @"C:\Users\erics\Downloads";
         public static string TestName { get; set; } = "cv";
         public static string TestVideoFilePath => Path.Combine(TestDirectory, TestName) + ".mp4";
@@ -50,11 +55,60 @@ namespace BetterLiveScreen
         {
             InitializeComponent();
             if (!WasapiPlay.IsInitialized) WasapiPlay.Initialize();
+
+            Loaded += RecordingTest_Loaded;
+            Closing += RecordingTest_Closing;
+        }
+
+        private void RecordingTest_Loaded(object sender, RoutedEventArgs e)
+        {
+            InitializeVideo();
+        }
+
+        private void RecordingTest_Closing(object sender, CancelEventArgs e)
+        {
+            xMedia.Close();
+            WasapiPlay.Close();
         }
 
         public static void InitializeForAudioCaptureTest()
         {
             if (!WasapiCapture.IsInitialized) WasapiCapture.Initialize(new Action<WaveInEventArgs>((e) => AudioDataAvailable(e)));
+        }
+
+        public void InitializeVideo()
+        {
+            //Audio
+            WasapiPlay.Read(TestAudioFilePath);
+            WasapiPlay.Ready();
+
+            //Video
+            void TimerTickHandler(object sender, EventArgs e)
+            {
+                if (_playSliderDragStarted) return;
+                if (xMedia.Source == null || !xMedia.NaturalDuration.HasTimeSpan)
+                {
+                    xPlayTimeLabel.Content = "No file selected...";
+                    return;
+                }
+
+                xPlayTimeSlider.Value = xMedia.Position.TotalSeconds;
+            }
+
+            xMedia.Source = new Uri(TestVideoFilePath);
+            xMedia.SpeedRatio = 1;
+
+            DispatcherTimer timer = new DispatcherTimer()
+            {
+                Interval = TimeSpan.FromSeconds(1)
+            };
+            timer.Tick += TimerTickHandler;
+            timer.Start();
+
+            xMedia.Play();
+            WasapiPlay.Play();
+
+            xPlay.Content = "II";
         }
 
         public static async Task<bool> RecordTestAsync(int milliseconds, int width, int height, int fps, bool isHalf)
@@ -144,19 +198,70 @@ namespace BetterLiveScreen
             if (WasapiPlay.IsPlaying)
             {
                 xPlay.Content = "▶";
+                xMedia.Pause();
                 WasapiPlay.Pause();
             }
             else
             {
                 xPlay.Content = "II";
-                WasapiPlay.Play(TestAudioFilePath);
+                xMedia.Play();
+                WasapiPlay.Play();
             }
         }
 
         private void xStop_Click(object sender, RoutedEventArgs e)
         {
             xPlay.Content = "▶";
+            xMedia.Stop();
             WasapiPlay.Stop();
+        }
+
+        private void xMedia_MediaOpened(object sender, RoutedEventArgs e)
+        {
+            xPlayTimeSlider.Minimum = 0;
+            xPlayTimeSlider.Maximum = xMedia.NaturalDuration.TimeSpan.TotalSeconds;
+        }
+
+        private void xMedia_MediaEnded(object sender, RoutedEventArgs e)
+        {
+            xMedia.Stop();
+            WasapiPlay.Stop();
+
+            xPlay.Content = "▶";
+        }
+
+        private void xMedia_MediaFailed(object sender, ExceptionRoutedEventArgs e)
+        {
+            MessageBox.Show($"Error occured while loading video : {e.ErrorException.Message}");
+        }
+
+        private void xPlayTimeSlider_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
+        {
+            _playSliderDragStarted = true;
+
+            xMedia.Pause();
+            WasapiPlay.Pause();
+
+            xPlay.Content = "▶";
+        }
+
+        private void xPlayTimeSlider_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
+        {
+            TimeSpan position = TimeSpan.FromSeconds(xPlayTimeSlider.Value);
+
+            xMedia.Position = position;
+            WasapiPlay.SetTime(position);
+
+            xMedia.Play();
+            WasapiPlay.Play();
+
+            xPlay.Content = "II";
+            _playSliderDragStarted = false;
+        }
+
+        private void xPlayTimeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            xPlayTimeLabel.Content = string.Format("{0} / {1}", xMedia.Position.ToString(@"mm\:ss"), xMedia.NaturalDuration.TimeSpan.ToString(@"mm\:ss"));
         }
     }
 }

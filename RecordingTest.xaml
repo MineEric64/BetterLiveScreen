@@ -5,11 +5,13 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:BetterLiveScreen.Recording"
         mc:Ignorable="d"
-        Title="BetterLiveScreen : Recording Test" Height="993" Width="1350">
+        Title="BetterLiveScreen : Recording Test" Height="924" Width="1350">
     <Grid>
-        <MediaElement x:Name="xMedia" HorizontalAlignment="Left" Height="720" Margin="26,23,0,0" VerticalAlignment="Top" Width="1280"/>
-        <Button x:Name="xPlay" Content="▶" HorizontalAlignment="Left" Margin="611,868,0,0" VerticalAlignment="Top" Height="50" Width="50" FontSize="24" FontWeight="Bold" Click="xPlay_Click"/>
-        <Button x:Name="xStop" Content="■" HorizontalAlignment="Left" Margin="675,868,0,0" VerticalAlignment="Top" Height="50" Width="50" FontSize="24" Click="xStop_Click"/>
+        <MediaElement x:Name="xMedia" HorizontalAlignment="Left" Height="720" Margin="26,23,0,0" VerticalAlignment="Top" Width="1280" Volume="1" MediaOpened="xMedia_MediaOpened" MediaEnded="xMedia_MediaEnded" MediaFailed="xMedia_MediaFailed" LoadedBehavior="Manual" UnloadedBehavior="Manual"/>
+        <Button x:Name="xPlay" Content="▶" HorizontalAlignment="Left" Margin="611,810,0,0" VerticalAlignment="Top" Height="50" Width="50" FontSize="24" FontWeight="Bold" Click="xPlay_Click"/>
+        <Button x:Name="xStop" Content="■" HorizontalAlignment="Left" Margin="675,810,0,0" VerticalAlignment="Top" Height="50" Width="50" FontSize="24" Click="xStop_Click"/>
+        <Label x:Name="xPlayTimeLabel" Content="00:00 / 00:00" HorizontalAlignment="Left" Margin="115,810,0,0" VerticalAlignment="Top" FontSize="24"/>
+        <Slider x:Name="xPlayTimeSlider" HorizontalAlignment="Left" Margin="72,770,0,0" VerticalAlignment="Top" Width="1200" Thumb.DragStarted="xPlayTimeSlider_DragStarted" Thumb.DragCompleted="xPlayTimeSlider_DragCompleted" ValueChanged="xPlayTimeSlider_ValueChanged"/>
 
     </Grid>
 </Window>
