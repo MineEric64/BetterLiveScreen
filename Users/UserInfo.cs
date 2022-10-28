@@ -51,5 +51,10 @@ namespace BetterLiveScreen.Users
 
             return bitmapImage;
         }
+
+        public override string ToString()
+        {
+            return NameInfo.ToString();
+        }
     }
 }

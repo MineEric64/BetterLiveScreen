@@ -46,17 +46,19 @@
     <LangVersion>7.3</LangVersion>
     <ErrorReport>prompt</ErrorReport>
     <Prefer32Bit>true</Prefer32Bit>
-    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Optimize>false</Optimize>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
     <OutputPath>bin\x64\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
-    <Optimize>true</Optimize>
+    <Optimize>false</Optimize>
     <DebugType>pdbonly</DebugType>
     <PlatformTarget>x64</PlatformTarget>
     <LangVersion>7.3</LangVersion>
     <ErrorReport>prompt</ErrorReport>
     <Prefer32Bit>true</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Composition.WindowsRuntimeHelpers_NETStd">
@@ -87,11 +89,18 @@
       <DependentUpon>BetterShareWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="Clients\ClientOne.cs" />
+    <Compile Include="Clients\DiscordHelper.cs" />
     <Compile Include="Extensions\BitmapConverter.cs" />
+    <Compile Include="Extensions\Kernel32.cs" />
     <Compile Include="Recording\Audio\WasapiCapture.cs" />
     <Compile Include="Recording\Audio\WasapiPlay.cs" />
     <Compile Include="Recording\Types\CaptureAudioType.cs" />
     <Compile Include="Recording\Types\CaptureVideoType.cs" />
+    <Compile Include="Recording\Video\NvEncoder\Encoder.cs" />
+    <Compile Include="Recording\Video\NvEncoder\Lib.cs" />
+    <Compile Include="Recording\Video\NvPipe\Decoder.cs" />
+    <Compile Include="Recording\Video\NvPipe\Encoder.cs" />
+    <Compile Include="Recording\Video\NvPipe\Lib.cs" />
     <Compile Include="Recording\Video\WGC\MonitorEnumerationHelper.cs" />
     <Compile Include="RecordingTest.xaml.cs">
       <DependentUpon>RecordingTest.xaml</DependentUpon>
@@ -100,7 +109,7 @@
     <Compile Include="Recording\Types\CaptureTypeEnum.cs" />
     <Compile Include="Recording\Types\FindProcess.cs" />
     <Compile Include="Recording\Types\ScreenShare.cs" />
-    <Compile Include="Recording\Video\WGC\WGC.cs" />
+    <Compile Include="Recording\Video\WGC\WGCHelper.cs" />
     <Compile Include="Recording\Video\WGC\WindowEnumerationHelper.cs" />
     <Compile Include="Rooms\RoomInfo.cs" />
     <Compile Include="Rooms\RoomManager.cs" />
@@ -177,7 +186,7 @@
       <Version>1.0.175</Version>
     </PackageReference>
     <PackageReference Include="MessagePack">
-      <Version>2.3.85</Version>
+      <Version>2.4.35</Version>
     </PackageReference>
     <PackageReference Include="Microsoft.Windows.SDK.Contracts">
       <Version>10.0.25211-preview</Version>
@@ -205,5 +214,25 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup />
+  <ItemGroup>
+    <Content Include="DLLs\Composition.WindowsRuntimeHelpers_NETStd.dll" />
+    <ContentWithTargetPath Include="DLLs\NvPipe.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>NvPipe.dll</TargetPath>
+    </ContentWithTargetPath>
+    <None Include="DLLs\NvPipe.dll" />
+    <ContentWithTargetPath Include="DLLs\uNvEncoder.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>uNvEncoder.dll</TargetPath>
+    </ContentWithTargetPath>
+    <None Include="DLLs\uNvEncoder.dll" />
+    <ContentWithTargetPath Include="DLLs\uNvPipe.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>uNvPipe.dll</TargetPath>
+    </ContentWithTargetPath>
+    <None Include="DLLs\uNvPipe.dll" />
+    <Resource Include="Recording\Video\NvPipe\README.txt" />
+    <Resource Include="Recording\Video\NvEncoder\README.txt" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

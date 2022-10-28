@@ -13,10 +13,20 @@ using SharpDX;
 using SharpDX.DXGI;
 using SharpDX.Direct3D11;
 
+using BetterLiveScreen.Extensions;
+using BetterLiveScreen.Recording.Video.NvEncoder;
+using BetterLiveScreen.Recording.Video.NvPipe;
+
+using Encoder = BetterLiveScreen.Recording.Video.NvEncoder.Encoder;
+using Windows.Storage.Streams;
+using OpenCvSharp;
+using System.Windows;
+
 namespace BetterLiveScreen.Recording.Video
 {
     /// <summary>
-    /// some codes from https://github.com/Nextop-OpenCV/ProjectReinforced/
+    /// some codes from https://github.com/Luigi38/ProjectReinforced/
+    ///                                   https://github.com/TheBlackPlague/DynoSharp/blob/main/DynoSharp/FramePool.cs
     /// </summary>
     internal class FScreen
     {
@@ -25,15 +35,13 @@ namespace BetterLiveScreen.Recording.Video
         [DllImport("kernel32.dll", EntryPoint = "CopyMemory", SetLastError = false)]
         public static extern void CopyMemory(IntPtr dest, IntPtr src, uint count);
 
-        public List<int> deltaRess = new List<int>();
-
         public int Size { get; private set; }
         public FScreen()
         {
 
         }
 
-        public void Start(bool isHalf)
+        public void Start()
         {
             _run = true;
             var factory = new Factory1();
@@ -49,10 +57,11 @@ namespace BetterLiveScreen.Recording.Video
             int width = output.Description.DesktopBounds.Right;
             int height = output.Description.DesktopBounds.Bottom;
 
-            int aw = isHalf ? width / 2 : width;
-            int ah = isHalf ? height / 2 : height;
+            int aw = Rescreen.IsHalf ? width / 2 : width;
+            int ah = Rescreen.IsHalf ? height / 2 : height;
 
             int timeOut = 1000 / Rescreen.Fps;
+            int frameCount = 0;
             
             // Create Staging texture CPU-accessible
             var textureDesc = new Texture2DDescription
@@ -76,7 +85,7 @@ namespace BetterLiveScreen.Recording.Video
             {
                 CpuAccessFlags = CpuAccessFlags.None,
                 BindFlags = BindFlags.RenderTarget | BindFlags.ShaderResource,
-                Format = Format.B8G8R8A8_UNorm,
+                Format = SharpDX.DXGI.Format.B8G8R8A8_UNorm,
                 Width = width,
                 Height = height,
                 OptionFlags = ResourceOptionFlags.GenerateMipMaps,
@@ -88,6 +97,32 @@ namespace BetterLiveScreen.Recording.Video
             var smallerTexture = new Texture2D(device, smallerTextureDesc);
             var smallerTextureView = new ShaderResourceView(device, smallerTexture);
 
+            Encoder encoder = null;
+
+            if (Rescreen.NvencEncoding)
+            {
+                encoder = new Encoder();
+
+                EncoderDesc setting = new EncoderDesc()
+                {
+                    width = aw,
+                    height = ah,
+                    frameRate = Rescreen.Fps > 0 ? Rescreen.Fps : 60,
+                    format = NvEncoder.Format.B8G8R8A8_UNORM,
+                    bitRate = Rescreen.Bitrate,
+                    maxFrameSize = 40000
+                };
+                encoder.Create(setting, device);
+                encoder.onEncoded += (s, e) =>
+                {
+                    byte[] buffer = new byte[e.Item2];
+                    Marshal.Copy(e.Item1, buffer, 0, e.Item2);
+
+                    ScreenRefreshed?.Invoke(null, buffer);
+                    //decoder.Decode(e.Item1, e.Item2);
+                };
+            }
+
             Task.Factory.StartNew(() =>
             {
                 // Duplicate the output
@@ -96,6 +131,8 @@ namespace BetterLiveScreen.Recording.Video
                     var startDate = DateTime.MinValue;
                     int needElapsed = 0;
                     int deltaRes = 0;
+
+                    Rescreen._delayPerFrameSw.Start();
                     
                     while (_run)
                     {
@@ -116,20 +153,22 @@ namespace BetterLiveScreen.Recording.Video
                             {
                                 startDate = DateTime.Now;
                             }
-                            else if (needElapsed - deltaRes > (int)delta.TotalMilliseconds)
+                            else if (timeOut > 0 && needElapsed - deltaRes > (int)delta.TotalMilliseconds)
                             {
                                 Thread.Sleep(needElapsed - deltaRes - (int)delta.TotalMilliseconds);
                             }
 
-                            var startResDate = DateTime.Now;
+                            Rescreen._deltaResSw.Reset();
+                            Rescreen._deltaResSw.Start();
+
                             needElapsed += timeOut;
 
                             // copy resource into memory that can be accessed by the CPU
                             using (var screenTexture2D = screenResource.QueryInterface<Texture2D>())
-                                if (isHalf) device.ImmediateContext.CopySubresourceRegion(screenTexture2D, 0, null, smallerTexture, 0);
+                                if (Rescreen.IsHalf) device.ImmediateContext.CopySubresourceRegion(screenTexture2D, 0, null, smallerTexture, 0);
                                 else device.ImmediateContext.CopyResource(screenTexture2D, stagingTexture);
 
-                            if (isHalf)
+                            if (Rescreen.IsHalf)
                             {
                                 // Generates the mipmap of the screen
                                 device.ImmediateContext.GenerateMips(smallerTextureView);
@@ -138,60 +177,98 @@ namespace BetterLiveScreen.Recording.Video
                                 device.ImmediateContext.CopySubresourceRegion(smallerTexture, 1, null, stagingTexture, 0);
                             }
 
-                            // Get the desktop capture texture
-                            var mapSource = device.ImmediateContext.MapSubresource(stagingTexture, 0, MapMode.Read, SharpDX.Direct3D11.MapFlags.None);
-
-                            var sourcePtr = mapSource.DataPointer;
-                            var destRaw = new byte[aw * ah * 4];
-
-                            for (int y = 0; y < ah; y++)
+                            if (Rescreen.NvencEncoding)
                             {
-                                // Copy a single line
-                                int offset = y * aw * 4;
-                                Marshal.Copy(sourcePtr, destRaw, offset, aw * 4);
-
-                                // Advance pointers
-                                sourcePtr = IntPtr.Add(sourcePtr, mapSource.RowPitch);
+                                bool idr = Rescreen.Fps > 0 ? frameCount++ % Rescreen.Fps == 0 : false;
+                                
+                                if (encoder.Encode(stagingTexture, false))
+                                {
+                                    encoder.Update();
+                                }
                             }
-                            
-                            device.ImmediateContext.UnmapSubresource(stagingTexture, 0);
+                            else
+                            {
+                                // Get the desktop capture texture
+                                var mapSource = device.ImmediateContext.MapSubresource(stagingTexture, 0, MapMode.Read, SharpDX.Direct3D11.MapFlags.None);
 
-                            ScreenRefreshed?.Invoke(this, destRaw);
+                                int sourceStride = mapSource.RowPitch;
+                                int destStride = aw * 4;
+
+                                var sourcePtr = mapSource.DataPointer;
+                                var destRaw = new byte[aw * ah * 4];
+
+                                unsafe
+                                {
+                                    fixed (byte* destRawPtr = destRaw)
+                                    {
+                                        IntPtr destPtr = (IntPtr)destRawPtr;
+                                        CopyMemory(
+                                            false, // Should run in parallel or not.
+                                            0,
+                                            ah,
+                                            sourcePtr,
+                                            destPtr,
+                                            sourceStride,
+                                            destStride
+                                            );
+                                    }
+                                }
+                                //for (int y = 0; y < ah; y++)
+                                //{
+                                //    // Copy a single line
+                                //    int offset = y * aw * 4;
+                                //    Marshal.Copy(sourcePtr, destRaw, offset, aw * 4);
+
+                                //    // Advance pointers
+                                //    sourcePtr = IntPtr.Add(sourcePtr, mapSource.RowPitch);
+                                //}
+
+                                device.ImmediateContext.UnmapSubresource(stagingTexture, 0);
+                                ScreenRefreshed?.Invoke(this, destRaw);
+
+                                // Create Drawing.Bitmap
+                                //using (var bitmap = new Bitmap(width / 2, height / 2, PixelFormat.Format32bppArgb))
+                                //{
+                                //    var boundsRect = new Rectangle(0, 0, width / 2, height / 2);
+
+                                //    // Copy pixels from screen capture Texture to GDI bitmap
+                                //    var mapDest = bitmap.LockBits(boundsRect, ImageLockMode.WriteOnly, bitmap.PixelFormat);
+                                //    var sourcePtr = mapSource.DataPointer;
+                                //    var destPtr = mapDest.Scan0;
+                                //    for (int y = 0; y < height / 2; y++)
+                                //    {
+                                //        // Copy a single line 
+                                //        Utilities.CopyMemory(destPtr, sourcePtr, width * 4 / 2);
+
+                                //        // Advance pointers
+                                //        sourcePtr = IntPtr.Add(sourcePtr, mapSource.RowPitch);
+                                //        destPtr = IntPtr.Add(destPtr, mapDest.Stride);
+                                //    }
+
+                                //    // Release source and dest locks
+                                //    bitmap.UnlockBits(mapDest);
+                                //    device.ImmediateContext.UnmapSubresource(stagingTexture, 0);
+
+                                //    bitmap.Save(@"C:\Users\erics\Downloads\fsc.jpg");
+
+                                //    //ScreenRefreshed?.Invoke(this, bitmap);
+                                //    _init = true;
+                                //}
+                            }
+
                             _init = true;
 
-                            // Create Drawing.Bitmap
-                            //using (var bitmap = new Bitmap(width / 2, height / 2, PixelFormat.Format32bppArgb))
-                            //{
-                            //    var boundsRect = new Rectangle(0, 0, width / 2, height / 2);
-
-                            //    // Copy pixels from screen capture Texture to GDI bitmap
-                            //    var mapDest = bitmap.LockBits(boundsRect, ImageLockMode.WriteOnly, bitmap.PixelFormat);
-                            //    var sourcePtr = mapSource.DataPointer;
-                            //    var destPtr = mapDest.Scan0;
-                            //    for (int y = 0; y < height / 2; y++)
-                            //    {
-                            //        // Copy a single line 
-                            //        Utilities.CopyMemory(destPtr, sourcePtr, width * 4 / 2);
-
-                            //        // Advance pointers
-                            //        sourcePtr = IntPtr.Add(sourcePtr, mapSource.RowPitch);
-                            //        destPtr = IntPtr.Add(destPtr, mapDest.Stride);
-                            //    }
-
-                            //    // Release source and dest locks
-                            //    bitmap.UnlockBits(mapDest);
-                            //    device.ImmediateContext.UnmapSubresource(stagingTexture, 0);
-
-                            //    bitmap.Save(@"C:\Users\erics\Downloads\fsc.jpg");
-
-                            //    //ScreenRefreshed?.Invoke(this, bitmap);
-                            //    _init = true;
-                            //}
                             screenResource.Dispose();
                             duplicatedOutput.ReleaseFrame();
 
-                            deltaRes = (int)(DateTime.Now - startResDate).TotalMilliseconds;
-                            deltaRess.Add(deltaRes);
+                            Rescreen._deltaResSw.Stop();
+                            Rescreen._deltaRess.Add((int)Rescreen._deltaResSw.ElapsedMilliseconds);
+
+                            Rescreen._delayPerFrameSw.Stop();
+                            Rescreen._delayPerFrame.Add((int)Rescreen._delayPerFrameSw.ElapsedMilliseconds);
+
+                            Rescreen._delayPerFrameSw.Reset();
+                            Rescreen._delayPerFrameSw.Start();
                         }
                         catch (SharpDXException e)
                         {
@@ -202,6 +279,10 @@ namespace BetterLiveScreen.Recording.Video
                             }
                         }
                     }
+
+                    stagingTexture.Dispose();
+                    smallerTexture.Dispose();
+                    smallerTextureView.Dispose();
                 }
             });
             while (!_init) ;
@@ -212,6 +293,48 @@ namespace BetterLiveScreen.Recording.Video
             _run = false;
         }
 
-        public EventHandler<byte[]> ScreenRefreshed;
+        public event EventHandler<byte[]> ScreenRefreshed;
+
+        public static void CopyMemory(
+            bool parallel,
+            int from,
+            int to,
+            IntPtr sourcePointer,
+            IntPtr destinationPointer,
+            int sourceStride,
+            int destinationStride)
+        {
+            //[2560x1440 60fps - Background]
+            //Legacy => 19ms
+            //Non-Parallel => 18.1ms
+            //Parallel => 18.4ms
+
+            //[1280x720 30fps - In Game]
+            //Legacy => 23.2ms
+            //Non-Parallel => 22.9ms
+            //Parallel => 23ms
+
+            if (!parallel)
+            {
+                for (int i = from; i < to; i++)
+                {
+                    IntPtr sourceIteratedPointer = IntPtr.Add(sourcePointer, sourceStride * i);
+                    IntPtr destinationIteratedPointer = IntPtr.Add(destinationPointer, destinationStride * i);
+
+                    // Memcpy is apparently faster than Buffer.MemoryCopy. 
+                    Utilities.CopyMemory(destinationIteratedPointer, sourceIteratedPointer, destinationStride);
+                }
+                return;
+            }
+
+            Parallel.For(from, to, i =>
+            {
+                IntPtr sourceIteratedPointer = IntPtr.Add(sourcePointer, sourceStride * i);
+                IntPtr destinationIteratedPointer = IntPtr.Add(destinationPointer, destinationStride * i);
+
+                // Memcpy is apparently faster than Buffer.MemoryCopy. 
+                Utilities.CopyMemory(destinationIteratedPointer, sourceIteratedPointer, destinationStride);
+            });
+        }
     }
 }

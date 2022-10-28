@@ -72,10 +72,7 @@ namespace BetterLiveScreen.Recording.Audio
                 Initialize(_whenDataAvailable);
             }
 
-            _capture.DataAvailable += (s, e) =>
-            {
-                _whenDataAvailable(e);
-            };
+            _capture.DataAvailable += WhenDataAvailable;
             _capture.StartRecording();
 
             return true;
@@ -84,6 +81,12 @@ namespace BetterLiveScreen.Recording.Audio
         public static void Stop()
         {
             _capture.StopRecording();
+            _capture.DataAvailable -= WhenDataAvailable;
+        }
+
+        private static void WhenDataAvailable(object sender, WaveInEventArgs e)
+        {
+            _whenDataAvailable(e);
         }
     }
 }

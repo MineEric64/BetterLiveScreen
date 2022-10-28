@@ -1,0 +1,1 @@
+﻿This NvEncoder library is from https://github.com/hecomi/uNvEncoder

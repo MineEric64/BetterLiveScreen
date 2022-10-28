@@ -25,15 +25,12 @@ using Windows.UI.Xaml.Documents;
 
 using SharpDX.DXGI;
 
-using OpenCvSharp;
-using OpenCvSharp.Extensions;
-using OpenCvSharp.WpfExtensions;
-
 using DiscordRPC;
 
 using BetterLiveScreen.Clients;
 using BetterLiveScreen.Extensions;
 using BetterLiveScreen.Recording;
+using BetterLiveScreen.Recording.Types;
 using BetterLiveScreen.Recording.Video;
 using BetterLiveScreen.Rooms;
 using BetterLiveScreen.Users;
@@ -43,8 +40,6 @@ using BetterLiveScreen.BetterShare;
 using Path = System.IO.Path;
 using CvSize = OpenCvSharp.Size;
 using BitmapConverter = BetterLiveScreen.Extensions.BitmapConverter;
-using BetterLiveScreen.Recording.Audio;
-using NAudio.Wave;
 
 namespace BetterLiveScreen
 {
@@ -53,9 +48,6 @@ namespace BetterLiveScreen
     /// </summary>
     public partial class MainWindow : System.Windows.Window
     {
-        public const string DISCORD_APPLICATION_ID = "909043000053760012";
-        public static DiscordRpcClient DiscordClient { get; set; } = new DiscordRpcClient(DISCORD_APPLICATION_ID);
-
         public static UserInfo User { get; set; }
         internal static string UserToken { get; } = Guid.NewGuid().ToString();
         public static List<UserInfo> Users { get; set; } = new List<UserInfo>();
@@ -69,7 +61,7 @@ namespace BetterLiveScreen
         public MainWindow()
         {
             InitializeComponent();
-            DiscordClient.Initialize();
+            DiscordHelper.Initialize();
 
             this.Closing += MainWindow_Closing;
             AppDomain.CurrentDomain.UnhandledException += MainWindow_UnhandledException;
@@ -171,16 +163,15 @@ namespace BetterLiveScreen
 
         private async void serverIpConnect_Click(object sender, RoutedEventArgs e)
         {
-            var rt = new RecordingTest();
-            rt.Show();
-            return;
-
             await RecordingTest.RecordTestAsync(
+                videoType: CaptureVideoType.DD,
                 milliseconds: 10000,
                 width: 2560,
                 height: 1440,
                 fps: 30,
-                isHalf: true
+                isHalf: false,
+                nvencEncoding: true,
+                bitRate: Rescreen.GetBitrateFromMbps(12)
                 );
             return;
 
@@ -226,6 +217,11 @@ namespace BetterLiveScreen
 
         private async void serverCreate_Click(object sender, RoutedEventArgs e)
         {
+            if (!string.IsNullOrWhiteSpace(serverIp.Text)) RecordingTest.TestName = serverIp.Text;
+            var rt = new RecordingTest();
+            rt.Show();
+            return;
+
             if (!Client.IsReady)
             {
                 await Client.ApplyEndPointAsync(serverIp.Text.Trim());

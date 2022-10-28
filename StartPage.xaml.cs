@@ -16,6 +16,7 @@ using System.Windows.Shapes;
 
 using DiscordRPC;
 
+using BetterLiveScreen.Clients;
 using BetterLiveScreen.Extensions;
 using BetterLiveScreen.Users;
 
@@ -54,7 +55,7 @@ namespace BetterLiveScreen
 
         public bool TryDiscord()
         {
-            User user = MainWindow.DiscordClient.CurrentUser;
+            User user = DiscordHelper.Client.CurrentUser;
 
             if (user != null)
             {

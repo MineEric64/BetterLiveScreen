@@ -120,5 +120,10 @@ namespace BetterLiveScreen.Extensions
         {
             return new OpenCvSharp.Size(size.Width, size.Height);
         }
+
+        public static Size DivideBy(this Size size, int divideBy)
+        {
+            return new Size(size.Width / divideBy, size.Height / divideBy);
+        }
     }
 }

@@ -17,6 +17,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using Windows.ApplicationModel.Contacts;
 
 using OpenCvSharp;
 
@@ -28,13 +29,16 @@ using NAudio.Wave;
 using BetterLiveScreen.Extensions;
 using BetterLiveScreen.Recording;
 using BetterLiveScreen.Recording.Audio;
+using BetterLiveScreen.Recording.Types;
 using BetterLiveScreen.Recording.Video;
+using BetterLiveScreen.Recording.Video.NvPipe;
 
 using Window = System.Windows.Window;
 using Path = System.IO.Path;
 using Size = System.Drawing.Size;
 using WasapiCapture = BetterLiveScreen.Recording.Audio.WasapiCapture;
-using Windows.ApplicationModel.Contacts;
+using Decoder = BetterLiveScreen.Recording.Video.NvPipe.Decoder;
+using System.Windows.Markup;
 
 namespace BetterLiveScreen
 {
@@ -111,20 +115,27 @@ namespace BetterLiveScreen
             xPlay.Content = "II";
         }
 
-        public static async Task<bool> RecordTestAsync(int milliseconds, int width, int height, int fps, bool isHalf)
+        public static async Task<bool> RecordTestAsync(CaptureVideoType videoType, int milliseconds, int width, int height, int fps, bool isHalf, bool nvencEncoding, int bitRate = -1)
         {
             InitializeForAudioCaptureTest();
 
-            Rescreen.ScreenSize = new Size(isHalf ? width / 2 : width, isHalf ? height / 2 : height);
+            Rescreen.ScreenSize = new Size(width, height);
             Rescreen.Fps = fps;
+            Rescreen.VideoType = videoType;
+            Rescreen.IsHalf = isHalf;
+            Rescreen.NvencEncoding = nvencEncoding;
+            if (bitRate > 0) Rescreen.Bitrate = bitRate;
+
             _sw.Start();
-            Rescreen.Start(isHalf);
+            Rescreen.Start();
 
             await Task.Delay(milliseconds);
             Rescreen.Stop();
 
+            string userName = MainWindow.User.ToString();
+            double fps2 = fps > 0 ? fps : Rescreen.GetFps(Rescreen.VideoStreams[userName].ScreenQueue.Count, Rescreen.Elapsed.TotalSeconds);
             var writer = new VideoWriter();
-            writer.Open(TestVideoFilePath, FourCC.H264, Rescreen.Fps, Rescreen.ScreenSize.ToCvSize());
+            writer.Open(TestVideoFilePath, FourCC.H264, fps2, Rescreen.ScreenSize.ToCvSize());
 
             if (!writer.IsOpened())
             {
@@ -132,32 +143,59 @@ namespace BetterLiveScreen
                 return false;
             }
 
-            string userName = MainWindow.User.ToString();
-            
-            //write video file
-            while (Rescreen.VideoStreams[userName].ScreenQueue.Count > 0)
+            await Task.Run(() =>
             {
-                byte[] buffer = Rescreen.VideoStreams[userName].ScreenQueue.Dequeue();
-                byte[] raw = buffer.Decompress();
+                Decoder decoder = null;
 
-                var src = new Mat(Rescreen.ScreenSize.Height, Rescreen.ScreenSize.Width, MatType.CV_8UC4);
-                int length = Rescreen.ScreenSize.Width * Rescreen.ScreenSize.Height * 4; // or src.Height * src.Step;
-                Marshal.Copy(raw, 0, src.Data, length);
-
-                writer.Write(src);
-                src.Dispose();
-            }
-
-            writer.Dispose();
-
-            using (var writer2 = new LameMP3FileWriter(TestAudioFilePath, WasapiCapture.WaveFormat, 128))
-            {
-                while (Rescreen.VideoStreams[userName].AudioQueue.Count > 0)
+                //write video file
+                if (Rescreen.NvencEncoding)
                 {
-                    byte[] buffer = Rescreen.VideoStreams[userName].AudioQueue.Dequeue();
-                    writer2.Write(buffer, 0, buffer.Length);
+                    decoder = new Decoder(Rescreen.ScreenActualSize.Width, Rescreen.ScreenActualSize.Height, Codec.H264, Format.RGBA32);
+                    decoder.onDecoded += (s, e) =>
+                    {
+                        Mat mat = new Mat(decoder.height, decoder.width, MatType.CV_8UC4);
+                        Kernel32.CopyMemory(mat.Data, e.Item1, (uint)e.Item2);
+
+                        writer.Write(mat);
+                        mat.Dispose();
+                    };
                 }
-            }
+
+                while (Rescreen.VideoStreams[userName].ScreenQueue.Count > 0)
+                {
+                    byte[] buffer = Rescreen.VideoStreams[userName].ScreenQueue.Dequeue();
+                    byte[] raw = buffer.Decompress();
+
+                    if (Rescreen.NvencEncoding)
+                    {
+                        var handle = GCHandle.Alloc(raw, GCHandleType.Pinned);
+                        var ptr = handle.AddrOfPinnedObject();
+
+                        decoder.Decode(ptr, raw.Length);
+                        handle.Free();
+                    }
+                    else
+                    {
+                        var src = new Mat(Rescreen.ScreenActualSize.Height, Rescreen.ScreenActualSize.Width, MatType.CV_8UC4);
+                        int length = Rescreen.ScreenActualSize.Width * Rescreen.ScreenActualSize.Height * 4; // or src.Height * src.Step;
+                        Marshal.Copy(raw, 0, src.Data, length);
+
+                        writer.Write(src);
+                        src.Dispose();
+                    }
+                }
+
+                writer.Dispose();
+
+                using (var writer2 = new LameMP3FileWriter(TestAudioFilePath, WasapiCapture.WaveFormat, 128))
+                {
+                    while (Rescreen.VideoStreams[userName].AudioQueue.Count > 0)
+                    {
+                        byte[] buffer = Rescreen.VideoStreams[userName].AudioQueue.Dequeue();
+                        writer2.Write(buffer, 0, buffer.Length);
+                    }
+                }
+            });
 
             var result = MessageBox.Show("hurary!\nopen video?", "BetterLiveScreen", MessageBoxButton.YesNo, MessageBoxImage.Question);
 

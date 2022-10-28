@@ -16,6 +16,8 @@ namespace BetterLiveScreen.Rooms
         public static bool IsConnected { get; private set; } = false;
         public static RoomInfo CurrentRoom { get; private set; }
 
+        public const int MAX_USER_COUNT = 5;
+
         public static async Task<bool> ConnectAsync(string id, string password = "")
         {
             var a = await MainWindow.Client.ConnectAsync(id, password);
@@ -59,7 +61,7 @@ namespace BetterLiveScreen.Rooms
 
         public static async Task<bool> CreateAsync(string id, string name, string description = "", string password = "")
         {
-            var info = new RoomInfo(name, description, id, string.IsNullOrWhiteSpace(password));
+            var info = new RoomInfo(name, description, id, string.IsNullOrWhiteSpace(password), 0, MAX_USER_COUNT);
             var response = await MainWindow.Client.CreateRoomAsync(info, password);
 
             if (response.SendType == SendTypes.OK)
@@ -69,6 +71,13 @@ namespace BetterLiveScreen.Rooms
             }
 
             return false;
+        }
+
+        public static void CreateForDebug()
+        {
+            //this function is for debugging only.
+            //this function will deleted soon, so don't use this method.
+            CurrentRoom = new RoomInfo("blss", "for debugging", GetRandomId(), false, 1, MAX_USER_COUNT);
         }
 
         public static async Task<RoomInfo> GetRoomInfoAsync(string id)
@@ -82,6 +91,12 @@ namespace BetterLiveScreen.Rooms
         public static string GetRandomId()
         {
             return Guid.NewGuid().ToString().Substring(0, 6);
+        }
+
+        public static string GetInviteSecret()
+        {
+            //var response = await MainWindow.Client.GetInviteSecret(CurrentRoom.Id, MainWindow.User.ToString());
+            return DiscordRPC.Secrets.CreateFriendlySecret(new Random());
         }
     }
 }
