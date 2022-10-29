@@ -137,10 +137,27 @@ namespace BetterLiveScreen.Recording.Video.WGC
                 2,
                 _item.Size
                 );
+            DateTime start = DateTime.MinValue;
+            int needElapsed = 0;
+
             _framePool.FrameArrived += (s, a) =>
             {
+                int deltaRes = (int)Rescreen._deltaResSw.ElapsedMilliseconds;
+                TimeSpan delta = DateTime.Now - start;
+
+                if (start == DateTime.MinValue)
+                {
+                    start = DateTime.Now;
+                }
+                else if (Rescreen.DelayPerFrame > 0 && needElapsed - deltaRes > (int)delta.TotalMilliseconds)
+                {
+                    Thread.Sleep(needElapsed - deltaRes - (int)delta.TotalMilliseconds);
+                }
+
                 Rescreen._deltaResSw.Reset();
                 Rescreen._deltaResSw.Start();
+
+                needElapsed += Rescreen.DelayPerFrame;
 
                 using (var frame = _framePool.TryGetNextFrame())
                 {
@@ -229,13 +246,6 @@ namespace BetterLiveScreen.Recording.Video.WGC
             _frameCount = 0;
 
             _session = _framePool.CreateCaptureSession(_item);
-            
-            //if (!IsBorderRequired)
-            //{
-            //    var pUnk = Marshal.GetIUnknownForObject(_session);
-            //    var session3 = Marshal.GetObjectForIUnknown(pUnk) as IGraphicsCaptureSession3;
-            //    session3.IsBorderRequired = false;
-            //}
             _session.StartCapture();
 
             Rescreen._delayPerFrameSw.Start();
@@ -258,7 +268,7 @@ namespace BetterLiveScreen.Recording.Video.WGC
             {
                 bool idr = Rescreen.Settings.Fps > 0 ? _frameCount++ % Rescreen.Settings.Fps == 0 : false;
 
-                if (_encoder.Encode(_frameTexture, idr))
+                if (_encoder.Encode(_frameTexture, false))
                 {
                     _encoder.Update();
                 }

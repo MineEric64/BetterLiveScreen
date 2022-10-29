@@ -59,8 +59,6 @@ namespace BetterLiveScreen.Recording.Video
 
             int aw = Rescreen.Settings.IsHalf ? width / 2 : width;
             int ah = Rescreen.Settings.IsHalf ? height / 2 : height;
-
-            int timeOut = 1000 / Rescreen.Settings.Fps;
             int frameCount = 0;
             
             // Create Staging texture CPU-accessible
@@ -147,7 +145,7 @@ namespace BetterLiveScreen.Recording.Video
                             OutputDuplicateFrameInformation duplicateFrameInformation;
 
                             // Try to get duplicated frame within given time is ms
-                            var result = duplicatedOutput.TryAcquireNextFrame(timeOut, out duplicateFrameInformation, out screenResource);
+                            var result = duplicatedOutput.TryAcquireNextFrame(Rescreen.Settings.Fps > 0 ? Rescreen.DelayPerFrame : 5, out duplicateFrameInformation, out screenResource);
                             var delta = DateTime.Now - startDate;
 
                             if (result.Failure)
@@ -158,7 +156,7 @@ namespace BetterLiveScreen.Recording.Video
                             {
                                 startDate = DateTime.Now;
                             }
-                            else if (timeOut > 0 && needElapsed - deltaRes > (int)delta.TotalMilliseconds)
+                            else if (Rescreen.DelayPerFrame > 0 && needElapsed - deltaRes > (int)delta.TotalMilliseconds)
                             {
                                 Thread.Sleep(needElapsed - deltaRes - (int)delta.TotalMilliseconds);
                             }
@@ -166,7 +164,7 @@ namespace BetterLiveScreen.Recording.Video
                             Rescreen._deltaResSw.Reset();
                             Rescreen._deltaResSw.Start();
 
-                            needElapsed += timeOut;
+                            needElapsed += Rescreen.DelayPerFrame;
 
                             // copy resource into memory that can be accessed by the CPU
                             using (var screenTexture2D = screenResource.QueryInterface<Texture2D>())
@@ -186,7 +184,7 @@ namespace BetterLiveScreen.Recording.Video
                             {
                                 bool idr = Rescreen.Settings.Fps > 0 ? frameCount++ % Rescreen.Settings.Fps == 0 : false;
                                 
-                                if (encoder.Encode(stagingTexture, idr))
+                                if (encoder.Encode(stagingTexture, false))
                                 {
                                     encoder.Update();
                                 }
