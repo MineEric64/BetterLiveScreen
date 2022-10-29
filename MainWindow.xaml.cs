@@ -165,7 +165,7 @@ namespace BetterLiveScreen
         private async void serverIpConnect_Click(object sender, RoutedEventArgs e)
         {
             await RecordingTest.RecordTestAsync(
-                videoType: CaptureVideoType.DD,
+                videoType: CaptureVideoType.WGC,
                 milliseconds: 10000,
                 monitor: RescreenSettings.PrimaryMonitor,
                 fps: 30,

@@ -230,12 +230,12 @@ namespace BetterLiveScreen.Recording.Video.WGC
 
             _session = _framePool.CreateCaptureSession(_item);
             
-            if (!IsBorderRequired)
-            {
-                var pUnk = Marshal.GetIUnknownForObject(_session);
-                var session3 = Marshal.GetObjectForIUnknown(pUnk) as IGraphicsCaptureSession3;
-                session3.IsBorderRequired = false;
-            }
+            //if (!IsBorderRequired)
+            //{
+            //    var pUnk = Marshal.GetIUnknownForObject(_session);
+            //    var session3 = Marshal.GetObjectForIUnknown(pUnk) as IGraphicsCaptureSession3;
+            //    session3.IsBorderRequired = false;
+            //}
             _session.StartCapture();
 
             Rescreen._delayPerFrameSw.Start();
