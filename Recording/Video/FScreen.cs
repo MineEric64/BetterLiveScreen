@@ -7,20 +7,20 @@ using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Documents;
 
 using SharpDX;
 using SharpDX.DXGI;
 using SharpDX.Direct3D11;
 
+using OpenCvSharp;
+
 using BetterLiveScreen.Extensions;
 using BetterLiveScreen.Recording.Video.NvEncoder;
 using BetterLiveScreen.Recording.Video.NvPipe;
 
 using Encoder = BetterLiveScreen.Recording.Video.NvEncoder.Encoder;
-using Windows.Storage.Streams;
-using OpenCvSharp;
-using System.Windows;
 
 namespace BetterLiveScreen.Recording.Video
 {
@@ -57,10 +57,10 @@ namespace BetterLiveScreen.Recording.Video
             int width = output.Description.DesktopBounds.Right;
             int height = output.Description.DesktopBounds.Bottom;
 
-            int aw = Rescreen.IsHalf ? width / 2 : width;
-            int ah = Rescreen.IsHalf ? height / 2 : height;
+            int aw = Rescreen.Settings.IsHalf ? width / 2 : width;
+            int ah = Rescreen.Settings.IsHalf ? height / 2 : height;
 
-            int timeOut = 1000 / Rescreen.Fps;
+            int timeOut = 1000 / Rescreen.Settings.Fps;
             int frameCount = 0;
             
             // Create Staging texture CPU-accessible
@@ -99,7 +99,7 @@ namespace BetterLiveScreen.Recording.Video
 
             Encoder encoder = null;
 
-            if (Rescreen.NvencEncoding)
+            if (Rescreen.Settings.NvencEncoding)
             {
                 encoder = new Encoder();
 
@@ -107,11 +107,12 @@ namespace BetterLiveScreen.Recording.Video
                 {
                     width = aw,
                     height = ah,
-                    frameRate = Rescreen.Fps > 0 ? Rescreen.Fps : 60,
+                    frameRate = Rescreen.FpsIfUnfixed60,
                     format = NvEncoder.Format.B8G8R8A8_UNORM,
-                    bitRate = Rescreen.Bitrate,
-                    maxFrameSize = 40000
+                    bitRate = Rescreen.Settings.Bitrate
                 };
+                setting.maxFrameSize = setting.bitRate / setting.frameRate;
+
                 encoder.Create(setting, device);
                 encoder.onEncoded += (s, e) =>
                 {
@@ -119,8 +120,12 @@ namespace BetterLiveScreen.Recording.Video
                     Marshal.Copy(e.Item1, buffer, 0, e.Item2);
 
                     ScreenRefreshed?.Invoke(null, buffer);
-                    //decoder.Decode(e.Item1, e.Item2);
                 };
+
+                if (!encoder.isValid)
+                {
+                    Rescreen.Settings.NvencEncoding = false;
+                }
             }
 
             Task.Factory.StartNew(() =>
@@ -165,10 +170,10 @@ namespace BetterLiveScreen.Recording.Video
 
                             // copy resource into memory that can be accessed by the CPU
                             using (var screenTexture2D = screenResource.QueryInterface<Texture2D>())
-                                if (Rescreen.IsHalf) device.ImmediateContext.CopySubresourceRegion(screenTexture2D, 0, null, smallerTexture, 0);
+                                if (Rescreen.Settings.IsHalf) device.ImmediateContext.CopySubresourceRegion(screenTexture2D, 0, null, smallerTexture, 0);
                                 else device.ImmediateContext.CopyResource(screenTexture2D, stagingTexture);
 
-                            if (Rescreen.IsHalf)
+                            if (Rescreen.Settings.IsHalf)
                             {
                                 // Generates the mipmap of the screen
                                 device.ImmediateContext.GenerateMips(smallerTextureView);
@@ -177,11 +182,11 @@ namespace BetterLiveScreen.Recording.Video
                                 device.ImmediateContext.CopySubresourceRegion(smallerTexture, 1, null, stagingTexture, 0);
                             }
 
-                            if (Rescreen.NvencEncoding)
+                            if (Rescreen.Settings.NvencEncoding)
                             {
-                                bool idr = Rescreen.Fps > 0 ? frameCount++ % Rescreen.Fps == 0 : false;
+                                bool idr = Rescreen.Settings.Fps > 0 ? frameCount++ % Rescreen.Settings.Fps == 0 : false;
                                 
-                                if (encoder.Encode(stagingTexture, false))
+                                if (encoder.Encode(stagingTexture, idr))
                                 {
                                     encoder.Update();
                                 }

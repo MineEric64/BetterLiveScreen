@@ -39,6 +39,7 @@ using Size = System.Drawing.Size;
 using WasapiCapture = BetterLiveScreen.Recording.Audio.WasapiCapture;
 using Decoder = BetterLiveScreen.Recording.Video.NvPipe.Decoder;
 using System.Windows.Markup;
+using BetterLiveScreen.Recording.Video.WGC;
 
 namespace BetterLiveScreen
 {
@@ -115,16 +116,18 @@ namespace BetterLiveScreen
             xPlay.Content = "II";
         }
 
-        public static async Task<bool> RecordTestAsync(CaptureVideoType videoType, int milliseconds, int width, int height, int fps, bool isHalf, bool nvencEncoding, int bitRate = -1)
+        public static async Task<bool> RecordTestAsync(CaptureVideoType videoType, int milliseconds, MonitorInfo monitor, int fps, bool isHalf, bool nvencEncoding, int bitRate = -1)
         {
             InitializeForAudioCaptureTest();
 
-            Rescreen.ScreenSize = new Size(width, height);
-            Rescreen.Fps = fps;
-            Rescreen.VideoType = videoType;
-            Rescreen.IsHalf = isHalf;
-            Rescreen.NvencEncoding = nvencEncoding;
-            if (bitRate > 0) Rescreen.Bitrate = bitRate;
+            Rescreen.Settings.VideoType = videoType;
+            Rescreen.Settings.SelectedMonitor = monitor;
+            Rescreen.Settings.Fps = fps;
+            Rescreen.Settings.IsHalf = isHalf;
+            Rescreen.Settings.NvencEncoding = nvencEncoding;
+
+            if (bitRate > 0) Rescreen.Settings.Bitrate = bitRate;
+            else if (nvencEncoding) Rescreen.Settings.Bitrate = BitrateInfo.GetBitrateFromMbps(Rescreen.GetBitrateInfoBySize(Rescreen.ScreenActualSize.Height, Rescreen.FpsIfUnfixed60).MbpsAverage);
 
             _sw.Start();
             Rescreen.Start();
@@ -135,7 +138,7 @@ namespace BetterLiveScreen
             string userName = MainWindow.User.ToString();
             double fps2 = fps > 0 ? fps : Rescreen.GetFps(Rescreen.VideoStreams[userName].ScreenQueue.Count, Rescreen.Elapsed.TotalSeconds);
             var writer = new VideoWriter();
-            writer.Open(TestVideoFilePath, FourCC.H264, fps2, Rescreen.ScreenSize.ToCvSize());
+            writer.Open(TestVideoFilePath, FourCC.H264, fps2, Rescreen.ScreenActualSize.ToCvSize());
 
             if (!writer.IsOpened())
             {
@@ -148,16 +151,22 @@ namespace BetterLiveScreen
                 Decoder decoder = null;
 
                 //write video file
-                if (Rescreen.NvencEncoding)
+                if (Rescreen.Settings.NvencEncoding)
                 {
+                    //Format : RGBA
                     decoder = new Decoder(Rescreen.ScreenActualSize.Width, Rescreen.ScreenActualSize.Height, Codec.H264, Format.RGBA32);
                     decoder.onDecoded += (s, e) =>
                     {
                         Mat mat = new Mat(decoder.height, decoder.width, MatType.CV_8UC4);
                         Kernel32.CopyMemory(mat.Data, e.Item1, (uint)e.Item2);
 
-                        writer.Write(mat);
+                        Mat mat2 = new Mat();
+
+                        Cv2.CvtColor(mat, mat2, ColorConversionCodes.RGBA2BGR);
+                        writer.Write(mat2);
+
                         mat.Dispose();
+                        mat2.Dispose();
                     };
                 }
 
@@ -166,7 +175,7 @@ namespace BetterLiveScreen
                     byte[] buffer = Rescreen.VideoStreams[userName].ScreenQueue.Dequeue();
                     byte[] raw = buffer.Decompress();
 
-                    if (Rescreen.NvencEncoding)
+                    if (Rescreen.Settings.NvencEncoding)
                     {
                         var handle = GCHandle.Alloc(raw, GCHandleType.Pinned);
                         var ptr = handle.AddrOfPinnedObject();
@@ -187,12 +196,16 @@ namespace BetterLiveScreen
 
                 writer.Dispose();
 
-                using (var writer2 = new LameMP3FileWriter(TestAudioFilePath, WasapiCapture.WaveFormat, 128))
+                //write audio file
+                if (File.Exists(TestAudioFilePath))
                 {
-                    while (Rescreen.VideoStreams[userName].AudioQueue.Count > 0)
+                    using (var writer2 = new LameMP3FileWriter(TestAudioFilePath, WasapiCapture.WaveFormat, 128))
                     {
-                        byte[] buffer = Rescreen.VideoStreams[userName].AudioQueue.Dequeue();
-                        writer2.Write(buffer, 0, buffer.Length);
+                        while (Rescreen.VideoStreams[userName].AudioQueue.Count > 0)
+                        {
+                            byte[] buffer = Rescreen.VideoStreams[userName].AudioQueue.Dequeue();
+                            writer2.Write(buffer, 0, buffer.Length);
+                        }
                     }
                 }
             });

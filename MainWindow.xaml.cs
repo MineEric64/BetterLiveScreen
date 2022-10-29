@@ -62,6 +62,7 @@ namespace BetterLiveScreen
         {
             InitializeComponent();
             DiscordHelper.Initialize();
+            Rescreen.Initialize();
 
             this.Closing += MainWindow_Closing;
             AppDomain.CurrentDomain.UnhandledException += MainWindow_UnhandledException;
@@ -166,12 +167,10 @@ namespace BetterLiveScreen
             await RecordingTest.RecordTestAsync(
                 videoType: CaptureVideoType.DD,
                 milliseconds: 10000,
-                width: 2560,
-                height: 1440,
+                monitor: RescreenSettings.PrimaryMonitor,
                 fps: 30,
                 isHalf: false,
-                nvencEncoding: true,
-                bitRate: Rescreen.GetBitrateFromMbps(12)
+                nvencEncoding: true
                 );
             return;
 

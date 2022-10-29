@@ -80,6 +80,8 @@ namespace BetterLiveScreen.Recording.Audio
 
         public static void Stop()
         {
+            if (!IsInitialized) return;
+
             _capture.StopRecording();
             _capture.DataAvailable -= WhenDataAvailable;
         }

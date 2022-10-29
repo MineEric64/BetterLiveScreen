@@ -35,21 +35,32 @@ namespace BetterLiveScreen.Recording.Video
         internal static Stopwatch _delayPerFrameSw = new Stopwatch(); //Delay Per Frame Time
 
         public static Dictionary<string, VideoLike> VideoStreams { get; set; } = new Dictionary<string, VideoLike>();
+        public static Dictionary<string, BitrateInfo> BitrateInfos { get; } = new Dictionary<string, BitrateInfo>();
 
-        public static int Fps { get; set; } = 30;
-        public static Size ScreenSize { get; set; } = new Size(2560, 1440);
-        public static Size ScreenActualSize => IsHalf ? ScreenSize.DivideBy(2) : ScreenSize;
-        public static int DelayPerFrame => 1000 / Fps;
+        public static RescreenSettings Settings { get; private set; } = RescreenSettings.Default;
 
-        public static bool IsHalf { get; set; } = false;
-        public static bool NvencEncoding { get; set; } = true;
-        public static int Bitrate { get; set; } = GetBitrateFromMbps(2);
+        public static Size ScreenActualSize => Settings.IsHalf ? Settings.SelectedMonitor.ScreenSize.DivideBy(2) : Settings.SelectedMonitor.ScreenSize;
+        public static int DelayPerFrame => 1000 / Settings.Fps;
+        public static int FpsIfUnfixed30 => Settings.Fps > 0 ? Settings.Fps : 30;
+        public static int FpsIfUnfixed60 => Settings.Fps > 0 ? Settings.Fps : 60;
 
         public static bool IsRecording { get; private set; } = false;
         public static TimeSpan Elapsed => _flow.Elapsed;
 
-        public static CaptureVideoType VideoType { get; set; } = CaptureVideoType.DD;
-        public static CaptureAudioType AudioType { get; set; } = CaptureAudioType.Wasapi;
+        public static void Initialize()
+        {
+            BitrateInfos.Add("1440@60", new BitrateInfo(9, 12, 18));
+            BitrateInfos.Add("1440@30", new BitrateInfo(6, 9, 13));
+            BitrateInfos.Add("1080@60", new BitrateInfo(4, 6, 9));
+            BitrateInfos.Add("1080@30", new BitrateInfo(3, 4, 6));
+            BitrateInfos.Add("720@60", new BitrateInfo(2, 4, 6));
+            BitrateInfos.Add("720@30", new BitrateInfo(1, 2, 4));
+        }
+
+        public static void MakeSettings(RescreenSettings settings)
+        {
+            Settings = settings;
+        }
 
         public static void Start()
         {
@@ -59,7 +70,7 @@ namespace BetterLiveScreen.Recording.Video
             }
             _flow.Reset();
 
-            switch (VideoType)
+            switch (Settings.VideoType)
             {
                 case CaptureVideoType.DD:
                     _raw.ScreenRefreshed += ScreenRefreshed;
@@ -68,12 +79,19 @@ namespace BetterLiveScreen.Recording.Video
                     break;
 
                 case CaptureVideoType.WGC:
+                    if (!WGCHelper.IsInitialized && !WGCHelper.Initialize())
+                    {
+                        Settings.VideoType = CaptureVideoType.DD; //WGC Not Supported
+                        Start();
+
+                        return;
+                    }
                     WGCHelper.ScreenRefreshed += ScreenRefreshed;
                     WGCHelper.StartPrimaryMonitorCapture();
 
                     break;
             }
-            switch (AudioType)
+            switch (Settings.AudioType)
             {
                 case CaptureAudioType.Wasapi:
                     WasapiCapture.Record();
@@ -86,7 +104,7 @@ namespace BetterLiveScreen.Recording.Video
 
         public static void Stop()
         {
-            switch (VideoType)
+            switch (Settings.VideoType)
             {
                 case CaptureVideoType.DD:
                     _raw.Stop();
@@ -98,7 +116,7 @@ namespace BetterLiveScreen.Recording.Video
                     WGCHelper.ScreenRefreshed -= ScreenRefreshed;
                     break;
             }
-            switch (AudioType)
+            switch (Settings.AudioType)
             {
                 case CaptureAudioType.Wasapi:
                     WasapiCapture.Stop();
@@ -137,9 +155,9 @@ namespace BetterLiveScreen.Recording.Video
             return list.Count > 0 ? list.Average().ToString("0.##") : "0";
         }
 
-        public static int GetBitrateFromMbps(int mbps)
+        public static BitrateInfo GetBitrateInfoBySize(int height, int fps)
         {
-            return mbps * 1000000;
+            return BitrateInfos[string.Join("@", height, fps)];
         }
     }
 }

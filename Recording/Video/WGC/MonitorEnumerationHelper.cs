@@ -12,7 +12,8 @@ namespace BetterLiveScreen.Recording.Video.WGC
     public class MonitorInfo
     {
         public bool IsPrimary { get; set; }
-        public Vector2 ScreenSize { get; set; }
+        public Vector2 ScreenSizeVec2 { get; set; }
+        public Size ScreenSize => new Size((int)ScreenSizeVec2.X, (int)ScreenSizeVec2.Y);
         public Rectangle MonitorArea { get; set; }
         public Rectangle WorkArea { get; set; }
         public string DeviceName { get; set; }
@@ -64,7 +65,7 @@ namespace BetterLiveScreen.Recording.Video.WGC
                     {
                         var info = new MonitorInfo
                         {
-                            ScreenSize = new Vector2(mi.Monitor.right - mi.Monitor.left, mi.Monitor.bottom - mi.Monitor.top),
+                            ScreenSizeVec2 = new Vector2(mi.Monitor.right - mi.Monitor.left, mi.Monitor.bottom - mi.Monitor.top),
                             MonitorArea = new Rectangle(mi.Monitor.left, mi.Monitor.top, mi.Monitor.right - mi.Monitor.left, mi.Monitor.bottom - mi.Monitor.top),
                             WorkArea = new Rectangle(mi.WorkArea.left, mi.WorkArea.top, mi.WorkArea.right - mi.WorkArea.left, mi.WorkArea.bottom - mi.WorkArea.top),
                             IsPrimary = mi.Flags > 0,

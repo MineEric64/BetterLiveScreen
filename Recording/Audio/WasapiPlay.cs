@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
-
+using System.Windows;
 using NAudio;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
@@ -24,6 +25,8 @@ namespace BetterLiveScreen.Recording.Audio
         public static bool IsInitialized { get; private set; } = false;
         public static bool IsRead { get; private set; } = false;
         public static bool IsReady { get; private set; } = false;
+        public static bool IsFinalReady => IsInitialized && IsRead && IsReady;
+
         public static bool IsPlaying { get; private set; } = false;
         public static bool IsPaused { get; private set; } = false;
 
@@ -45,8 +48,18 @@ namespace BetterLiveScreen.Recording.Audio
        
         public static void Read(string path)
         {
-            _reader = new Mp3FileReader(path);
-            IsRead = true;
+            if (!File.Exists(path)) return;
+
+            try
+            {
+                _reader = new Mp3FileReader(path);
+                IsRead = true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), "BetterLiveScreen : Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                IsRead = false;
+            }
         }
 
         public static void Ready()
@@ -58,6 +71,7 @@ namespace BetterLiveScreen.Recording.Audio
 
         public static void SetTime(TimeSpan position)
         {
+            if (!IsRead) return;
             _reader.CurrentTime = position;
         }
 
@@ -65,9 +79,7 @@ namespace BetterLiveScreen.Recording.Audio
         {
             MMDevice device = WasapiCapture.DefaultMMDevice;
 
-            if (!IsInitialized || device == null) return false;
-            if (!IsRead) return false;
-            if (!IsReady) return false;
+            if (!IsFinalReady) return false;
             if (_prevDeviceId != device.ID) Initialize();
 
             _wasapiOut.Play();
@@ -79,6 +91,7 @@ namespace BetterLiveScreen.Recording.Audio
 
         public static void Pause()
         {
+            if (!IsFinalReady) return;
             if (_wasapiOut.PlaybackState == PlaybackState.Paused) return;
 
             _wasapiOut.Pause();
@@ -88,7 +101,9 @@ namespace BetterLiveScreen.Recording.Audio
 
         public static void Stop()
         {
+            if (!IsFinalReady) return;
             if (_wasapiOut.PlaybackState != PlaybackState.Paused) _wasapiOut.Pause();
+
             _reader.Position = 0;
             IsPlaying = false;
             IsPaused = true;
