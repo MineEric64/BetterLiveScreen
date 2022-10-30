@@ -21,6 +21,7 @@ using BetterLiveScreen.Recording.Video.NvEncoder;
 using BetterLiveScreen.Recording.Video.NvPipe;
 
 using Encoder = BetterLiveScreen.Recording.Video.NvEncoder.Encoder;
+using BetterLiveScreen.Recording.Video.WGC;
 
 namespace BetterLiveScreen.Recording.Video
 {
@@ -45,12 +46,14 @@ namespace BetterLiveScreen.Recording.Video
         {
             _run = true;
             var factory = new Factory1();
+            var deviceFromMonitor = GetAdapterOutput(Rescreen.Settings.SelectedMonitor, factory);
+
             //Get first adapter
-            var adapter = factory.GetAdapter1(0);
+            var adapter = factory.GetAdapter1(deviceFromMonitor.Item1);
             //Get device from adapter
             var device = new SharpDX.Direct3D11.Device(adapter);
             //Get front buffer of the adapter
-            var output = adapter.GetOutput(0);
+            var output = adapter.GetOutput(deviceFromMonitor.Item2);
             var output1 = output.QueryInterface<Output1>();
 
             // Width/Height of desktop to capture
@@ -338,6 +341,25 @@ namespace BetterLiveScreen.Recording.Video
                 // Memcpy is apparently faster than Buffer.MemoryCopy. 
                 Utilities.CopyMemory(destinationIteratedPointer, sourceIteratedPointer, destinationStride);
             });
+        }
+
+        public static (int, int) GetAdapterOutput(MonitorInfo monitor, Factory1 factory)
+        {
+            for (int i = 0; i < factory.Adapters1.Length; i++)
+            {
+                var adapter = factory.Adapters1[i];
+                string adapterName = adapter.Description.Description; //ex) NVIDIA GeForce GTX 1050 Ti
+
+                for (int j = 0; j < adapter.Outputs.Length; j++)
+                {
+                    var output = adapter.Outputs[i];
+                    string outputName = output.Description.DeviceName; //ex) \\.\DISPLAY1
+                    
+                    if (monitor.DeviceName == outputName) return (i, j);
+                }
+            }
+
+            return (-1, -1);
         }
     }
 }

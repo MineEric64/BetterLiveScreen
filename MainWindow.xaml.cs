@@ -102,26 +102,6 @@ namespace BetterLiveScreen
             name4.Content = string.Empty;
         }
 
-        private void InitializeOption()
-        {
-            var factory = new Factory1();
-
-            foreach (Adapter1 adapter in factory.Adapters1)
-            {
-                for (int i = 0; i < adapter.Outputs.Length; i++)
-                {
-                    var output = adapter.Outputs[i];
-                    Console.WriteLine($"[{i}] {output.Description.DeviceName} : ({output.Description.DesktopBounds.Right}x{output.Description.DesktopBounds.Bottom})");
-                }
-            }
-
-            //var adapter = factory.GetAdapter1(0);
-            //var output = adapter.GetOutput(0);
-
-            //int width = output.Description.DesktopBounds.Right;
-            //int height = output.Description.DesktopBounds.Bottom;
-        }
-
         private async void MainWindow_Closing(object sender, CancelEventArgs e)
         {
             await Client?.CloseAsync();
@@ -168,7 +148,7 @@ namespace BetterLiveScreen
                 videoType: CaptureVideoType.DD,
                 milliseconds: 10000,
                 monitor: RescreenSettings.PrimaryMonitor,
-                fps: 30,
+                fps: -1,
                 isHalf: false,
                 nvencEncoding: true
                 );
