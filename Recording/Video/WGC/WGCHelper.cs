@@ -114,6 +114,11 @@ namespace BetterLiveScreen.Recording.Video.WGC
             StartHmonCapture(monitor.Hmon);
         }
 
+        public static void StartSelectedMonitorCapture()
+        {
+            StartHmonCapture(Rescreen.Settings.SelectedMonitor.Hmon);
+        }
+
         public static void StopCapture()
         {
             _session?.Dispose();

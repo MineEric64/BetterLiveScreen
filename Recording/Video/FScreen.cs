@@ -33,9 +33,6 @@ namespace BetterLiveScreen.Recording.Video
     {
         private bool _run, _init;
 
-        [DllImport("kernel32.dll", EntryPoint = "CopyMemory", SetLastError = false)]
-        public static extern void CopyMemory(IntPtr dest, IntPtr src, uint count);
-
         public int Size { get; private set; }
         public FScreen()
         {

@@ -87,7 +87,7 @@ namespace BetterLiveScreen.Recording.Video
                         return;
                     }
                     WGCHelper.ScreenRefreshed += ScreenRefreshed;
-                    WGCHelper.StartPrimaryMonitorCapture();
+                    WGCHelper.StartSelectedMonitorCapture();
 
                     break;
             }

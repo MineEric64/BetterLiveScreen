@@ -148,7 +148,7 @@ namespace BetterLiveScreen
                 videoType: CaptureVideoType.DD,
                 milliseconds: 10000,
                 monitor: RescreenSettings.PrimaryMonitor,
-                fps: -1,
+                fps: 60,
                 isHalf: false,
                 nvencEncoding: true
                 );
