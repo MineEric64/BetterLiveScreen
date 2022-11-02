@@ -151,16 +151,16 @@ namespace BetterLiveScreen
         {
             
 
-            using (var writer2 = new LameMP3FileWriter(@"C:\Users\erics\Downloads\asdf.mp3", wf, 128))
-            {
-                while (AudioRenderer.bytes.Count > 0)
-                {
-                    byte[] buffer = AudioRenderer.bytes.Dequeue();
-                    writer2.Write(buffer, 0, buffer.Length);
-                }
-            }
-            MessageBox.Show("Done");
-            return;
+            //using (var writer2 = new LameMP3FileWriter(@"C:\Users\erics\Downloads\asdf.mp3", wf, 128))
+            //{
+            //    while (AudioRenderer.bytes.Count > 0)
+            //    {
+            //        byte[] buffer = AudioRenderer.bytes.Dequeue();
+            //        writer2.Write(buffer, 0, buffer.Length);
+            //    }
+            //}
+            //MessageBox.Show("Done");
+            //return;
 
             await RecordingTest.RecordTestAsync(
                 videoType: CaptureVideoType.DD,

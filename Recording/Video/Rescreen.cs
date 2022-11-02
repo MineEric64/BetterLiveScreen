@@ -131,10 +131,12 @@ namespace BetterLiveScreen.Recording.Video
             _delayPerFrameSw.Stop();
             _delayPerFrameSw.Reset();
 
+            double fps = GetFps(VideoStreams[MainWindow.User.ToString()].ScreenQueue.Count, _flow.Elapsed.TotalSeconds);
             string info =
                 "Resolution Per Frame : " + GetAverageAsString(ref _deltaRess) + "ms\n" +
                 "Delay Per Frame : " + GetAverageAsString(ref _delayPerFrame) + "ms\n" +
-                "Fps : " + GetFps(VideoStreams[MainWindow.User.ToString()].ScreenQueue.Count, _flow.Elapsed.TotalSeconds).ToString("0.##");
+                "Fps : " + fps.ToString("0.##") + "\n" +
+                "Mbps : " + GetAverageMbps(VideoStreams[MainWindow.User.ToString()].ScreenQueue, fps);
             MessageBox.Show(info, "BetterLiveScreen", MessageBoxButton.OK, MessageBoxImage.Information);
             
             IsRecording = false;
@@ -144,16 +146,6 @@ namespace BetterLiveScreen.Recording.Video
         {
             var compressed = e.Compress(); //byte[] -> compressed byte[]
             VideoStreams[MainWindow.User.ToString()].ScreenQueue.Enqueue(compressed);
-        }
-
-        public static double GetFps(int frameCount, double elapsedSeconds)
-        {
-            return frameCount / elapsedSeconds;
-        }
-
-        public static string GetAverageAsString(ref List<int> list)
-        {
-            return list.Count > 0 ? list.Average().ToString("0.##") : "0";
         }
 
         public static BitrateInfo GetBitrateInfoBySize(int height, int fps)
@@ -169,6 +161,43 @@ namespace BetterLiveScreen.Recording.Video
                                        select p;
 
             return processesWithWindows.Where(process => !notProcess.Contains(process.MainWindowTitle)).ToArray();
+        }
+
+        //For Debugging Methods for Rescreen!!!
+        //For Debugging Methods for Rescreen!!!
+        //For Debugging Methods for Rescreen!!!
+
+        public static double GetFps(int frameCount, double elapsedSeconds)
+        {
+            return frameCount / elapsedSeconds;
+        }
+
+        public static string GetAverageAsString(ref List<int> list)
+        {
+            return list.Count > 0 ? list.Average().ToString("0.##") : "0";
+        }
+
+        public static double GetAverageMbps(Queue<byte[]> screenQueue, double fps)
+        {
+            var lengthList = new List<int>();
+            var screenList = new List<byte[]>(screenQueue);
+            int length = 0;
+            int position = 0;
+
+            foreach (var screen in screenList)
+            {
+                if (position++ > fps)
+                {
+                    position = 0;
+                    lengthList.Add(length);
+                    length = 0;
+                }
+                length += screen.Length;
+            }
+
+            double mbPerByte = 9.537 * 0.0000001;
+            double averageMb = lengthList.Average() * mbPerByte;
+            return averageMb * 8;
         }
 
         public static string GetProcessInfo(Process p)
