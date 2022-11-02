@@ -1,0 +1,1 @@
+﻿This AudioRenderer Library is included the AuxSense Library ( https://github.com/SirusDoma/AuxSense )

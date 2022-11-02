@@ -91,9 +91,23 @@
     <Compile Include="Clients\ClientOne.cs" />
     <Compile Include="Clients\DiscordHelper.cs" />
     <Compile Include="Extensions\BitmapConverter.cs" />
+    <Compile Include="Extensions\DLLInjector.cs" />
     <Compile Include="Extensions\Kernel32.cs" />
-    <Compile Include="Recording\Audio\WasapiCapture.cs" />
-    <Compile Include="Recording\Audio\WasapiPlay.cs" />
+    <Compile Include="Recording\Audio\AudioRender\AudioRenderer.cs" />
+    <Compile Include="Recording\Audio\AudioRender\Types\CLSCTX.cs" />
+    <Compile Include="Recording\Audio\AudioRender\Types\EDataFlow.cs" />
+    <Compile Include="Recording\Audio\AudioRender\Types\EDeviceState.cs" />
+    <Compile Include="Recording\Audio\AudioRender\Types\ERole.cs" />
+    <Compile Include="Recording\Audio\AudioRender\Types\EStgmAccess.cs" />
+    <Compile Include="Recording\Audio\AudioRender\Types\IAudioClient.cs" />
+    <Compile Include="Recording\Audio\AudioRender\Types\IAudioRenderClient.cs" />
+    <Compile Include="Recording\Audio\AudioRender\Types\IMMDevice.cs" />
+    <Compile Include="Recording\Audio\AudioRender\Types\IMMDeviceCollection.cs" />
+    <Compile Include="Recording\Audio\AudioRender\Types\IMMDeviceEnumerator.cs" />
+    <Compile Include="Recording\Audio\AudioRender\Types\IPropertyStore.cs" />
+    <Compile Include="Recording\Audio\AudioRender\Types\WAVEFORMATEXTERNSIBLE.cs" />
+    <Compile Include="Recording\Audio\Wasapi\WasapiCapture.cs" />
+    <Compile Include="Recording\Audio\Wasapi\WasapiPlay.cs" />
     <Compile Include="Recording\Types\BitrateInfo.cs" />
     <Compile Include="Recording\Types\CaptureAudioType.cs" />
     <Compile Include="Recording\Types\CaptureVideoType.cs" />
@@ -216,9 +230,18 @@
       <Version>5.0.0-preview.5.20278.1</Version>
     </PackageReference>
   </ItemGroup>
-  <ItemGroup />
   <ItemGroup>
+    <Folder Include="Recording\Audio\WinCaptureAudio\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Recording\Audio\AudioRender\README.txt" />
+    <ContentWithTargetPath Include="DLLs\AuxSense.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>AuxSense.dll</TargetPath>
+    </ContentWithTargetPath>
+    <None Include="DLLs\AuxSense.dll" />
     <Content Include="DLLs\Composition.WindowsRuntimeHelpers_NETStd.dll" />
+    <Resource Include="Recording\Audio\AudioRender\Types\README.txt" />
     <ContentWithTargetPath Include="DLLs\NvPipe.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>NvPipe.dll</TargetPath>

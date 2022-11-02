@@ -30,6 +30,9 @@ using DiscordRPC;
 using BetterLiveScreen.Clients;
 using BetterLiveScreen.Extensions;
 using BetterLiveScreen.Recording;
+using BetterLiveScreen.Recording.Audio;
+using BetterLiveScreen.Recording.Audio.AudioRender;
+using BetterLiveScreen.Recording.Audio.Wasapi;
 using BetterLiveScreen.Recording.Types;
 using BetterLiveScreen.Recording.Video;
 using BetterLiveScreen.Rooms;
@@ -40,6 +43,8 @@ using BetterLiveScreen.BetterShare;
 using Path = System.IO.Path;
 using CvSize = OpenCvSharp.Size;
 using BitmapConverter = BetterLiveScreen.Extensions.BitmapConverter;
+using NAudio.Lame;
+using NAudio.Wave;
 
 namespace BetterLiveScreen
 {
@@ -144,6 +149,19 @@ namespace BetterLiveScreen
 
         private async void serverIpConnect_Click(object sender, RoutedEventArgs e)
         {
+            
+
+            using (var writer2 = new LameMP3FileWriter(@"C:\Users\erics\Downloads\asdf.mp3", wf, 128))
+            {
+                while (AudioRenderer.bytes.Count > 0)
+                {
+                    byte[] buffer = AudioRenderer.bytes.Dequeue();
+                    writer2.Write(buffer, 0, buffer.Length);
+                }
+            }
+            MessageBox.Show("Done");
+            return;
+
             await RecordingTest.RecordTestAsync(
                 videoType: CaptureVideoType.DD,
                 milliseconds: 10000,

@@ -9,7 +9,7 @@ using NAudio;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 
-namespace BetterLiveScreen.Recording.Audio
+namespace BetterLiveScreen.Recording.Audio.Wasapi
 {
     public class WasapiCapture
     {

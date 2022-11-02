@@ -15,12 +15,13 @@ using OpenCvSharp;
 
 using BetterLiveScreen.Recording;
 using BetterLiveScreen.Recording.Audio;
+using BetterLiveScreen.Recording.Audio.Wasapi;
 using BetterLiveScreen.Recording.Types;
 using BetterLiveScreen.Recording.Video.WGC;
 using BetterLiveScreen.Extensions;
 
 using Size = System.Drawing.Size;
-using WasapiCapture = BetterLiveScreen.Recording.Audio.WasapiCapture;
+using WasapiCapture = BetterLiveScreen.Recording.Audio.Wasapi.WasapiCapture;
 
 namespace BetterLiveScreen.Recording.Video
 {
@@ -158,6 +159,25 @@ namespace BetterLiveScreen.Recording.Video
         public static BitrateInfo GetBitrateInfoBySize(int height, int fps)
         {
             return BitrateInfos[string.Join("@", height, fps)];
+        }
+
+        public static Process[] GetValidProcesses()
+        {
+            string[] notProcess = new string[] { "계산기", "NVIDIA GeForce Overlay", "Microsoft Text Input Application", "설정" };
+            var processesWithWindows = from p in Process.GetProcesses()
+                                       where !string.IsNullOrWhiteSpace(p.MainWindowTitle) && WindowEnumerationHelper.IsWindowValidForCapture(p.MainWindowHandle)
+                                       select p;
+
+            return processesWithWindows.Where(process => !notProcess.Contains(process.MainWindowTitle)).ToArray();
+        }
+
+        public static string GetProcessInfo(Process p)
+        {
+            string info =
+                $"Name : {p.ProcessName}\n" +
+                $"Main Window Title : {p.MainWindowTitle}\n" +
+                $"Id : {p.Id}";
+            return info;
         }
     }
 }

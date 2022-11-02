@@ -29,17 +29,17 @@ using NAudio.Wave;
 using BetterLiveScreen.Extensions;
 using BetterLiveScreen.Recording;
 using BetterLiveScreen.Recording.Audio;
+using BetterLiveScreen.Recording.Audio.Wasapi;
 using BetterLiveScreen.Recording.Types;
 using BetterLiveScreen.Recording.Video;
 using BetterLiveScreen.Recording.Video.NvPipe;
+using BetterLiveScreen.Recording.Video.WGC;
 
 using Window = System.Windows.Window;
 using Path = System.IO.Path;
 using Size = System.Drawing.Size;
-using WasapiCapture = BetterLiveScreen.Recording.Audio.WasapiCapture;
+using WasapiCapture = BetterLiveScreen.Recording.Audio.Wasapi.WasapiCapture;
 using Decoder = BetterLiveScreen.Recording.Video.NvPipe.Decoder;
-using System.Windows.Markup;
-using BetterLiveScreen.Recording.Video.WGC;
 
 namespace BetterLiveScreen
 {

@@ -1,0 +1,1 @@
+﻿This CoreAudioApi Types are from https://github.com/davinx/PitchPitch

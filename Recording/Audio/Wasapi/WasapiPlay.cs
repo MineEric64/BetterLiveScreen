@@ -11,7 +11,7 @@ using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
 
-namespace BetterLiveScreen.Recording.Audio
+namespace BetterLiveScreen.Recording.Audio.Wasapi
 {
     public class WasapiPlay
     {

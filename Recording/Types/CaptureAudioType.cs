@@ -8,6 +8,7 @@ namespace BetterLiveScreen.Recording.Types
 {
     public enum CaptureAudioType
     {
-        Wasapi
+        Wasapi,
+        WinCaptureAudio
     }
 }
