@@ -134,12 +134,12 @@ namespace BetterLiveScreen.Recording.Video.WGC
                 return false;
             }
 
-            var cloaked = false;
-            var hrTemp = DwmGetWindowAttribute(hwnd, DWMWINDOWATTRIBUTE.Cloaked, out cloaked, Marshal.SizeOf<bool>());
-            if (hrTemp == 0 && cloaked)
-            {
-                return false;
-            }
+            //var cloaked = false;
+            //var hrTemp = DwmGetWindowAttribute(hwnd, DWMWINDOWATTRIBUTE.Cloaked, out cloaked, Marshal.SizeOf<bool>());
+            //if (hrTemp == 0 && cloaked)
+            //{
+            //    return false;
+            //}
 
             return true;
         }

@@ -153,16 +153,6 @@ namespace BetterLiveScreen.Recording.Video
             return BitrateInfos[string.Join("@", height, fps)];
         }
 
-        public static Process[] GetValidProcesses()
-        {
-            string[] notProcess = new string[] { "계산기", "NVIDIA GeForce Overlay", "Microsoft Text Input Application", "설정" };
-            var processesWithWindows = from p in Process.GetProcesses()
-                                       where !string.IsNullOrWhiteSpace(p.MainWindowTitle) && WindowEnumerationHelper.IsWindowValidForCapture(p.MainWindowHandle)
-                                       select p;
-
-            return processesWithWindows.Where(process => !notProcess.Contains(process.MainWindowTitle)).ToArray();
-        }
-
         //For Debugging Methods for Rescreen!!!
         //For Debugging Methods for Rescreen!!!
         //For Debugging Methods for Rescreen!!!
@@ -198,15 +188,6 @@ namespace BetterLiveScreen.Recording.Video
             double mbPerByte = 9.537 * 0.0000001;
             double averageMb = lengthList.Average() * mbPerByte;
             return averageMb * 8;
-        }
-
-        public static string GetProcessInfo(Process p)
-        {
-            string info =
-                $"Name : {p.ProcessName}\n" +
-                $"Main Window Title : {p.MainWindowTitle}\n" +
-                $"Id : {p.Id}";
-            return info;
         }
     }
 }
