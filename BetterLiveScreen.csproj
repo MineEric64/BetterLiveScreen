@@ -94,6 +94,7 @@
     <Compile Include="Extensions\DLLInjector.cs" />
     <Compile Include="Extensions\HRESULT.cs" />
     <Compile Include="Extensions\Kernel32.cs" />
+    <Compile Include="Extensions\Ole32.cs" />
     <Compile Include="Extensions\ProcessHelper.cs" />
     <Compile Include="Extensions\User32.cs" />
     <Compile Include="Recording\Audio\AudioRender\AudioRenderer.cs" />
@@ -104,12 +105,19 @@
     <Compile Include="Recording\Audio\AudioRender\Types\EStgmAccess.cs" />
     <Compile Include="Recording\Audio\AudioRender\Types\IAudioCaptureClient.cs" />
     <Compile Include="Recording\Audio\AudioRender\Types\IAudioClient.cs" />
+    <Compile Include="Recording\Audio\AudioRender\Types\IAudioMeterInformation.cs" />
     <Compile Include="Recording\Audio\AudioRender\Types\IAudioRenderClient.cs" />
+    <Compile Include="Recording\Audio\AudioRender\Types\IAudioSessionControl2.cs" />
+    <Compile Include="Recording\Audio\AudioRender\Types\IAudioSessionEnumerator.cs" />
+    <Compile Include="Recording\Audio\AudioRender\Types\IAudioSessionManager.cs" />
     <Compile Include="Recording\Audio\AudioRender\Types\IMMDevice.cs" />
     <Compile Include="Recording\Audio\AudioRender\Types\IMMDeviceCollection.cs" />
     <Compile Include="Recording\Audio\AudioRender\Types\IMMDeviceEnumerator.cs" />
     <Compile Include="Recording\Audio\AudioRender\Types\IPropertyStore.cs" />
+    <Compile Include="Recording\Audio\AudioRender\Types\ISimpleAudioVolume.cs" />
+    <Compile Include="Recording\Audio\AudioRender\Types\MMDeviceEnumeratorFactory.cs" />
     <Compile Include="Recording\Audio\AudioRender\Types\WAVEFORMATEXTERNSIBLE.cs" />
+    <Compile Include="Recording\Audio\AudioSessionManager.cs" />
     <Compile Include="Recording\Audio\Wasapi\WasapiCapture.cs" />
     <Compile Include="Recording\Audio\Wasapi\WasapiPlay.cs" />
     <Compile Include="Recording\Audio\WinCaptureAudio\AudioCaptureHelper.cs" />

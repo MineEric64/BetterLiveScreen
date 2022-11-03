@@ -152,6 +152,13 @@ namespace BetterLiveScreen
 
         private async void serverIpConnect_Click(object sender, RoutedEventArgs e)
         {
+            AudioSessionManager.Initialize();
+            foreach (var p in AudioSessionManager.GetAllPlayingSessions())
+            {
+                MessageBox.Show(ProcessHelper.GetProcessInfo(p));
+            }
+            return;
+
             var ach = new AudioCaptureHelper(8692);
             ach.Start();
             await Task.Delay(10000);
