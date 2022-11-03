@@ -15,12 +15,15 @@ using BetterLiveScreen.Extensions;
 
 namespace BetterLiveScreen.Recording.Audio
 {
+    [Obsolete("This AudioSessionManager Class is deprecated, use AudioSessionManagerV2 instead.")]
     public class AudioSessionManager
     {
         private static IMMDeviceEnumerator _pDeviceEnumerator;
         private static IMMDevice _pDevice;
         private static IAudioSessionManager2 _pAudioSessionManager2;
         private static IAudioSessionEnumerator _pAudioSessionEnumerator;
+
+        public static bool IsInitialized { get; private set; } = false;
 
         public static void Initialize()
         {
@@ -42,10 +45,14 @@ namespace BetterLiveScreen.Recording.Audio
             _pAudioSessionManager2 = (IAudioSessionManager2)ppv2;
             result = _pAudioSessionManager2.GetSessionEnumerator(out _pAudioSessionEnumerator);
             Marshal.ThrowExceptionForHR(result);
+
+            IsInitialized = true;
         }
 
         public static Process[] GetAllPlayingSessions()
         {
+            if (!IsInitialized) return null;
+
             string[] excludeTitleList = new string[] { "nvcontainer" };
             var sessionList = new List<int>();
             int result;

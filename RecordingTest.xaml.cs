@@ -40,6 +40,7 @@ using Path = System.IO.Path;
 using Size = System.Drawing.Size;
 using WasapiCapture = BetterLiveScreen.Recording.Audio.Wasapi.WasapiCapture;
 using Decoder = BetterLiveScreen.Recording.Video.NvPipe.Decoder;
+using BetterLiveScreen.Recording.Audio.WinCaptureAudio;
 
 namespace BetterLiveScreen
 {
@@ -74,11 +75,6 @@ namespace BetterLiveScreen
         {
             xMedia.Close();
             WasapiPlay.Close();
-        }
-
-        public static void InitializeForAudioCaptureTest()
-        {
-            if (!WasapiCapture.IsInitialized) WasapiCapture.Initialize(new Action<WaveInEventArgs>((e) => AudioDataAvailable(e)));
         }
 
         public void InitializeVideo()
@@ -116,11 +112,10 @@ namespace BetterLiveScreen
             xPlay.Content = "II";
         }
 
-        public static async Task<bool> RecordTestAsync(CaptureVideoType videoType, int milliseconds, MonitorInfo monitor, int fps, bool isHalf, bool nvencEncoding, int bitRate = -1)
+        public static async Task<bool> RecordTestAsync(CaptureVideoType videoType, CaptureAudioType audioType, int milliseconds, MonitorInfo monitor, int fps, bool isHalf, bool nvencEncoding, int bitRate = -1)
         {
-            InitializeForAudioCaptureTest();
-
             Rescreen.Settings.VideoType = videoType;
+            Rescreen.Settings.AudioType = audioType;
             Rescreen.Settings.SelectedMonitor = monitor;
             Rescreen.Settings.Fps = fps;
             Rescreen.Settings.IsHalf = isHalf;
@@ -129,14 +124,14 @@ namespace BetterLiveScreen
             if (bitRate > 0) Rescreen.Settings.Bitrate = bitRate;
             else if (nvencEncoding) Rescreen.Settings.Bitrate = BitrateInfo.GetBitrateFromMbps(Rescreen.GetBitrateInfoBySize(Rescreen.ScreenActualSize.Height, Rescreen.FpsIfUnfixed60).MbpsAverage);
 
-            _sw.Start();
             Rescreen.Start();
 
             await Task.Delay(milliseconds);
             Rescreen.Stop();
+            
+            double fps2 = fps > 0 ? fps : Rescreen.GetFps(Rescreen.MyVideoStream.ScreenQueue.Count, Rescreen.Elapsed.TotalSeconds);
+            MessageBox.Show(Rescreen.GetRecordedInfo(), "BetterLiveScreen", MessageBoxButton.OK, MessageBoxImage.Information);
 
-            string userName = MainWindow.User.ToString();
-            double fps2 = fps > 0 ? fps : Rescreen.GetFps(Rescreen.VideoStreams[userName].ScreenQueue.Count, Rescreen.Elapsed.TotalSeconds);
             var writer = new VideoWriter();
             writer.Open(TestVideoFilePath, FourCC.H264, fps2, Rescreen.ScreenActualSize.ToCvSize());
 
@@ -170,9 +165,9 @@ namespace BetterLiveScreen
                     };
                 }
 
-                while (Rescreen.VideoStreams[userName].ScreenQueue.Count > 0)
+                while (Rescreen.MyVideoStream.ScreenQueue.Count > 0)
                 {
-                    byte[] buffer = Rescreen.VideoStreams[userName].ScreenQueue.Dequeue();
+                    byte[] buffer = Rescreen.MyVideoStream.ScreenQueue.Dequeue();
                     byte[] raw = buffer.Decompress();
 
                     if (Rescreen.Settings.NvencEncoding)
@@ -197,13 +192,28 @@ namespace BetterLiveScreen
                 writer.Dispose();
 
                 //write audio file
-                if (File.Exists(TestAudioFilePath))
+                WaveFormat wf = null;
+
+                switch (Rescreen.Settings.AudioType)
                 {
-                    using (var writer2 = new LameMP3FileWriter(TestAudioFilePath, WasapiCapture.WaveFormat, 128))
+                    case CaptureAudioType.WasapiLoopback:
+                        wf = WasapiCapture.WaveFormat;
+                        break;
+
+                    case CaptureAudioType.WinCaptureAudio:
+                        wf = WasapiCapture.DeviceWaveFormat;
+                        break;
+                }
+
+                string audioDir = Path.GetDirectoryName(TestAudioFilePath);
+
+                if (Directory.Exists(audioDir))
+                {
+                    using (var writer2 = new LameMP3FileWriter(TestAudioFilePath, wf, 128))
                     {
-                        while (Rescreen.VideoStreams[userName].AudioQueue.Count > 0)
+                        while (Rescreen.MyVideoStream.AudioQueue.Count > 0)
                         {
-                            byte[] buffer = Rescreen.VideoStreams[userName].AudioQueue.Dequeue();
+                            byte[] buffer = Rescreen.MyVideoStream.AudioQueue.Dequeue();
                             writer2.Write(buffer, 0, buffer.Length);
                         }
                     }
@@ -219,29 +229,6 @@ namespace BetterLiveScreen
             }
 
             return true;
-        }
-
-        private static void AudioDataAvailable(WaveInEventArgs e)
-        {
-            _sw.Stop();
-
-            byte[] buffer = new byte[e.BytesRecorded];
-
-            if (e.BytesRecorded == 0)
-            {
-                int bytesPerMillisecond = WasapiCapture.WaveFormat.AverageBytesPerSecond / 1000;
-                int bytesRecorded = (int)_sw.ElapsedMilliseconds * bytesPerMillisecond;
-
-                buffer = new byte[bytesRecorded];
-            }
-            else
-            {
-                Buffer.BlockCopy(e.Buffer, 0, buffer, 0, e.BytesRecorded);
-            }
-            Rescreen.VideoStreams[MainWindow.User.ToString()].AudioQueue.Enqueue(buffer);
-
-            _sw.Reset();
-            _sw.Start();
         }
 
         private void xPlay_Click(object sender, RoutedEventArgs e)

@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -23,14 +24,13 @@ using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using Windows.UI.Xaml.Documents;
 
-using SharpDX.DXGI;
-
 using DiscordRPC;
 
 using BetterLiveScreen.Clients;
 using BetterLiveScreen.Extensions;
 using BetterLiveScreen.Recording;
 using BetterLiveScreen.Recording.Audio;
+using BetterLiveScreen.Recording.Audio.Wasapi;
 using BetterLiveScreen.Recording.Audio.WinCaptureAudio;
 using BetterLiveScreen.Recording.Types;
 using BetterLiveScreen.Recording.Video;
@@ -152,31 +152,9 @@ namespace BetterLiveScreen
 
         private async void serverIpConnect_Click(object sender, RoutedEventArgs e)
         {
-            AudioSessionManager.Initialize();
-            foreach (var p in AudioSessionManager.GetAllPlayingSessions())
-            {
-                MessageBox.Show(ProcessHelper.GetProcessInfo(p));
-            }
-            return;
-
-            var ach = new AudioCaptureHelper(8692);
-            ach.Start();
-            await Task.Delay(10000);
-            ach.Stop();
-
-            using (var writer2 = new LameMP3FileWriter(@"C:\Users\erics\Downloads\asdf.mp3", ach.Format.AsStandardWaveFormat(), 128))
-            {
-                while (ach.bytes.Count > 0)
-                {
-                    byte[] buffer = ach.bytes.Dequeue();
-                    writer2.Write(buffer, 0, buffer.Length);
-                }
-            }
-            MessageBox.Show("Done");
-            return;
-
             await RecordingTest.RecordTestAsync(
                 videoType: CaptureVideoType.DD,
+                audioType: CaptureAudioType.WinCaptureAudio,
                 milliseconds: 10000,
                 monitor: RescreenSettings.PrimaryMonitor,
                 fps: 60,

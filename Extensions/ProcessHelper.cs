@@ -1,11 +1,13 @@
-﻿using BetterLiveScreen.Recording.Video.WGC;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+
+using BetterLiveScreen.Recording.Audio;
+using BetterLiveScreen.Recording.Video.WGC;
 
 namespace BetterLiveScreen.Extensions
 {
@@ -49,6 +51,14 @@ namespace BetterLiveScreen.Extensions
         public static void DebugInfo()
         {
             foreach (var p in GetValidProcesses())
+            {
+                MessageBox.Show(GetProcessInfo(p), "BetterLiveScreen", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        public static void DebugAudioSessionInfo()
+        {
+            foreach (var p in AudioSessionManagerV2.GetAllPlayingSessions())
             {
                 MessageBox.Show(GetProcessInfo(p), "BetterLiveScreen", MessageBoxButton.OK, MessageBoxImage.Information);
             }

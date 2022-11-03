@@ -21,6 +21,7 @@ using IAudioClient = NAudio.CoreAudioApi.Interfaces.IAudioClient;
 using System.Diagnostics;
 using System.Threading;
 using System.Windows;
+using SharpDX.Direct3D11;
 
 namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
 {
@@ -33,27 +34,27 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
         private IAudioCaptureClient _captureClient;
         private IntPtr[] _events = new IntPtr[(int)HelperEvents.Count];
         private Thread _captureThread;
-
-        public Queue<byte[]> bytes = new Queue<byte[]>();
+        private MixHandler _mixHandler = null;
 
         public int Id { get; }
         public WaveFormat Format { get; } = null;
         public bool IsRunning { get; private set; } = false;
+        public bool IsInitialized { get; private set; } = false;
 
         public AudioCaptureHelper(int id)
         {
             Id = id;
-            Format = WasapiCapture.DefaultMMDevice?.AudioClient?.MixFormat;
+            Format = WasapiCapture.DeviceMixFormat;
 
             for (int i = 0; i < _events.Length; i++)
                 _events[i] = Kernel32.CreateEvent(IntPtr.Zero, false, false, null);
-
-            _captureThread = new Thread(CaptureSafe);
         }
 
         public void Start()
         {
+            _captureThread = new Thread(CaptureSafe);
             _captureThread.Start();
+
             IsRunning = true;
         }
 
@@ -106,6 +107,8 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
                 out object obj);
             Marshal.ThrowExceptionForHR(result);
             _captureClient = obj as IAudioCaptureClient;
+
+            IsInitialized = true;
         }
 
         private AUDIOCLIENT_ACTIVATION_PARAMS GetParams()
@@ -174,8 +177,7 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
                     byte[] buffer = new byte[numFrames * bytesPerFrame];
 
                     Marshal.Copy(newData, buffer, 0, buffer.Length);
-                    bytes.Enqueue(buffer);
-                    //ForwardToMixers(qpcPosition, newData, numFrames);
+                    ForwardToMixer(qpcPosition, buffer);
                 }
 
                 if ((flags & AudioClientBufferFlags.DataDiscontinuity) != AudioClientBufferFlags.None)
@@ -192,9 +194,15 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
             }
         }
 
+        public void ForwardToMixer(ulong timestamp, byte[] buffer)
+        {
+            if (_mixHandler == null) return;
+            _mixHandler.Buffer.Enqueue(buffer);
+        }
+
         private void Capture()
         {
-            InitCapture();
+            if (!IsInitialized) InitCapture();
             int result;
             bool shutdown = false;
 
@@ -242,13 +250,18 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
         public void Stop()
         {
             Kernel32.SetEvent(_events[(int)HelperEvents.Shutdown]);
-            _captureThread.Join();
+            //_captureThread.Join();
             IsRunning = false;
         }
 
         public void Dispose()
         {
             if (IsRunning) Stop();
+        }
+
+        public void HandleMix(MixHandler handler)
+        {
+            _mixHandler = handler;
         }
     }
 }

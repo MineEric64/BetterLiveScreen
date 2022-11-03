@@ -30,7 +30,7 @@ namespace BetterLiveScreen.Recording.Video
             NvencEncoding = true,
             Bitrate = BitrateInfo.GetBitrateFromMbps(4),
             VideoType = CaptureVideoType.DD,
-            AudioType = CaptureAudioType.Wasapi
+            AudioType = CaptureAudioType.WinCaptureAudio
         };
     }
 }

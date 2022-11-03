@@ -16,6 +16,7 @@ using OpenCvSharp;
 using BetterLiveScreen.Recording;
 using BetterLiveScreen.Recording.Audio;
 using BetterLiveScreen.Recording.Audio.Wasapi;
+using BetterLiveScreen.Recording.Audio.WinCaptureAudio;
 using BetterLiveScreen.Recording.Types;
 using BetterLiveScreen.Recording.Video.WGC;
 using BetterLiveScreen.Extensions;
@@ -28,6 +29,8 @@ namespace BetterLiveScreen.Recording.Video
     public class Rescreen
     {
         private static FScreen _raw = new FScreen();
+        public static Mixer SessionMixer { get; private set; } = new Mixer();
+
         internal static List<int> _deltaRess = new List<int>();
         internal static List<int> _delayPerFrame = new List<int>();
 
@@ -36,6 +39,7 @@ namespace BetterLiveScreen.Recording.Video
         internal static Stopwatch _delayPerFrameSw = new Stopwatch(); //Delay Per Frame Time
 
         public static Dictionary<string, VideoLike> VideoStreams { get; set; } = new Dictionary<string, VideoLike>();
+        public static VideoLike MyVideoStream => VideoStreams[MainWindow.User.ToString()];
         public static Dictionary<string, BitrateInfo> BitrateInfos { get; } = new Dictionary<string, BitrateInfo>();
 
         public static RescreenSettings Settings { get; private set; } = RescreenSettings.Default;
@@ -94,8 +98,18 @@ namespace BetterLiveScreen.Recording.Video
             }
             switch (Settings.AudioType)
             {
-                case CaptureAudioType.Wasapi:
+                case CaptureAudioType.WasapiLoopback:
+                    if (!WasapiCapture.IsInitialized) WasapiCapture.Initialize();
+
+                    WasapiCapture.DataAvailable += AudioRefreshed;
                     WasapiCapture.Record();
+
+                    break;
+
+                case CaptureAudioType.WinCaptureAudio:
+                    SessionMixer.DataAvailable += AudioRefreshed;
+                    SessionMixer.Start();
+
                     break;
             }
 
@@ -110,17 +124,27 @@ namespace BetterLiveScreen.Recording.Video
                 case CaptureVideoType.DD:
                     _raw.Stop();
                     _raw.ScreenRefreshed -= ScreenRefreshed;
+
                     break;
 
                 case CaptureVideoType.WGC:
                     WGCHelper.StopCapture();
                     WGCHelper.ScreenRefreshed -= ScreenRefreshed;
+
                     break;
             }
             switch (Settings.AudioType)
             {
-                case CaptureAudioType.Wasapi:
+                case CaptureAudioType.WasapiLoopback:
                     WasapiCapture.Stop();
+                    WasapiCapture.DataAvailable -= AudioRefreshed;
+
+                    break;
+
+                case CaptureAudioType.WinCaptureAudio:
+                    SessionMixer.Stop();
+                    SessionMixer.DataAvailable -= AudioRefreshed;
+
                     break;
             }
             _flow.Stop();
@@ -131,13 +155,7 @@ namespace BetterLiveScreen.Recording.Video
             _delayPerFrameSw.Stop();
             _delayPerFrameSw.Reset();
 
-            double fps = GetFps(VideoStreams[MainWindow.User.ToString()].ScreenQueue.Count, _flow.Elapsed.TotalSeconds);
-            string info =
-                "Resolution Per Frame : " + GetAverageAsString(ref _deltaRess) + "ms\n" +
-                "Delay Per Frame : " + GetAverageAsString(ref _delayPerFrame) + "ms\n" +
-                "Fps : " + fps.ToString("0.##") + "\n" +
-                "Mbps : " + GetAverageMbps(VideoStreams[MainWindow.User.ToString()].ScreenQueue, fps);
-            MessageBox.Show(info, "BetterLiveScreen", MessageBoxButton.OK, MessageBoxImage.Information);
+            Debug.WriteLine($"[Info] Recorded,\n{GetRecordedInfo()}");
             
             IsRecording = false;
         }
@@ -145,7 +163,12 @@ namespace BetterLiveScreen.Recording.Video
         private static void ScreenRefreshed(object sender, byte[] e)
         {
             var compressed = e.Compress(); //byte[] -> compressed byte[]
-            VideoStreams[MainWindow.User.ToString()].ScreenQueue.Enqueue(compressed);
+            MyVideoStream.ScreenQueue.Enqueue(compressed);
+        }
+
+        private static void AudioRefreshed(object sender, byte[] e)
+        {
+            MyVideoStream.AudioQueue.Enqueue(e);
         }
 
         public static BitrateInfo GetBitrateInfoBySize(int height, int fps)
@@ -188,6 +211,18 @@ namespace BetterLiveScreen.Recording.Video
             double mbPerByte = 9.537 * 0.0000001;
             double averageMb = lengthList.Average() * mbPerByte;
             return averageMb * 8;
+        }
+
+        public static string GetRecordedInfo()
+        {
+            double fps = GetFps(MyVideoStream.ScreenQueue.Count, Elapsed.TotalSeconds);
+            string info =
+                "Resolution Per Frame : " + GetAverageAsString(ref _deltaRess) + "ms\n" +
+                "Delay Per Frame : " + GetAverageAsString(ref _delayPerFrame) + "ms\n" +
+                "Fps : " + fps.ToString("0.##") + "\n" +
+                "Mbps : " + GetAverageMbps(MyVideoStream.ScreenQueue, fps).ToString("0.##");
+
+            return info;
         }
     }
 }

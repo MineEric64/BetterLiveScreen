@@ -118,6 +118,7 @@
     <Compile Include="Recording\Audio\AudioRender\Types\MMDeviceEnumeratorFactory.cs" />
     <Compile Include="Recording\Audio\AudioRender\Types\WAVEFORMATEXTERNSIBLE.cs" />
     <Compile Include="Recording\Audio\AudioSessionManager.cs" />
+    <Compile Include="Recording\Audio\AudioSessionManagerV2.cs" />
     <Compile Include="Recording\Audio\Wasapi\WasapiCapture.cs" />
     <Compile Include="Recording\Audio\Wasapi\WasapiPlay.cs" />
     <Compile Include="Recording\Audio\WinCaptureAudio\AudioCaptureHelper.cs" />
@@ -128,6 +129,7 @@
     <Compile Include="Recording\Audio\WinCaptureAudio\HelperEvents.cs" />
     <Compile Include="Recording\Audio\WinCaptureAudio\IAgileObject.cs" />
     <Compile Include="Recording\Audio\WinCaptureAudio\Mixer.cs" />
+    <Compile Include="Recording\Audio\WinCaptureAudio\MixHandler.cs" />
     <Compile Include="Recording\Audio\WinCaptureAudio\Mmdevapi.cs" />
     <Compile Include="Recording\Audio\WinCaptureAudio\PROCESS_LOOPBACK_MODE.cs" />
     <Compile Include="Recording\Audio\WinCaptureAudio\PropVariant.cs" />
