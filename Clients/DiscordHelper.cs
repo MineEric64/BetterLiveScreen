@@ -46,9 +46,9 @@ namespace BetterLiveScreen.Clients
             });
             Client.UpdateParty(new Party()
             {
-                ID = RoomManager.CurrentRoom.Id,
+                ID = RoomManager.CurrentRoomId.ToString(),
                 Size = RoomManager.CurrentRoom.CurrentUserCount,
-                Max = RoomManager.CurrentRoom.MaxUserCount,
+                Max = RoomManager.MAX_USER_COUNT,
                 Privacy = Party.PrivacySetting.Private
             });
             Client.SetSubscription(EventType.Join);

@@ -8,6 +8,7 @@ using System.Windows.Media.Imaging;
 
 using BetterLiveScreen.Interfaces.Users;
 using BetterLiveScreen.Extensions;
+using Windows.ApplicationModel.Chat;
 
 namespace BetterLiveScreen.Users
 {
@@ -55,6 +56,11 @@ namespace BetterLiveScreen.Users
         public override string ToString()
         {
             return NameInfo.ToString();
+        }
+
+        public bool Equals(UserInfo a)
+        {
+            return ToString() == a.ToString();
         }
     }
 }

@@ -9,11 +9,14 @@ namespace BetterLiveScreen.Interfaces
     public enum SendTypes
     {
         None,
+        Timeout,
 
         //Room
-        Created,
-        Connected,
-        Disconnected,
+        RoomInfoRequested,
+        RoomConnectRequested,
+
+        RoomDisconnected,
+        RoomDeleted,
 
         StreamStarted,
         StreamEnded,
@@ -21,10 +24,5 @@ namespace BetterLiveScreen.Interfaces
         WatchEnded,
         Video,
         Audio,
-
-        Requested,
-
-        OK,
-        Failed
     }
 }

@@ -14,17 +14,23 @@ namespace BetterLiveScreen.Interfaces
         [Key(0)]
         public SendTypes SendType { get; set; }
         [Key(1)]
-        public int Step { get; set; } = 0;
+        public ResponseCodes ResponseCode { get; set; } = ResponseCodes.None;
         [Key(2)]
-        public byte[] Buffer { get; set; } = new byte[0];
+        public BufferTypes BufferType { get; set; } = BufferTypes.None;
         [Key(3)]
+        public int Step { get; set; } = 0;
+        [Key(4)]
+        public int MaxStep { get; set; } = 0;
+        [Key(5)]
+        public byte[] Buffer { get; set; } = new byte[0];
+        [Key(6)]
         public byte[] ExtraBuffer { get; set; } = new byte[0];
 
         [IgnoreMember]
         public static ReceiveInfo Empty => new ReceiveInfo(SendTypes.None);
 
         [IgnoreMember]
-        public static ReceiveInfo OK => new ReceiveInfo(SendTypes.OK);
+        public static ReceiveInfo Timeout => new ReceiveInfo(SendTypes.Timeout);
 
         /// <summary>
         /// MessagePack을 위한 LZ4 압축 옵션
@@ -37,38 +43,51 @@ namespace BetterLiveScreen.Interfaces
             SendType = sendType;
         }
 
-        public ReceiveInfo(SendTypes sendType, int step) : this(sendType)
+        public ReceiveInfo(SendTypes sendType, ResponseCodes responseCode) : this(sendType)
         {
-            Step = step;
+            ResponseCode = responseCode;
         }
 
-        public ReceiveInfo(SendTypes sendType, byte[] buffer) : this(sendType)
-        {
-            Buffer = buffer;
-        }
-
-        public ReceiveInfo(SendTypes sendType, byte[] buffer, byte[] extraBuffer) : this(sendType)
+        public ReceiveInfo(SendTypes sendType, byte[] buffer, BufferTypes bufferType) : this(sendType)
         {
             Buffer = buffer;
-            ExtraBuffer = extraBuffer;
+            BufferType = bufferType;
         }
 
-        public ReceiveInfo(SendTypes sendType, int step, byte[] buffer)
+        public ReceiveInfo(SendTypes sendType, ResponseCodes responseCode, byte[] buffer, BufferTypes bufferType) : this(sendType, buffer, bufferType)
         {
-            SendType = sendType;
-            Step = step;
-            Buffer = buffer;
+            ResponseCode = responseCode;
         }
 
-        public ReceiveInfo(SendTypes sendType, int step, byte[] buffer, byte[] extraBuffer) : this(sendType, step, buffer)
+        public ReceiveInfo(SendTypes sendType, byte[] buffer, BufferTypes bufferType, byte[] extraBuffer) : this(sendType, buffer, bufferType)
         {
             ExtraBuffer = extraBuffer;
         }
 
-        public static ReceiveInfo GetFailed(string message = "")
+        public ReceiveInfo(SendTypes sendType, ResponseCodes responseCodes, byte[] buffer, BufferTypes bufferType, byte[] extraBuffer) : this(sendType, buffer, bufferType, extraBuffer)
         {
-            byte[] buffer = !string.IsNullOrEmpty(message) ? MessagePackSerializer.Serialize(message, LZ4_OPTIONS) : new byte[0];
-            return new ReceiveInfo(SendTypes.Failed, 0, buffer);
+            ResponseCode = ResponseCode;
+        }
+
+        public ReceiveInfo(SendTypes sendType, int step, int maxStep, byte[] buffer, BufferTypes bufferType) : this(sendType, buffer, bufferType)
+        {
+            Step = step;
+            MaxStep = maxStep;
+        }
+
+        public ReceiveInfo(SendTypes sendType, ResponseCodes responseCode, int step, int maxStep, byte[] buffer, BufferTypes bufferType) : this(sendType, step, maxStep, buffer, bufferType)
+        {
+            ResponseCode = responseCode;
+        }
+
+        public ReceiveInfo(SendTypes sendType, int step, int maxStep, byte[] buffer, BufferTypes bufferType, byte[] extraBuffer) : this(sendType, step, maxStep, buffer, bufferType)
+        {
+            ExtraBuffer = extraBuffer;
+        }
+
+        public ReceiveInfo(SendTypes sendType, ResponseCodes responseCode, int step, int maxStep, byte[] buffer, BufferTypes bufferType, byte[] extraBuffer) : this(sendType, step, maxStep, buffer, bufferType, extraBuffer)
+        {
+            ResponseCode = responseCode;
         }
     }
 }

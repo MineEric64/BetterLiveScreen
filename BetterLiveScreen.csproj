@@ -61,8 +61,16 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="BLSI, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>DLLs\BLSI.dll</HintPath>
+    </Reference>
     <Reference Include="Composition.WindowsRuntimeHelpers_NETStd">
       <HintPath>DLLs\Composition.WindowsRuntimeHelpers_NETStd.dll</HintPath>
+    </Reference>
+    <Reference Include="Open.P2P, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>DLLs\Open.P2P.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -94,6 +102,7 @@
     <Compile Include="Extensions\DLLInjector.cs" />
     <Compile Include="Extensions\HRESULT.cs" />
     <Compile Include="Extensions\Kernel32.cs" />
+    <Compile Include="Extensions\NetworkManager.cs" />
     <Compile Include="Extensions\Ole32.cs" />
     <Compile Include="Extensions\ProcessHelper.cs" />
     <Compile Include="Extensions\User32.cs" />
@@ -218,12 +227,6 @@
     </Resource>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="BetterLiveScreenInterface\BLSI.csproj">
-      <Project>{70e0b235-cf65-4c23-a17b-c719f375f487}</Project>
-      <Name>BLSI</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="DiscordRichPresence">
       <Version>1.0.175</Version>
     </PackageReference>
@@ -257,12 +260,15 @@
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
+    <Content Include="DLLs\BLSI.dll" />
+    <Content Include="DLLs\Deprecated\EuNet\EuNet.Client.dll" />
+    <Content Include="DLLs\Deprecated\EuNet\EuNet.Core.dll" />
+    <Content Include="DLLs\Deprecated\EuNet\EuNet.dll" />
+    <Content Include="DLLs\Deprecated\EuNet\EuNet.Rpc.dll" />
+    <Content Include="DLLs\Deprecated\EuNet\EuNet.Server.dll" />
+    <Content Include="DLLs\Open.P2P.dll" />
     <Resource Include="Recording\Audio\AudioRender\README.txt" />
-    <ContentWithTargetPath Include="DLLs\AuxSense.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <TargetPath>AuxSense.dll</TargetPath>
-    </ContentWithTargetPath>
-    <None Include="DLLs\AuxSense.dll" />
+    <Content Include="DLLs\Deprecated\AuxSense.dll" />
     <Content Include="DLLs\Composition.WindowsRuntimeHelpers_NETStd.dll" />
     <Resource Include="Recording\Audio\AudioRender\Types\README.txt" />
     <ContentWithTargetPath Include="DLLs\NvPipe.dll">

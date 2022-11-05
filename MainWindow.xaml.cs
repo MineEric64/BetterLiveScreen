@@ -28,10 +28,8 @@ using DiscordRPC;
 
 using BetterLiveScreen.Clients;
 using BetterLiveScreen.Extensions;
+using BetterLiveScreen.Interfaces;
 using BetterLiveScreen.Recording;
-using BetterLiveScreen.Recording.Audio;
-using BetterLiveScreen.Recording.Audio.Wasapi;
-using BetterLiveScreen.Recording.Audio.WinCaptureAudio;
 using BetterLiveScreen.Recording.Types;
 using BetterLiveScreen.Recording.Video;
 using BetterLiveScreen.Rooms;
@@ -42,15 +40,13 @@ using BetterLiveScreen.BetterShare;
 using Path = System.IO.Path;
 using CvSize = OpenCvSharp.Size;
 using BitmapConverter = BetterLiveScreen.Extensions.BitmapConverter;
-using NAudio.Lame;
-using NAudio.Wave;
 
 namespace BetterLiveScreen
 {
     /// <summary>
     /// MainWindow.xaml에 대한 상호 작용 논리
     /// </summary>
-    public partial class MainWindow : System.Windows.Window
+    public partial class MainWindow : Window
     {
         public static UserInfo User { get; set; }
         internal static string UserToken { get; } = Guid.NewGuid().ToString();
@@ -142,87 +138,47 @@ namespace BetterLiveScreen
             Rescreen.Stop();
         }
 
-        public void AnalyzeReceive()
-        {
-            while (true)
-            {
-
-            }
-        }
-
         private async void serverIpConnect_Click(object sender, RoutedEventArgs e)
         {
-            await RecordingTest.RecordTestAsync(
-                videoType: CaptureVideoType.DD,
-                audioType: CaptureAudioType.WinCaptureAudio,
-                milliseconds: 10000,
-                monitor: RescreenSettings.PrimaryMonitor,
-                fps: 60,
-                isHalf: false,
-                nvencEncoding: true
-                );
-            return;
+            //await RecordingTest.RecordTestAsync(
+            //    videoType: CaptureVideoType.DD,
+            //    audioType: CaptureAudioType.WinCaptureAudio,
+            //    milliseconds: 10000,
+            //    monitor: RescreenSettings.PrimaryMonitor,
+            //    fps: 60,
+            //    isHalf: false,
+            //    nvencEncoding: true
+            //    );
+            //return;
 
-            string[] info = serverIp.Text.Trim().Split(':');
-
-            if (info.Length == 0)
+            if (string.IsNullOrWhiteSpace(serverIp.Text))
             {
+
                 return;
             }
 
-            if (!Client.IsReady)
+            var room = await RoomManager.GetRoomInfoAsync(serverIp.Text);
+            
+            if (room != null)
             {
-                await Client.ApplyEndPointAsync(info[0]);
-            }
+                Debug.WriteLine(room.ToJsonString());
+                
 
-            if (IsDevMode)
-            {
-                await ConnectAsync("y oshi");
-                return;
-            }
-
-            if (info.Length > 1)
-            {
-                await ConnectAsync(info[1]);
             }
             else
             {
 
-            }
-            
-            async Task ConnectAsync(string id)
-            {
-                if (await RoomManager.ConnectAsync(id))
-                {
-                    MessageBox.Show("OK");
-                }
-                else
-                {
-
-                }
             }
         }
 
         private async void serverCreate_Click(object sender, RoutedEventArgs e)
         {
-            if (!string.IsNullOrWhiteSpace(serverIp.Text)) RecordingTest.TestName = serverIp.Text;
-            var rt = new RecordingTest();
-            rt.Show();
-            return;
+            //if (!string.IsNullOrWhiteSpace(serverIp.Text)) RecordingTest.TestName = serverIp.Text;
+            //var rt = new RecordingTest();
+            //rt.Show();
+            //return;
 
-            if (!Client.IsReady)
-            {
-                await Client.ApplyEndPointAsync(serverIp.Text.Trim());
-            }
-
-            if (await RoomManager.CreateAsync("test", $"{User.NameInfo.Name}'s Server"))
-            {
-
-            }
-            else
-            {
-
-            }
+            RoomManager.Create("BLSS", $"{User.NameInfo.Name}'s Server");
         }
 
         private void serverBetterShare_Click(object sender, RoutedEventArgs e)

@@ -7,8 +7,8 @@
     <ProjectGuid>{70E0B235-CF65-4C23-A17B-C719F375F487}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>BetterLiveScreenInterface</RootNamespace>
-    <AssemblyName>BetterLiveScreenInterface</AssemblyName>
+    <RootNamespace>BLSI</RootNamespace>
+    <AssemblyName>BLSI</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -71,7 +71,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BitmapInfo.cs" />
+    <Compile Include="BufferTypes.cs" />
     <Compile Include="ReceiveInfo.cs" />
+    <Compile Include="ResponseCodes.cs" />
     <Compile Include="Security\SHA512.cs" />
     <Compile Include="SendType.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
