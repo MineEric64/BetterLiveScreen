@@ -19,9 +19,9 @@ using OpenCvSharp;
 using BetterLiveScreen.Extensions;
 using BetterLiveScreen.Recording.Video.NvEncoder;
 using BetterLiveScreen.Recording.Video.NvPipe;
+using BetterLiveScreen.Recording.Video.WGC;
 
 using Encoder = BetterLiveScreen.Recording.Video.NvEncoder.Encoder;
-using BetterLiveScreen.Recording.Video.WGC;
 
 namespace BetterLiveScreen.Recording.Video
 {

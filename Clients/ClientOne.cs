@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -26,9 +27,6 @@ using BetterLiveScreen.Extensions;
 using BetterLiveScreen.Interfaces;
 using BetterLiveScreen.Interfaces.Security;
 using BetterLiveScreen.Rooms;
-using Windows.ApplicationModel.Appointments.AppointmentsProvider;
-using Windows.Devices.Bluetooth.Advertisement;
-using System.Buffers;
 
 namespace BetterLiveScreen.Clients
 {

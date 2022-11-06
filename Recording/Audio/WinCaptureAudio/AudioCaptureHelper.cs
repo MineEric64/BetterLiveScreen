@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 
 using CoreAudioApi;
 using CoreAudioApi.Interfaces;
@@ -18,10 +21,6 @@ using BetterLiveScreen.Recording.Audio.Wasapi;
 
 using WasapiCapture = BetterLiveScreen.Recording.Audio.Wasapi.WasapiCapture;
 using IAudioClient = NAudio.CoreAudioApi.Interfaces.IAudioClient;
-using System.Diagnostics;
-using System.Threading;
-using System.Windows;
-using SharpDX.Direct3D11;
 
 namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
 {

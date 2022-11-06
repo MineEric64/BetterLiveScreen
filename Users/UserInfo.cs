@@ -5,10 +5,10 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using Windows.ApplicationModel.Chat;
 
 using BetterLiveScreen.Interfaces.Users;
 using BetterLiveScreen.Extensions;
-using Windows.ApplicationModel.Chat;
 
 namespace BetterLiveScreen.Users
 {

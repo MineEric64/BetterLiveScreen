@@ -171,7 +171,7 @@ namespace BetterLiveScreen
             }
         }
 
-        private async void serverCreate_Click(object sender, RoutedEventArgs e)
+        private void serverCreate_Click(object sender, RoutedEventArgs e)
         {
             //if (!string.IsNullOrWhiteSpace(serverIp.Text)) RecordingTest.TestName = serverIp.Text;
             //var rt = new RecordingTest();
