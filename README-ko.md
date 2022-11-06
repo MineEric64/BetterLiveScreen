@@ -1,6 +1,6 @@
 # Better Live Screen
 ![Main](https://i.imgur.com/R05OgoMh.png)
-- 제작자 : **MineEric64**
+> **Note** 제작자 : **MineEric64**
 
 디스코드보다 나은 화면 공유 프로그램
 
@@ -12,5 +12,5 @@
 게다가 무료예요!!
 
 ## 참조
-- [사용한 라이브러리](./Documents/LibraryUsed.md)
-- [P.S.](./Documents/P.S.md)
+- [사용한 라이브러리](./Documents/LibraryUsed-ko.md)
+- [P.S.](./Documents/P.S-ko.md)
