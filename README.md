@@ -1,6 +1,6 @@
 # Better Live Screen
 ![Main](https://i.imgur.com/R05OgoMh.png)
-- Made by **MineEric64**
+> **Note**: Made by **MineEric64**
 
 Screen Share that is better than discord
 
