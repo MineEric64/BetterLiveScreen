@@ -2,12 +2,15 @@
 ![Main](https://i.imgur.com/R05OgoMl.png)
 - Made by **MineEric64**
 
-Go Live that is better than discord
+Screen Share that is better than discord
 
 ## Introduction
-you can go live with original source and max to 60fps.
+you can share screen with original source and max to 60fps.
 
-and it's free!
+also you can share the screen including audio!
+
+and it's free!!
 
 ## References
 - [Library Used](./Documents/LibraryUsed.md)
+- [P.S.](./Documents/P.S.md)
