@@ -9,19 +9,28 @@ namespace BetterLiveScreen.Interfaces
     public enum SendTypes
     {
         None,
-        Timeout,
 
         //Room
         RoomInfoRequested,
         RoomConnectRequested,
 
-        RoomDisconnected,
         RoomDeleted,
 
+        //User
+        UserConnected,
+        UserDisconnected,
+
+        //Streaming
         StreamStarted,
         StreamEnded,
+
         WatchStarted,
         WatchEnded,
+
+        ThumbnailUpdated,
+        ThumbnailUpdateRequested,
+
+        //Buffer
         Video,
         Audio,
     }

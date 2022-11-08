@@ -5,7 +5,6 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using Windows.ApplicationModel.Chat;
 
 using BetterLiveScreen.Interfaces.Users;
 using BetterLiveScreen.Extensions;
@@ -16,25 +15,29 @@ namespace BetterLiveScreen.Users
     {
         public UserNameInfo NameInfo { get; set; }
         public string AvatarURL { get; set; }
+        public bool IsLived { get; set; } //Go Live
 
         public static UserInfo GuestUser => new UserInfo(UserNameInfo.GuestUser, string.Empty);
 
-        public UserInfo(string user, string avatarUrl)
+        public UserInfo(string user, string avatarUrl, bool isLived = false)
         {
             NameInfo = new UserNameInfo(user);
             AvatarURL = avatarUrl;
+            IsLived = isLived;
         }
 
-        public UserInfo(string name, string discriminator, string avatarUrl)
+        public UserInfo(string name, string discriminator, string avatarUrl, bool isLived = false)
         {
             NameInfo = new UserNameInfo(name, discriminator);
             AvatarURL = avatarUrl;
+            IsLived = isLived;
         }
 
-        public UserInfo(UserNameInfo nameInfo, string avatarUrl)
+        public UserInfo(UserNameInfo nameInfo, string avatarUrl, bool isLived = false)
         {
             NameInfo = nameInfo;
             AvatarURL = avatarUrl;
+            IsLived = isLived;
         }
 
         public ImageSource GetAvatarImage()
@@ -61,6 +64,16 @@ namespace BetterLiveScreen.Users
         public bool Equals(UserInfo a)
         {
             return ToString() == a.ToString();
+        }
+
+        public bool Equals(string user)
+        {
+            return ToString() == user;
+        }
+
+        public bool Equals(string name, string discriminator)
+        {
+            return ToString() == string.Join("#", name, discriminator);
         }
     }
 }

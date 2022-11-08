@@ -15,5 +15,7 @@ namespace BetterLiveScreen.Interfaces
 
         AccessDenied = 403,
         Failed = 404,
+        Timeout = 522,
+        TooManyUsers = 523
     }
 }

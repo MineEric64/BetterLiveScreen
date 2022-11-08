@@ -119,6 +119,8 @@ namespace BetterLiveScreen.Recording.Video
 
         public static void Stop()
         {
+            if (!_flow.IsRunning) return;
+
             switch (Settings.VideoType)
             {
                 case CaptureVideoType.DD:

@@ -29,6 +29,7 @@ using DiscordRPC;
 using BetterLiveScreen.Clients;
 using BetterLiveScreen.Extensions;
 using BetterLiveScreen.Interfaces;
+using BetterLiveScreen.Interfaces.Security;
 using BetterLiveScreen.Recording;
 using BetterLiveScreen.Recording.Types;
 using BetterLiveScreen.Recording.Video;
@@ -40,6 +41,8 @@ using BetterLiveScreen.BetterShare;
 using Path = System.IO.Path;
 using CvSize = OpenCvSharp.Size;
 using BitmapConverter = BetterLiveScreen.Extensions.BitmapConverter;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 
 namespace BetterLiveScreen
 {
@@ -52,7 +55,7 @@ namespace BetterLiveScreen
         internal static string UserToken { get; } = Guid.NewGuid().ToString();
         public static List<UserInfo> Users { get; set; } = new List<UserInfo>();
 
-        public static ClientOne Client { get; set; } = new ClientOne();
+        public static ClientOne Client { get; set; }
 
         public static BetterShareWindow ShareWindow { get; private set; } = new BetterShareWindow();
 
@@ -65,7 +68,7 @@ namespace BetterLiveScreen
             InitializeComponent();
             CurrentDispatcher = this.Dispatcher;
 
-            DiscordHelper.Initialize();
+            InitializeClient();
             Rescreen.Initialize();
 
             this.Closing += MainWindow_Closing;
@@ -84,6 +87,8 @@ namespace BetterLiveScreen
                     username.Content = User.NameInfo.Name;
                     username.ToolTip = $"#{User.NameInfo.Discriminator}";
 
+                    Users.Add(User);
+
                     this.IsEnabled = true;
                 }
                 else
@@ -98,7 +103,23 @@ namespace BetterLiveScreen
             this.IsEnabled = false;
         }
 
-        private void InitializeUI()
+        private void InitializeClient()
+        {
+            Client = new ClientOne();
+            Client.Connected += (s, e) =>
+            {
+                MessageBox.Show("Connected!", "BetterLiveScreen", MessageBoxButton.OK, MessageBoxImage.Information);
+            };
+            Client.Disconnected += (s, e) =>
+            {
+                MessageBox.Show("Disconnected", "BetterLiveScreen", MessageBoxButton.OK, MessageBoxImage.Information);
+            };
+            Client.Start();
+
+            DiscordHelper.Initialize();
+        }
+
+        public void InitializeUI()
         {
             name1.Content = string.Empty;
             name2.Content = string.Empty;
@@ -106,9 +127,9 @@ namespace BetterLiveScreen
             name4.Content = string.Empty;
         }
 
-        private async void MainWindow_Closing(object sender, CancelEventArgs e)
+        private void MainWindow_Closing(object sender, CancelEventArgs e)
         {
-            await Client?.CloseAsync();
+            Client?.Close();
             Application.Current.Shutdown();
         }
 
@@ -153,7 +174,7 @@ namespace BetterLiveScreen
 
             if (string.IsNullOrWhiteSpace(serverIp.Text))
             {
-
+                MessageBox.Show("Address is empty", "BetterLiveScreen : Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -161,13 +182,75 @@ namespace BetterLiveScreen
             
             if (room != null)
             {
-                Debug.WriteLine(room.ToJsonString());
-                
+                RoomManager.CurrentRoom = room;
 
+                string password = string.Empty;
+
+                if (room.PasswordRequired)
+                {
+                    var textWindow = new ChooseText();
+
+                    textWindow.Title = "Input Room's Password";
+                    textWindow.Show();
+                    password = SHA512.Hash(await textWindow.WaitAsyncUntilOK());
+                }
+
+                var connectedInfo = await RoomManager.ConnectAsync(password);
+
+                switch (connectedInfo.ResponseCode)
+                {
+                    case ResponseCodes.OK:
+                        RoomManager.Password = password;
+
+                        string json = ClientOne.Decode(connectedInfo.Buffer);
+                        var jsonRaw = JObject.Parse(json);
+
+                        var users = jsonRaw["users"]?.Values();
+                        string id = jsonRaw["id"].ToString();
+
+                        foreach (var user in users)
+                        {
+                            string fullName = user?["full_name"]?.ToString();
+                            string avatarUrl = user?["avatar_url"]?.ToString() ?? string.Empty;
+                            bool? isLived = user?["is_lived"]?.ToObject<bool>();
+
+                            if (users != null && fullName != null && isLived.HasValue)
+                            {
+                                Users.Add(new UserInfo(fullName, avatarUrl, isLived.Value));
+                            }
+                            else
+                            {
+                                Debug.WriteLine("[Error] Something went wrong when connecting.");
+
+                                var info = connectedInfo.GetFailed(ResponseCodes.Failed);
+                                Client.SendBufferToHost(info);
+
+                                return;
+                            }
+                        }
+                        RoomManager.CurrentRoomId = Guid.Parse(id);
+
+                        Client.SendBufferToHost(connectedInfo.GetOK());
+                        RoomManager.IsConnected = true;
+
+                        UpdateUserUI();
+                        DiscordHelper.SetPresenceIfJoined();
+
+                        MessageBox.Show($"Connected to {RoomManager.CurrentRoom.Name}!", "BetterLiveScreen", MessageBoxButton.OK, MessageBoxImage.Information);
+                        break;
+
+                    case ResponseCodes.AccessDenied:
+                        MessageBox.Show("Wrong password!", "BetterLiveScreen : Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        break;
+
+                    case ResponseCodes.TooManyUsers:
+                        MessageBox.Show("The number of user is exceeded.", "BetterLiveScreen : Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        break;
+                }
             }
             else
             {
-
+                MessageBox.Show("Failed to get room's information from the address.", "BetterLiveScreen : Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -179,12 +262,29 @@ namespace BetterLiveScreen
             //return;
 
             RoomManager.Create("BLSS", $"{User.NameInfo.Name}'s Server");
+            MessageBox.Show("Created!", "BetterLiveScreen", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void serverBetterShare_Click(object sender, RoutedEventArgs e)
         {
             if (ShareWindow.IsClosed) ShareWindow = new BetterShareWindow();
             ShareWindow.Show();
+        }
+
+        public void UpdateUserUI() {
+            string[] names = new string[4] { string.Empty, string.Empty, string.Empty, string.Empty };
+            int index = 0;
+
+            for (int i = 0; i < Users.Count; i++)
+            {
+                if (Users[i].Equals(User)) continue;
+                names[index++] = Users[i].NameInfo.Name;
+            }
+
+            name1.Content = names[0];
+            name2.Content = names[1];
+            name3.Content = names[2];
+            name4.Content = names[3];
         }
     }
 }

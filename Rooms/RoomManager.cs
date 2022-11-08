@@ -15,27 +15,28 @@ using BetterLiveScreen.Interfaces.Security;
 using BetterLiveScreen.Users;
 
 using My = BetterLiveScreen.MainWindow;
+using Newtonsoft.Json;
 
 namespace BetterLiveScreen.Rooms
 {
     public class RoomManager
     {
-        public static bool IsConnected { get; private set; } = false;
-        public static RoomInfo CurrentRoom { get; private set; }
+        public static bool IsConnected { get; set; } = false;
+        public static RoomInfo CurrentRoom { get; set; }
         /// <summary>
         /// Room's Unique ID
         /// </summary>
-        public static Guid CurrentRoomId { get; private set; } = Guid.Empty;
-        public static bool IsAdmin => CurrentRoom != null && CurrentRoomId != Guid.Empty && CurrentRoom.Admin.Equals(My.User);
+        public static Guid CurrentRoomId { get; set; } = Guid.Empty;
         /// <summary>
         /// this password should be not empty if this user created the room with password
         /// </summary>
-        public static string Password { get; private set; } = string.Empty;
+        public static string Password { get; set; } = string.Empty;
 
+        public static bool IsHost => CurrentRoom != null && CurrentRoomId != Guid.Empty && CurrentRoom.Host.Equals(My.User);
         public const int MAX_USER_COUNT = 5;
 
         #region User Methods
-        public static async Task<ReceiveInfo> ConnectAsync(string ip, string password = "")
+        public static async Task<ReceiveInfo> ConnectAsync(string password = "")
         {
             var json = new JObject
             {
@@ -46,36 +47,36 @@ namespace BetterLiveScreen.Rooms
             byte[] buffer = ClientOne.Encode(json.ToString());
             var info = new ReceiveInfo(SendTypes.RoomConnectRequested, buffer, BufferTypes.JsonString);
 
-            await My.Client.SendBufferAsync(info);
+            My.Client.SendBufferToHost(info);
             return await My.Client.ReceiveBufferAsync(info);
         }
         
-        public static async Task DisconnectAsync()
+        public static void Disconnect()
         {
             var json = new JObject
             {
                 { "user", My.User.NameInfo.ToString() }
             };
             byte[] buffer = ClientOne.Encode(json.ToString());
-            var info = new ReceiveInfo(SendTypes.RoomDisconnected, buffer, BufferTypes.JsonString);
+            var info = new ReceiveInfo(SendTypes.UserDisconnected, buffer, BufferTypes.JsonString);
 
-            await My.Client.SendBufferAsync(info);
+            My.Client.SendBufferToHost(info);
         }
 
         public static async Task<RoomInfo> GetRoomInfoAsync(string address)
         {
-            await My.Client.AddAdminAsync(address);
-            await My.Client.ConnectAsync();
+            var ipep = await ClientOne.GetIPEPAsync(address);
+            My.Client.Connect(ipep);
 
             var info = new ReceiveInfo(SendTypes.RoomInfoRequested);
-            await My.Client.SendBufferAsync(info);
+            My.Client.SendBufferToHost(info);
 
             var received = await My.Client.ReceiveBufferAsync(info);
 
             if (received.ResponseCode == ResponseCodes.OK)
             {
                 string json = ClientOne.Decode(received.Buffer);
-                return RoomInfo.FromJsonString(json);
+                return JsonConvert.DeserializeObject<RoomInfo>(json);
             }
 
             return null;
@@ -85,16 +86,18 @@ namespace BetterLiveScreen.Rooms
         public static void Create(string name, string description = "", string password = "")
         {
             CurrentRoom = new RoomInfo(name, description, My.User, string.IsNullOrWhiteSpace(password), 1);
-            CurrentRoomId = new Guid();
+            CurrentRoomId = Guid.NewGuid();
             Password = SHA512.Hash(password);
 
             IsConnected = true;
         }
 
-        public static async Task DeleteAsync()
+        public static void Delete()
         {
             var info = new ReceiveInfo(SendTypes.RoomDeleted);
-            await My.Client.SendBufferAsync(info);
+
+            My.Client.SendBufferToAll(info);
+            My.Client.Close();
         }
         #endregion
         public static string GetInviteSecret()

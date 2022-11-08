@@ -68,10 +68,6 @@
     <Reference Include="Composition.WindowsRuntimeHelpers_NETStd">
       <HintPath>DLLs\Composition.WindowsRuntimeHelpers_NETStd.dll</HintPath>
     </Reference>
-    <Reference Include="Open.P2P, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>DLLs\Open.P2P.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
@@ -95,6 +91,9 @@
     </ApplicationDefinition>
     <Compile Include="BetterShare\BetterShareWindow.xaml.cs">
       <DependentUpon>BetterShareWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="ChooseText.xaml.cs">
+      <DependentUpon>ChooseText.xaml</DependentUpon>
     </Compile>
     <Compile Include="Clients\ClientOne.cs" />
     <Compile Include="Clients\DiscordHelper.cs" />
@@ -173,6 +172,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="ChooseText.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -228,7 +231,10 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="DiscordRichPresence">
-      <Version>1.0.175</Version>
+      <Version>1.1.1.14</Version>
+    </PackageReference>
+    <PackageReference Include="LiteNetLib">
+      <Version>1.0.0-rc.3</Version>
     </PackageReference>
     <PackageReference Include="MessagePack">
       <Version>2.4.35</Version>
@@ -269,7 +275,7 @@
     <Content Include="DLLs\Deprecated\EuNet\EuNet.dll" />
     <Content Include="DLLs\Deprecated\EuNet\EuNet.Rpc.dll" />
     <Content Include="DLLs\Deprecated\EuNet\EuNet.Server.dll" />
-    <Content Include="DLLs\Open.P2P.dll" />
+    <Content Include="DLLs\Deprecated\Open.P2P.dll" />
     <Resource Include="Recording\Audio\AudioRender\README.txt" />
     <Content Include="DLLs\Deprecated\AuxSense.dll" />
     <Content Include="DLLs\Composition.WindowsRuntimeHelpers_NETStd.dll" />

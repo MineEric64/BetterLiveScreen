@@ -29,9 +29,6 @@ namespace BetterLiveScreen.Interfaces
         [IgnoreMember]
         public static ReceiveInfo Empty => new ReceiveInfo(SendTypes.None);
 
-        [IgnoreMember]
-        public static ReceiveInfo Timeout => new ReceiveInfo(SendTypes.Timeout);
-
         /// <summary>
         /// MessagePack을 위한 LZ4 압축 옵션
         /// </summary>
@@ -88,6 +85,21 @@ namespace BetterLiveScreen.Interfaces
         public ReceiveInfo(SendTypes sendType, ResponseCodes responseCode, int step, int maxStep, byte[] buffer, BufferTypes bufferType, byte[] extraBuffer) : this(sendType, step, maxStep, buffer, bufferType, extraBuffer)
         {
             ResponseCode = responseCode;
+        }
+
+        public ReceiveInfo GetOK()
+        {
+            return new ReceiveInfo(SendType, ResponseCodes.OK);
+        }
+
+        public ReceiveInfo GetOK(byte[] buffer, BufferTypes bufferType)
+        {
+            return new ReceiveInfo(SendType, ResponseCodes.OK, buffer, bufferType);
+        }
+
+        public ReceiveInfo GetFailed(ResponseCodes responseCode)
+        {
+            return new ReceiveInfo(SendType, responseCode);
         }
     }
 }
