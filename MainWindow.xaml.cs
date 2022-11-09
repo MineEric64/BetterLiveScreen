@@ -114,6 +114,14 @@ namespace BetterLiveScreen
             {
                 MessageBox.Show("Disconnected", "BetterLiveScreen", MessageBoxButton.OK, MessageBoxImage.Information);
             };
+            Client.HostConnected += (s, e) =>
+            {
+                MessageBox.Show("[Debug] Connected");
+            };
+            Client.HostDisconnected += (s, e) =>
+            {
+                MessageBox.Show("[Debug] Disconnected to ( " + e + " )");
+            };
             Client.Start();
 
             DiscordHelper.Initialize();

@@ -51,6 +51,9 @@ namespace BetterLiveScreen.Clients
         public event EventHandler Connected;
         public event EventHandler Disconnected;
 
+        public event EventHandler HostConnected;
+        public event EventHandler<string> HostDisconnected;
+
         public ClientOne()
         {
             //for serialize optimization
@@ -68,16 +71,25 @@ namespace BetterLiveScreen.Clients
 
         private void OnPeerConnected(NetPeer peer)
         {
-            if (!RoomManager.IsHost)
+            IsConnected = true;
+
+            if (RoomManager.IsHost)
             {
-                IsConnected = true;
+                HostConnected?.Invoke(null, null);
+            }
+            else
+            {
                 Connected?.Invoke(null, null);
             }
         }
 
         private void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
         {
-            if (!RoomManager.IsHost)
+            if (RoomManager.IsHost)
+            {
+                HostDisconnected?.Invoke(null, string.Empty);
+            }
+            else
             {
                 IsConnected = false;
                 Disconnected?.Invoke(null, null);
