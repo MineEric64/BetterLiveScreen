@@ -86,6 +86,7 @@ namespace BetterLiveScreen.Recording.Video
                 case CaptureVideoType.WGC:
                     if (!WGCHelper.IsInitialized && !WGCHelper.Initialize())
                     {
+                        Debug.WriteLine("[Warning] WGC Not Supported. Set Capture Video Type to Desktop Duplication.");
                         Settings.VideoType = CaptureVideoType.DD; //WGC Not Supported
                         Start();
 
@@ -194,11 +195,6 @@ namespace BetterLiveScreen.Recording.Video
 
         public static double GetAverageMbps(Queue<byte[]> screenQueue, double fps)
         {
-            if (screenQueue.Count == 0)
-            {
-                return 0.0;
-            }
-
             var lengthList = new List<int>();
             var screenList = new List<byte[]>(screenQueue);
             int length = 0;
@@ -214,6 +210,8 @@ namespace BetterLiveScreen.Recording.Video
                 }
                 length += screen.Length;
             }
+
+            if (lengthList.Count == 0) return 0.0;
 
             double mbPerByte = 9.537 * 0.0000001;
             double averageMb = lengthList.Average() * mbPerByte;

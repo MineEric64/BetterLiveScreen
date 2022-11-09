@@ -123,6 +123,7 @@ namespace BetterLiveScreen.Recording.Video
                 if (!encoder.isValid)
                 {
                     Rescreen.Settings.NvencEncoding = false;
+                    Debug.WriteLine("[Warning] Nvenc Encoding Not Supported. Set Nvenc Encoding to false.");
                 }
             }
 
