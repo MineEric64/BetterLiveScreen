@@ -110,6 +110,7 @@ namespace BetterLiveScreen
             this.IsEnabled = false;
 
             RenderOptions.SetBitmapScalingMode(screen_main, BitmapScalingMode.LowQuality);
+            
         }
 
         private void InitializeClient()
@@ -221,10 +222,12 @@ namespace BetterLiveScreen
         {
             void Preview(Mat mat)
             {
-                Dispatcher.Invoke(() => {
+                Dispatcher.BeginInvoke(new Action(() => {
                     var source = mat.ToWriteableBitmap();
+
                     screen_main.Source = source;
-                });
+                    mat.Dispose();
+                }), DispatcherPriority.Render);
             }
 
             Decoder decoder = null;
@@ -253,7 +256,6 @@ namespace BetterLiveScreen
 
                         mat.Dispose();
                         mat2.Dispose();
-                        mat3.Dispose();
 
                         sw.Restart();
                     }
@@ -294,7 +296,6 @@ namespace BetterLiveScreen
                             Preview(mat2);
 
                             mat.Dispose();
-                            mat2.Dispose();
                         }
                     }
                     if (Rescreen.MyVideoStream.AudioQueue.Count > 0)
