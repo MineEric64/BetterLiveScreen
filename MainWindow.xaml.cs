@@ -24,7 +24,11 @@ using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using Windows.UI.Xaml.Documents;
 
-using DiscordRPC;
+using OpenCvSharp;
+using OpenCvSharp.WpfExtensions;
+
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 using BetterLiveScreen.Clients;
 using BetterLiveScreen.Extensions;
@@ -33,6 +37,7 @@ using BetterLiveScreen.Interfaces.Security;
 using BetterLiveScreen.Recording;
 using BetterLiveScreen.Recording.Types;
 using BetterLiveScreen.Recording.Video;
+using BetterLiveScreen.Recording.Video.NvPipe;
 using BetterLiveScreen.Rooms;
 using BetterLiveScreen.Users;
 
@@ -41,8 +46,8 @@ using BetterLiveScreen.BetterShare;
 using Path = System.IO.Path;
 using CvSize = OpenCvSharp.Size;
 using BitmapConverter = BetterLiveScreen.Extensions.BitmapConverter;
-using Newtonsoft.Json.Linq;
-using Newtonsoft.Json;
+using Window = System.Windows.Window;
+using Decoder = BetterLiveScreen.Recording.Video.NvPipe.Decoder;
 
 namespace BetterLiveScreen
 {
@@ -61,11 +66,13 @@ namespace BetterLiveScreen
 
         public static bool IsDevMode { get; private set; } = false;
 
+        public static MainWindow Me { get; private set; } = null;
         public static Dispatcher CurrentDispatcher { get; private set; } = null;
 
         public MainWindow()
         {
             InitializeComponent();
+            Me = this;
             CurrentDispatcher = this.Dispatcher;
 
             InitializeClient();
@@ -101,26 +108,50 @@ namespace BetterLiveScreen
 
             startPage.Show();
             this.IsEnabled = false;
+
+            RenderOptions.SetBitmapScalingMode(screen_main, BitmapScalingMode.LowQuality);
         }
 
         private void InitializeClient()
         {
             Client = new ClientOne();
+
             Client.Connected += (s, e) =>
             {
-                MessageBox.Show("Connected!", "BetterLiveScreen", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("Connected!", "Better Live Screen", MessageBoxButton.OK, MessageBoxImage.Information);
             };
-            Client.Disconnected += (s, e) =>
+            Client.Disconnected += (s, isForced) =>
             {
-                MessageBox.Show("Disconnected", "BetterLiveScreen", MessageBoxButton.OK, MessageBoxImage.Information);
+                Users.Clear();
+                Rescreen.Stop();
+
+                Dispatcher.Invoke(InitializeUI);
+
+                if (isForced) MessageBox.Show("Host disconnected the connection.", "Better Live Screen", MessageBoxButton.OK, MessageBoxImage.Information);
+                Debug.WriteLine("[Info] Disconnected");
             };
+
+            Client.UserConnected += (s, userInfo) =>
+            {
+                Users.Add(userInfo);
+                Dispatcher.Invoke(UpdateUserUI);
+
+                Debug.WriteLine($"[Info] {userInfo} Joined");
+            };
+            Client.UserDisconnected += (s, userFullName) =>
+            {
+                if (!string.IsNullOrEmpty(userFullName))
+                {
+                    Users.Remove(Users.Where(x => x.Equals(userFullName)).First());
+                    Dispatcher.Invoke(UpdateUserUI);
+                }
+
+                Debug.WriteLine($"[Info] {userFullName} Left");
+            };
+
             Client.HostConnected += (s, e) =>
             {
-                MessageBox.Show("[Debug] Connected");
-            };
-            Client.HostDisconnected += (s, e) =>
-            {
-                MessageBox.Show("[Debug] Disconnected to ( " + e + " )");
+                Debug.WriteLine("[Info] Connected");
             };
             Client.Start();
 
@@ -129,15 +160,22 @@ namespace BetterLiveScreen
 
         public void InitializeUI()
         {
+            serverIpConnect.Content = "Connect";
+            serverCreate.Content = "Create Room";
+
             name1.Content = string.Empty;
             name2.Content = string.Empty;
             name3.Content = string.Empty;
             name4.Content = string.Empty;
+
+            userConnected.Content = $"0 / {RoomManager.MAX_USER_COUNT} Users Connected";
         }
 
         private void MainWindow_Closing(object sender, CancelEventArgs e)
         {
-            Client?.Close();
+            Client?.Disconnect();
+            Client?.Stop();
+
             Application.Current.Shutdown();
         }
 
@@ -159,12 +197,119 @@ namespace BetterLiveScreen
 
         private void goLive_Click(object sender, RoutedEventArgs e)
         {
+            //TODO: Change Settings by User
+            Rescreen.MakeSettings(new RescreenSettings()
+            {
+                VideoType = CaptureVideoType.DD,
+                AudioType = CaptureAudioType.WinCaptureAudio,
+                SelectedMonitor = RescreenSettings.PrimaryMonitor,
+                Fps = 30,
+                IsHalf = false,
+                NvencEncoding = true
+            });
             Rescreen.Start();
+
+            Task.Run(RescreenRefreshed);
         }
 
         private void stopLive_Click(object sender, RoutedEventArgs e)
         {
             Rescreen.Stop();
+        }
+
+        private void RescreenRefreshed()
+        {
+            void Preview(Mat mat)
+            {
+                Dispatcher.Invoke(() => {
+                    var source = mat.ToWriteableBitmap();
+                    screen_main.Source = source;
+                });
+            }
+
+            Decoder decoder = null;
+            const int PREVIEW_DPF = 33; //preview referesh delay per frame
+            var sw = new Stopwatch();
+
+            //initialize decoder
+            if (Rescreen.Settings.NvencEncoding)
+            {
+                //Format : RGBA
+                decoder = new Decoder(Rescreen.ScreenActualSize.Width, Rescreen.ScreenActualSize.Height, Codec.H264, Format.RGBA32);
+                decoder.onDecoded += (s, e) =>
+                {
+                    if (sw.ElapsedMilliseconds > PREVIEW_DPF)
+                    {
+                        Mat mat = new Mat(decoder.height, decoder.width, MatType.CV_8UC4);
+                        Kernel32.CopyMemory(mat.Data, e.Item1, (uint)e.Item2);
+
+                        Mat mat2 = new Mat();
+                        Mat mat3 = new Mat();
+
+                        Cv2.CvtColor(mat, mat2, ColorConversionCodes.RGBA2BGR);
+                        Cv2.Resize(mat2, mat3, new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest);
+
+                        Preview(mat3);
+
+                        mat.Dispose();
+                        mat2.Dispose();
+                        mat3.Dispose();
+
+                        sw.Restart();
+                    }
+                };
+             }
+
+            sw.Start();
+
+            while (Rescreen.IsRecording)
+            {
+                while (Rescreen.MyVideoStream.ScreenQueue.Count > 0 || Rescreen.MyVideoStream.AudioQueue.Count > 0)
+                {
+                    if (Rescreen.MyVideoStream.ScreenQueue.Count > 0)
+                    {
+                        byte[] buffer = Rescreen.MyVideoStream.ScreenQueue.Dequeue(); //compressed
+
+                        //TODO: Send Screen Buffer
+
+                        //Live Preview
+                        byte[] previewBuffer = buffer.Decompress();
+
+                        if (Rescreen.Settings.NvencEncoding)
+                        {
+                            var handle = GCHandle.Alloc(previewBuffer, GCHandleType.Pinned);
+                            var ptr = handle.AddrOfPinnedObject();
+
+                            decoder.Decode(ptr, previewBuffer.Length);
+                            handle.Free();
+                        }
+                        else
+                        {
+                            var mat = new Mat(Rescreen.ScreenActualSize.Height, Rescreen.ScreenActualSize.Width, MatType.CV_8UC4);
+                            int length = Rescreen.ScreenActualSize.Width * Rescreen.ScreenActualSize.Height * 4; // or src.Height * src.Step;
+
+                            Marshal.Copy(previewBuffer, 0, mat.Data, length);
+                            var mat2 = mat.Resize(new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest);
+
+                            Preview(mat2);
+
+                            mat.Dispose();
+                            mat2.Dispose();
+                        }
+                    }
+                    if (Rescreen.MyVideoStream.AudioQueue.Count > 0)
+                    {
+                        byte[] buffer = Rescreen.MyVideoStream.AudioQueue.Dequeue(); //not compressed
+
+                        //TODO: Send Audio Buffer
+
+                    }
+                }
+
+                Thread.Sleep(10);
+            }
+            sw.Stop();
+            decoder?.Close();
         }
 
         private async void serverIpConnect_Click(object sender, RoutedEventArgs e)
@@ -179,6 +324,14 @@ namespace BetterLiveScreen
             //    nvencEncoding: true
             //    );
             //return;
+
+            if (RoomManager.IsConnected) //need to Disconnect
+            {
+                RoomManager.Disconnect();
+                serverIpConnect.Content = "Connect";
+
+                return;
+            }
 
             if (string.IsNullOrWhiteSpace(serverIp.Text))
             {
@@ -213,8 +366,8 @@ namespace BetterLiveScreen
                         string json = ClientOne.Decode(connectedInfo.Buffer);
                         var jsonRaw = JObject.Parse(json);
 
-                        var users = jsonRaw["users"]?.Values();
-                        string id = jsonRaw["id"].ToString();
+                        var users = jsonRaw["users"]?.ToArray();
+                        string id = jsonRaw["room_id"]?.ToString();
 
                         foreach (var user in users)
                         {
@@ -237,10 +390,9 @@ namespace BetterLiveScreen
                             }
                         }
                         RoomManager.CurrentRoomId = Guid.Parse(id);
-
-                        Client.SendBufferToHost(connectedInfo.GetOK());
                         RoomManager.IsConnected = true;
 
+                        serverIpConnect.Content = "Disconnect";
                         UpdateUserUI();
                         DiscordHelper.SetPresenceIfJoined();
 
@@ -269,7 +421,21 @@ namespace BetterLiveScreen
             //rt.Show();
             //return;
 
+            if (RoomManager.IsConnected) //need to delete room
+            {
+                RoomManager.Delete();
+                serverCreate.Content = "Create Room";
+                MessageBox.Show("Deleted the Room.\nUsers will be disconnected forcely.", "Better Live Screen", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                return;
+            }
+
             RoomManager.Create("BLSS", $"{User.NameInfo.Name}'s Server");
+            DiscordHelper.SetPresenceIfJoined();
+
+            userConnected.Content = $"1 / {RoomManager.MAX_USER_COUNT} Users Connected";
+            serverCreate.Content = "Delete Room";
+
             MessageBox.Show("Created!", "BetterLiveScreen", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
@@ -293,6 +459,8 @@ namespace BetterLiveScreen
             name2.Content = names[1];
             name3.Content = names[2];
             name4.Content = names[3];
+
+            userConnected.Content = $"{Users.Count} / {RoomManager.MAX_USER_COUNT} Users Connected";
         }
     }
 }

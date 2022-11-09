@@ -18,6 +18,8 @@ using DiscordRPC;
 
 using BetterLiveScreen.Clients;
 using BetterLiveScreen.Extensions;
+using BetterLiveScreen.Interfaces;
+using BetterLiveScreen.Interfaces.Users;
 using BetterLiveScreen.Users;
 
 namespace BetterLiveScreen
@@ -80,6 +82,11 @@ namespace BetterLiveScreen
 
         private void ok_Click(object sender, RoutedEventArgs e)
         {
+            if (MainWindow.User.IsGuest && username.Text != MainWindow.User.NameInfo.Name)
+            {
+                MainWindow.User = UserInfo.GetGuestFromName(username.Text);
+            }
+
             IsAccepted = true;
             this.Close();
         }

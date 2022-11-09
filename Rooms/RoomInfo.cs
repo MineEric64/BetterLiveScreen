@@ -18,19 +18,32 @@ namespace BetterLiveScreen.Rooms
         [JsonProperty("description")]
         public string Description { get; set; }
 
-        [JsonProperty("host_full_name")]
+        [JsonProperty("host_name")]
         public string HostName { get; set; }
 
         [JsonProperty("host_avatar_url")]
         public string HostAvatarUrl { get; set; }
 
-        [JsonProperty("current_user_count")]
-        public int CurrentUserCount { get; set; }
         [JsonProperty("password_required")]
         public bool PasswordRequired { get; set; }
+        [JsonProperty("current_user_count")]
+        public int CurrentUserCount { get; set; }
 
         [JsonIgnore]
         public UserInfo Host => new UserInfo(HostName, HostAvatarUrl);
+
+        [JsonConstructor()]
+        public RoomInfo(string name, string description, string hostName, string hostAvatarUrl, bool passwordRequired, int currentUserCount)
+        {
+            Name = name;
+            Description = description;
+
+            HostName = hostName;
+            HostAvatarUrl = hostAvatarUrl;
+
+            PasswordRequired = passwordRequired;
+            CurrentUserCount = currentUserCount;
+        }
 
         public RoomInfo(string name, string description, UserInfo host, bool passwordRequired, int currentUserCount)
         {

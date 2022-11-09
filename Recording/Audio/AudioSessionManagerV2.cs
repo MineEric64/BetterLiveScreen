@@ -31,7 +31,7 @@ namespace BetterLiveScreen.Recording.Audio
                 return new Process[] { };
             }
 
-            for (int i = 0; i < _sessionManager.Sessions.Count; i++)
+            for (int i = 0; i < (_sessionManager.Sessions?.Count ?? 0); i++)
             {
                 var session = _sessionManager.Sessions[i];
                 

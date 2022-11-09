@@ -28,6 +28,8 @@ using BetterLiveScreen.Recording.Video;
 using BetterLiveScreen.Rooms;
 using BetterLiveScreen.Users;
 
+using My = BetterLiveScreen.MainWindow;
+
 namespace BetterLiveScreen.Clients
 {
     public class ClientOne
@@ -44,15 +46,21 @@ namespace BetterLiveScreen.Clients
         private EventBasedNetListener _listener;
         public NetManager Client { get; set; }
         public Queue<ReceiveInfo> ReceivedQueue { get; private set; } = new Queue<ReceiveInfo>();
+        public Dictionary<IPEndPoint, UserInfo> UserMap { get; private set; } = new Dictionary<IPEndPoint, UserInfo>();
 
         public bool IsStarted { get; private set; } = false;
         public bool IsConnected { get; private set; } = false;
 
+        //if this user joined it, it will be invoked.
         public event EventHandler Connected;
-        public event EventHandler Disconnected;
+        public event EventHandler<bool> Disconnected;
 
+        //if other user joined, it will be invoked.
+        public event EventHandler<UserInfo> UserConnected;
+        public event EventHandler<string> UserDisconnected; //if string is empty, this event is invoked to host only.
+
+        //if the user joined, it will be invoked to host only.
         public event EventHandler HostConnected;
-        public event EventHandler<string> HostDisconnected;
 
         public ClientOne()
         {
@@ -75,6 +83,9 @@ namespace BetterLiveScreen.Clients
 
             if (RoomManager.IsHost)
             {
+                var info = new ReceiveInfo(SendTypes.PeerConnected, ResponseCodes.OK);
+
+                SendBuffer(info, peer);
                 HostConnected?.Invoke(null, null);
             }
             else
@@ -85,14 +96,34 @@ namespace BetterLiveScreen.Clients
 
         private void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
         {
+            if (RoomManager.CurrentRoom == null || !RoomManager.IsHost)
+            {
+                bool roomDeleted = false;
+
+                if (!disconnectInfo.AdditionalData.EndOfData) //this means room is deleted
+                {
+                    ReadOnlyMemory<byte> buffer = new ReadOnlyMemory<byte>(disconnectInfo.AdditionalData.RawData, disconnectInfo.AdditionalData.Position, disconnectInfo.AdditionalData.AvailableBytes);
+                    string text = Decode(buffer.ToArray());
+
+                    roomDeleted = text == "RoomDeleted";
+                }
+
+                if (roomDeleted) RoomManager.Disconnect(true);
+                Disconnected?.Invoke(null, roomDeleted);
+                IsConnected = false;
+
+                return;
+            }
             if (RoomManager.IsHost)
             {
-                HostDisconnected?.Invoke(null, string.Empty);
-            }
-            else
-            {
-                IsConnected = false;
-                Disconnected?.Invoke(null, null);
+                string userName = string.Empty;
+
+                if (UserMap.TryGetValue(peer.EndPoint, out var user))
+                {
+                    userName = user.ToString();
+                    UserMap.Remove(peer.EndPoint);
+                }
+                UserDisconnected?.Invoke(null, userName);
             }
         }
 
@@ -116,7 +147,7 @@ namespace BetterLiveScreen.Clients
 
         private void OnNetworkReceived(NetPeer peer, NetDataReader reader, byte channel, DeliveryMethod deliveryMethod)
         {
-            ReadOnlyMemory<byte> receivedBuffer = new ReadOnlyMemory<byte>(reader.RawData, reader.Position, reader.RawDataSize - reader.Position);
+            ReadOnlyMemory<byte> receivedBuffer = new ReadOnlyMemory<byte>(reader.RawData, reader.Position, reader.AvailableBytes);
             var receivedInfo = MessagePackSerializer.Deserialize<ReceiveInfo>(receivedBuffer);
 
             byte[] buffer;
@@ -124,8 +155,6 @@ namespace BetterLiveScreen.Clients
 
             string jsonRaw;
             JObject json;
-
-            var main = (MainWindow)Application.Current.MainWindow;
 
             if (RoomManager.IsHost) //For Host
             {
@@ -165,7 +194,7 @@ namespace BetterLiveScreen.Clients
                             }
                             var jsonUsers = new JArray();
 
-                            foreach (var user in MainWindow.Users)
+                            foreach (var user in My.Users)
                             {
                                 jsonUsers.Add(new JObject()
                                 {
@@ -193,6 +222,9 @@ namespace BetterLiveScreen.Clients
 
                             info = new ReceiveInfo(SendTypes.UserConnected, buffer, BufferTypes.JsonString);
                             SendBufferToAllExcept(info, peer);
+
+                            UserMap.Add(peer.EndPoint, new UserInfo(userName, userAvatarUrl));
+                            UserConnected?.Invoke(null, UserMap[peer.EndPoint]);
                         }
                         else
                         {
@@ -201,12 +233,12 @@ namespace BetterLiveScreen.Clients
                         }
 
                         break;
-
+                    #endregion
+                    #region User
                     case SendTypes.UserDisconnected:
                         SendBufferToAllExcept(receivedInfo, peer);
                         break;
-
-                        #endregion
+                    #endregion
                 }
             }
             else //For User
@@ -215,6 +247,11 @@ namespace BetterLiveScreen.Clients
 
                 switch (receivedInfo.SendType)
                 {
+                    #region Peer
+                    case SendTypes.PeerConnected:
+                        ReceivedQueue.Enqueue(receivedInfo);
+                        break;
+                    #endregion
                     #region Room
                     case SendTypes.RoomInfoRequested:
                         ReceivedQueue.Enqueue(receivedInfo);
@@ -223,22 +260,13 @@ namespace BetterLiveScreen.Clients
                     case SendTypes.RoomConnectRequested:
                         ReceivedQueue.Enqueue(receivedInfo);
                         break;
-
-                    case SendTypes.RoomDeleted:
-                        RoomManager.IsConnected = false;
-                        Close();
-                        Rescreen.Stop();
-                        main.InitializeUI();
-
-                        Disconnected?.Invoke(null, null);
-
-                        break;
-
+                    #endregion
+                    #region User
                     case SendTypes.UserConnected:
                         jsonRaw = Decode(receivedInfo.Buffer);
                         json = JObject.Parse(jsonRaw);
                         userName = json["user"].ToString();
-                        string userAvatarUrl = json["user"].ToString() ?? string.Empty;
+                        string userAvatarUrl = json["user_avatar_url"]?.ToString() ?? string.Empty;
 
                         if (string.IsNullOrEmpty(userName))
                         {
@@ -246,18 +274,12 @@ namespace BetterLiveScreen.Clients
                             break;
                         }
 
-                        MainWindow.Users.Add(new UserInfo(userName, userAvatarUrl));
-                        main.UpdateUserUI();
-
+                        UserConnected?.Invoke(null, new UserInfo(userName, userAvatarUrl));
                         break;
 
                     case SendTypes.UserDisconnected:
-                        jsonRaw = Decode(receivedInfo.Buffer);
-                        json = JObject.Parse(jsonRaw);
-                        userName = json["user"].ToString();
-
-                        MainWindow.Users.Remove(MainWindow.Users.Where(x => x.Equals(userName)).First());
-                        main.UpdateUserUI();
+                        userName = Decode(receivedInfo.Buffer);
+                        UserDisconnected?.Invoke(null, userName);
 
                         break;
                         #endregion
@@ -268,16 +290,16 @@ namespace BetterLiveScreen.Clients
         public void Start()
         {
             Client.Start(PORT_NUMBER);
+            IsStarted = true;
 
             Task.Run(() =>
             {
-                while (true)
+                while (IsStarted)
                 {
                     Client.PollEvents();
                     Thread.Sleep(15);
                 }
             });
-            IsStarted = true;
         }
 
         public void Stop()
@@ -294,14 +316,24 @@ namespace BetterLiveScreen.Clients
             Client.Connect(ipep, DEFAULT_KEY);
         }
 
-        public void Close()
+        public void Disconnect()
         {
-            if (RoomManager.IsConnected) RoomManager.Disconnect();
+            if (!IsConnected) return;
 
-            Client.DisconnectAll();
-            Stop();
+            if (!RoomManager.IsHost)
+            {
+                Client.DisconnectAll();
+            }
+            else
+            {
+                byte[] buffer = Encode("RoomDeleted");
 
-            IsConnected = false;
+                Client.DisconnectAll(buffer, 0, buffer.Length);
+
+                ReceivedQueue.Clear();
+                UserMap.Clear();
+                IsConnected = false;
+            }
         }
 
         public void SendBuffer(ReceiveInfo info, NetPeer peer)
@@ -330,8 +362,19 @@ namespace BetterLiveScreen.Clients
         /// <summary>
         /// Receive the buffer that is sent by user. This method must not be used when the buffer has to process with low latency.
         /// </summary>
+        /// <param name="sentType">Info</param>
+        /// <param name="timeOut_">if this param is null, set to default value (10 seconds)</param>
+        /// <returns></returns>
+        public async Task<ReceiveInfo> ReceiveBufferAsync(SendTypes sentType, TimeSpan? timeOut_ = null)
+        {
+            return await ReceiveBufferAsync(new ReceiveInfo(sentType), timeOut_);
+        }
+
+        /// <summary>
+        /// Receive the buffer that is sent by user. This method must not be used when the buffer has to process with low latency.
+        /// </summary>
         /// <param name="sentInfo">Info</param>
-        /// <param name="timeOut">if this param is null, set to default value (10 seconds)</param>
+        /// <param name="timeOut_">if this param is null, set to default value (10 seconds)</param>
         /// <returns></returns>
         public async Task<ReceiveInfo> ReceiveBufferAsync(ReceiveInfo sentInfo, TimeSpan? timeOut_ = null)
         {

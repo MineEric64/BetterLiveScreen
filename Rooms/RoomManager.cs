@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 using MessagePack;
@@ -12,10 +13,11 @@ using MessagePack;
 using BetterLiveScreen.Clients;
 using BetterLiveScreen.Interfaces;
 using BetterLiveScreen.Interfaces.Security;
+using BetterLiveScreen.Recording.Video;
 using BetterLiveScreen.Users;
 
 using My = BetterLiveScreen.MainWindow;
-using Newtonsoft.Json;
+using SharpDX.Direct3D11;
 
 namespace BetterLiveScreen.Rooms
 {
@@ -51,32 +53,48 @@ namespace BetterLiveScreen.Rooms
             return await My.Client.ReceiveBufferAsync(info);
         }
         
-        public static void Disconnect()
+        public static void Disconnect(bool roomDeleted = false)
         {
-            var json = new JObject
+            if (!roomDeleted)
             {
-                { "user", My.User.NameInfo.ToString() }
-            };
-            byte[] buffer = ClientOne.Encode(json.ToString());
-            var info = new ReceiveInfo(SendTypes.UserDisconnected, buffer, BufferTypes.JsonString);
+                var info = new ReceiveInfo(SendTypes.UserDisconnected, ClientOne.Encode(My.User.ToString()), BufferTypes.String);
 
-            My.Client.SendBufferToHost(info);
+                My.Client.SendBufferToHost(info);
+                My.Client.Disconnect();
+            }
+
+            CurrentRoom = null;
+            CurrentRoomId = Guid.Empty;
+            IsConnected = false;
         }
 
         public static async Task<RoomInfo> GetRoomInfoAsync(string address)
         {
+            ReceiveInfo received;
             var ipep = await ClientOne.GetIPEPAsync(address);
             My.Client.Connect(ipep);
+
+            received = await My.Client.ReceiveBufferAsync(SendTypes.PeerConnected);
+
+            if (received.ResponseCode != ResponseCodes.OK)
+            {
+                Debug.WriteLine("[Error] Can't connect to host.");
+                return null;
+            }
 
             var info = new ReceiveInfo(SendTypes.RoomInfoRequested);
             My.Client.SendBufferToHost(info);
 
-            var received = await My.Client.ReceiveBufferAsync(info);
+            received = await My.Client.ReceiveBufferAsync(info);
 
             if (received.ResponseCode == ResponseCodes.OK)
             {
                 string json = ClientOne.Decode(received.Buffer);
                 return JsonConvert.DeserializeObject<RoomInfo>(json);
+            }
+            else
+            {
+                Debug.WriteLine("[Error] Can't get room information from host.");
             }
 
             return null;
@@ -85,7 +103,7 @@ namespace BetterLiveScreen.Rooms
         #region Admin Methods
         public static void Create(string name, string description = "", string password = "")
         {
-            CurrentRoom = new RoomInfo(name, description, My.User, string.IsNullOrWhiteSpace(password), 1);
+            CurrentRoom = new RoomInfo(name, description, My.User, !string.IsNullOrWhiteSpace(password), 1);
             CurrentRoomId = Guid.NewGuid();
             Password = SHA512.Hash(password);
 
@@ -94,10 +112,10 @@ namespace BetterLiveScreen.Rooms
 
         public static void Delete()
         {
-            var info = new ReceiveInfo(SendTypes.RoomDeleted);
+            My.Client.Disconnect();
+            Disconnect(true);
 
-            My.Client.SendBufferToAll(info);
-            My.Client.Close();
+            Password = string.Empty;
         }
         #endregion
         public static string GetInviteSecret()

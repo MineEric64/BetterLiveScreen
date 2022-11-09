@@ -40,6 +40,8 @@ namespace BetterLiveScreen.Clients
 
         public static void SetPresenceIfJoined()
         {
+            if (!Client.IsInitialized || Client.CurrentUser == null) return;
+
             Client.UpdateSecrets(new Secrets()
             {
                 JoinSecret = RoomManager.GetInviteSecret()

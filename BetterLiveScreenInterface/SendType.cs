@@ -10,11 +10,12 @@ namespace BetterLiveScreen.Interfaces
     {
         None,
 
+        //Before Connecting Room
+        PeerConnected,
+
         //Room
         RoomInfoRequested,
         RoomConnectRequested,
-
-        RoomDeleted,
 
         //User
         UserConnected,

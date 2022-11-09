@@ -18,6 +18,7 @@ namespace BetterLiveScreen.Users
         public bool IsLived { get; set; } //Go Live
 
         public static UserInfo GuestUser => new UserInfo(UserNameInfo.GuestUser, string.Empty);
+        public bool IsGuest => NameInfo.Discriminator == "Guest" && string.IsNullOrEmpty(AvatarURL);
 
         public UserInfo(string user, string avatarUrl, bool isLived = false)
         {
@@ -54,6 +55,11 @@ namespace BetterLiveScreen.Users
             bitmapImage.EndInit();
 
             return bitmapImage;
+        }
+
+        public static UserInfo GetGuestFromName(string name)
+        {
+            return new UserInfo(new UserNameInfo(name, "Guest"), string.Empty);
         }
 
         public override string ToString()

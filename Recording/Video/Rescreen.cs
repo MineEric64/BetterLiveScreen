@@ -119,7 +119,7 @@ namespace BetterLiveScreen.Recording.Video
 
         public static void Stop()
         {
-            if (!_flow.IsRunning) return;
+            if (!IsRecording) return;
 
             switch (Settings.VideoType)
             {
@@ -194,6 +194,11 @@ namespace BetterLiveScreen.Recording.Video
 
         public static double GetAverageMbps(Queue<byte[]> screenQueue, double fps)
         {
+            if (screenQueue.Count == 0)
+            {
+                return 0.0;
+            }
+
             var lengthList = new List<int>();
             var screenList = new List<byte[]>(screenQueue);
             int length = 0;

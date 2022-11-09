@@ -33,7 +33,7 @@
         <Label x:Name="name3" Content="User3" HorizontalAlignment="Left" Margin="896,356,0,0" VerticalAlignment="Top"/>
         <Label x:Name="name4" Content="User4" HorizontalAlignment="Left" Margin="896,459,0,0" VerticalAlignment="Top"/>
         <Button x:Name="serverIpConnect" Content="Connect" HorizontalAlignment="Left" Margin="223,30,0,0" VerticalAlignment="Top" Width="89" Height="23" Click="serverIpConnect_Click"/>
-        <Label x:Name="userConnected" Content="0 / 4 Users Connected" HorizontalAlignment="Left" Margin="536,30,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.803,-0.429" FontWeight="Bold"/>
+        <Label x:Name="userConnected" Content="0 / 5 Users Connected" HorizontalAlignment="Left" Margin="536,30,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.803,-0.429" FontWeight="Bold"/>
         <TextBox x:Name="serverIp" HorizontalAlignment="Left" Margin="20,30,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="188" FontSize="20" Background="WhiteSmoke"/>
         <Ellipse x:Name="usericon" HorizontalAlignment="Left" Height="52" Margin="731,10,0,0" VerticalAlignment="Top" Width="52" Fill="Black" Stretch="UniformToFill"/>
         <Label x:Name="username" Content="User" HorizontalAlignment="Left" Margin="798,20,0,0" VerticalAlignment="Top" FontSize="20" FontWeight="Normal"/>
