@@ -457,7 +457,7 @@ namespace BetterLiveScreen.Clients
                                 break;
                             }
 
-                            Rescreen.VideoStreams[userName].ChangeFormat(new WaveFormat(audioSampleRate, audioBitsPerSample, audioChannel));
+                            Rescreen.VideoStreams[userName].ChangeFormat(WaveFormat.CreateIeeeFloatWaveFormat(audioSampleRate, audioChannel));
                             AudioBufferReceived?.Invoke(null, (bufferInfo2, userName));
                             _bufferMap[userName][SendTypes.Audio] = null;
                         }
