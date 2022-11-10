@@ -269,7 +269,8 @@ namespace BetterLiveScreen
             Rescreen.Settings.Bitrate = BitrateInfo.GetBitrateFromMbps(Rescreen.GetBitrateInfoBySize(Rescreen.ScreenActualSize.Height, Rescreen.FpsIfUnfixed60).MbpsAverage);
 
             Rescreen.Start();
-            Task.Run(RescreenRefreshed);
+            Task.Run(RescreenRefreshedVideo);
+            Task.Run(RescreenRefreshedAudio);
 
             User.IsLived = true;
             var info = new ReceiveInfo(SendTypes.StreamStarted, ClientOne.Encode(User.ToString()), BufferTypes.String, MessagePackSerializer.Serialize(Rescreen.MyVideoStream.Info));
@@ -289,7 +290,7 @@ namespace BetterLiveScreen
             else Client.SendBufferToAll(info);
         }
 
-        private void RescreenRefreshed()
+        private void RescreenRefreshedVideo()
         {
             void SendScreenBuffer(byte[] buffer)
             {
@@ -364,7 +365,7 @@ namespace BetterLiveScreen
 
             while (Rescreen.IsRecording)
             {
-                while (Rescreen.MyVideoStream.ScreenQueue.Count > 0 || Rescreen.MyVideoStream.AudioQueue.Count > 0)
+                while (Rescreen.MyVideoStream.ScreenQueue.Count > 0)
                 {
                     if (Rescreen.MyVideoStream.ScreenQueue.TryDequeue(out byte[] buffer) && IsEnabledVideo) //compressed
                     {
@@ -429,8 +430,23 @@ namespace BetterLiveScreen
                                     break;
                             }
                         }
-
                     }
+                    Thread.Sleep(1);
+                }
+                Thread.Sleep(10);
+            }
+            sw.Stop();
+
+            decoder?.Close();
+            encoder?.Dispose();
+        }
+
+        private void RescreenRefreshedAudio()
+        {
+            while (Rescreen.IsRecording)
+            {
+                while (Rescreen.MyVideoStream.AudioQueue.Count > 0)
+                {
                     if (Rescreen.MyVideoStream.AudioQueue.TryDequeue(out byte[] buffer2) && IsEnabledAudio) //compressed
                     {
                         //TODO: Send Audio Buffer
@@ -456,13 +472,9 @@ namespace BetterLiveScreen
                 }
                 Thread.Sleep(10);
             }
-            sw.Stop();
-
-            decoder?.Close();
-            encoder?.Dispose();
         }
 
-        private void ClientBufferRefreshed()
+        private void ClientBufferRefreshedVideo()
         {
             H264Decoder h264Decoder = null;
             Dictionary<string, NvDecoder> decoderMap = new Dictionary<string, NvDecoder>();
@@ -479,7 +491,7 @@ namespace BetterLiveScreen
 
                     try
                     {
-                        while (videoStream.ScreenQueue.Count > 0 || videoStream.AudioQueue.Count > 0)
+                        while (videoStream.ScreenQueue.Count > 0)
                         {
                             if (videoStream.ScreenQueue.TryDequeue(out byte[] buffer)) //compressed
                             {
@@ -548,7 +560,35 @@ namespace BetterLiveScreen
                                         break;
                                 }
                             }
+                        }
+                        Thread.Sleep(1);
+                    }
+                    catch (MessagePackSerializationException)
+                    {
+                        continue; //udp packet loss
+                    }
+                }
+                Thread.Sleep(10);
+            }
+            foreach (var decoder in decoderMap.Values) decoder.Close();
+            h264Decoder?.Dispose();
+        }
 
+        private void ClientBufferRefreshedAudio()
+        {
+            while (RoomManager.IsConnected) //need to change user watching
+            {
+                //max 1 (need to support)
+                var livedUser = Users.Where(x => x.IsLived).FirstOrDefault();
+
+                if (livedUser != null)
+                {
+                    var videoStream = Rescreen.VideoStreams[livedUser.ToString()];
+
+                    try
+                    {
+                        while (videoStream.AudioQueue.Count > 0)
+                        {
                             if (videoStream.AudioQueue.TryDequeue(out byte[] buffer2)) //compressed
                             {
                                 byte[] decompressed = buffer2.Decompress();
@@ -569,10 +609,6 @@ namespace BetterLiveScreen
                 }
                 Thread.Sleep(10);
             }
-
-            foreach (var decoder in decoderMap.Values) decoder.Close();
-            h264Decoder?.Dispose();
-
             WasapiRealtimePlay.Stop();
         }
 
@@ -680,7 +716,8 @@ namespace BetterLiveScreen
                         UpdateUserUI();
                         DiscordHelper.SetPresenceIfJoined();
 
-                        Task.Run(ClientBufferRefreshed); //test (need to add watch feature)
+                        Task.Run(ClientBufferRefreshedVideo); //test (need to add watch feature)
+                        Task.Run(ClientBufferRefreshedAudio); //test (need to add watch feature)
 
                         MessageBox.Show($"Connected to {RoomManager.CurrentRoom.Name}!", "BetterLiveScreen", MessageBoxButton.OK, MessageBoxImage.Information);
                         break;
