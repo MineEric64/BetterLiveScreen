@@ -141,6 +141,7 @@ namespace BetterLiveScreen.Recording.Video
                     Debug.WriteLine($"[Error] Desktop Duplication Not Supported. Error Message : {ex}");
                     MessageBox.Show("The screen can't be captured when using Desktop Duplication.\nPlease use another capture method.", "Better Live Screen : Error", MessageBoxButton.OK, MessageBoxImage.Error);
 
+                    _init = true;
                     return;
                 }
 
