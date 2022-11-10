@@ -453,9 +453,9 @@ namespace BetterLiveScreen
                             }
                         }
 
-                        if (Rescreen.MyVideoStream.AudioQueue.Count > 0)
+                        if (videoStream.AudioQueue.Count > 0)
                         {
-                            byte[] buffer = Rescreen.MyVideoStream.AudioQueue.Dequeue(); //compressed
+                            byte[] buffer = videoStream.AudioQueue.Dequeue(); //compressed
                             byte[] decompressed = buffer.Decompress();
 
 
