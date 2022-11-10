@@ -386,7 +386,7 @@ namespace BetterLiveScreen
                                 {
                                     encoder.Encode(mat2.DataPointer);
                                 }
-                                mat2.Dispose();
+                                //mat2.Dispose();
                                 mat.Dispose();
 
                                 break;
