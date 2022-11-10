@@ -620,13 +620,13 @@ namespace BetterLiveScreen.Clients
         {
             int read = 0;
             int step = 0;
-            int maxStep = (int)Math.Ceiling((double)buffer.Length / 65507) - 1;
+            int maxStep = (int)Math.Ceiling((double)buffer.Length / MAXIMUM_BUFFER_SIZE) - 1;
 
             var infos = new List<ReceiveInfo>();
 
             while (read < buffer.Length)
             {
-                int bytesRead = read + 65507 < buffer.Length ? 65507 : buffer.Length - read;
+                int bytesRead = read + MAXIMUM_BUFFER_SIZE < buffer.Length ? MAXIMUM_BUFFER_SIZE : buffer.Length - read;
                 byte[] buffer2 = new byte[bytesRead];
 
                 Buffer.BlockCopy(buffer, read, buffer2, 0, bytesRead);
