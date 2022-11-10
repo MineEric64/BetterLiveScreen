@@ -501,7 +501,7 @@ namespace BetterLiveScreen.Clients
         public void SendBuffer(ReceiveInfo info, NetPeer peer)
         {
             byte[] buffer = MessagePackSerializer.Serialize(info);
-            peer?.Send(buffer, DeliveryMethod.ReliableOrdered);
+            peer?.Send(buffer, DeliveryMethod.Sequenced);
         }
 
         public void SendBufferToHost(ReceiveInfo info)
@@ -512,13 +512,13 @@ namespace BetterLiveScreen.Clients
         public void SendBufferToAll(ReceiveInfo info)
         {
             byte[] buffer = MessagePackSerializer.Serialize(info);
-            Client.SendToAll(buffer, DeliveryMethod.ReliableOrdered);
+            Client.SendToAll(buffer, DeliveryMethod.Sequenced);
         }
 
         public void SendBufferToAllExcept(ReceiveInfo info, NetPeer exceptPeer)
         {
             byte[] buffer = MessagePackSerializer.Serialize(info);
-            Client.SendToAll(buffer, DeliveryMethod.ReliableOrdered, exceptPeer);
+            Client.SendToAll(buffer, DeliveryMethod.Sequenced, exceptPeer);
         }
 
         /// <summary>
