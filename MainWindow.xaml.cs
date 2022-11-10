@@ -261,6 +261,8 @@ namespace BetterLiveScreen
                 IsHalf = true,
                 Encoding = EncodingType.OpenH264
             });
+            Rescreen.Settings.Bitrate = BitrateInfo.GetBitrateFromMbps(Rescreen.GetBitrateInfoBySize(Rescreen.ScreenActualSize.Height, Rescreen.FpsIfUnfixed60).MbpsAverage);
+
             Rescreen.Start();
             Task.Run(RescreenRefreshed);
 
@@ -340,10 +342,10 @@ namespace BetterLiveScreen
                     break;
 
                 case EncodingType.OpenH264:
-                    const float KEYFRAME_INTERVAL = 0.2f;
+                    float keyFrameInterval = Rescreen.DelayPerFrame;
 
                     encoder = new H264Encoder("openh264-2.3.1-win64.dll");
-                    encoder.Setup(Rescreen.ScreenActualSize.Width, Rescreen.ScreenActualSize.Height, Rescreen.Settings.Bitrate, Rescreen.FpsIfUnfixed60, KEYFRAME_INTERVAL,
+                    encoder.Setup(Rescreen.ScreenActualSize.Width, Rescreen.ScreenActualSize.Height, Rescreen.Settings.Bitrate, Rescreen.FpsIfUnfixed60, keyFrameInterval,
                         (data, length, frameType) =>
                         {
                             byte[] buffer = data.Compress();

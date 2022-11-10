@@ -28,7 +28,7 @@ namespace BetterLiveScreen.Interfaces
         {
             Width = width;
             Height = height;
-            Encoding = Encoding;
+            Encoding = encoding;
         }
     }
 }

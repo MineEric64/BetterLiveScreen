@@ -214,9 +214,10 @@ namespace BetterLiveScreen.Recording.Video
             return frameCount / elapsedSeconds;
         }
 
-        public static string GetAverageAsString(ref List<int> list)
+        public static string GetAverageAsString(List<int> list)
         {
-            return list.Count > 0 ? list.Average().ToString("0.##") : "0";
+            var cloned = list.ToList();
+            return cloned.Count > 0 ? cloned.Average().ToString("0.##") : "0";
         }
 
         public static double GetAverageMbps(ConcurrentQueue<byte[]> screenQueue, double fps)
@@ -248,8 +249,8 @@ namespace BetterLiveScreen.Recording.Video
         {
             double fps = GetFps(MyVideoStream.ScreenQueue.Count, Elapsed.TotalSeconds);
             string info =
-                "Resolution Per Frame : " + GetAverageAsString(ref _deltaRess) + "ms\n" +
-                "Delay Per Frame : " + GetAverageAsString(ref _delayPerFrame) + "ms\n" +
+                "Resolution Per Frame : " + GetAverageAsString(_deltaRess) + "ms\n" +
+                "Delay Per Frame : " + GetAverageAsString(_delayPerFrame) + "ms\n" +
                 "Fps : " + fps.ToString("0.##") + "\n" +
                 "Mbps : " + GetAverageMbps(MyVideoStream.ScreenQueue, fps).ToString("0.##");
 
