@@ -164,15 +164,18 @@ namespace BetterLiveScreen
             #region Streaming
             Client.StreamStarted += (s, e) =>
             {
-                var userInfo = Users.Where(x => x.Equals(e.Item1)).First();
+                var userInfo = Users.Where(x => x.Equals(e.Item1)).FirstOrDefault();
 
+                if (userInfo == null) return;
                 if (Rescreen.VideoStreams.TryGetValue(e.Item1, out var videoStream)) videoStream.Info = e.Item2;
                 else Rescreen.VideoStreams.Add(e.Item1, new VideoLike(e.Item2));
                 userInfo.IsLived = true;
             };
             Client.StreamEnded += (s, userName) =>
             {
-                var userInfo = Users.Where(x => x.Equals(userName)).First();
+                var userInfo = Users.Where(x => x.Equals(userName)).FirstOrDefault();
+
+                if (userInfo == null) return;
                 userInfo.IsLived = false;
             };
 
