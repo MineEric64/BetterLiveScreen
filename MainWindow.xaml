@@ -24,9 +24,9 @@
         <Button x:Name="stopLive" Content="Stop" HorizontalAlignment="Left" Margin="255,447,0,0" VerticalAlignment="Top" Height="71" Width="218" Click="stopLive_Click"/>
         <GroupBox Header="Options" Margin="504,447,367,68">
             <StackPanel>
-                <CheckBox x:Name="chk_enableVideo" Content="Enable Video" IsChecked="True" Checked="chk_enableVideo_Checked"/>
-                <CheckBox x:Name="chk_enableAudio" Content="Enable Audio" IsChecked="True" Checked="chk_enableAudio_Checked"/>
-                <CheckBox x:Name="chk_enableLivePreview" Content="Enable Live Preview" IsChecked="True" Checked="chk_enableLivePreview_Checked"/>
+                <CheckBox x:Name="chk_enableVideo" Content="Enable Video" IsChecked="True" Checked="chk_enableVideo_Checked" Unchecked="chk_enableVideo_Unchecked"/>
+                <CheckBox x:Name="chk_enableAudio" Content="Enable Audio" IsChecked="True" Checked="chk_enableAudio_Checked" Unchecked="chk_enableAudio_Unchecked"/>
+                <CheckBox x:Name="chk_enableLivePreview" Content="Enable Live Preview" IsChecked="True" Checked="chk_enableLivePreview_Checked" Unchecked="chk_enableLivePreview_Unchecked"/>
             </StackPanel>
         </GroupBox>
         <Label x:Name="name1" Content="User1" HorizontalAlignment="Left" Margin="896,138,0,0" VerticalAlignment="Top"/>

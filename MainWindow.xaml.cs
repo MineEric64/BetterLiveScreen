@@ -751,17 +751,32 @@ namespace BetterLiveScreen
 
         private void chk_enableVideo_Checked(object sender, RoutedEventArgs e)
         {
-            IsEnabledVideo = chk_enableVideo.IsChecked.HasValue && chk_enableVideo.IsChecked.Value;
+            IsEnabledVideo = true;
+        }
+
+        private void chk_enableVideo_Unchecked(object sender, RoutedEventArgs e)
+        {
+            IsEnabledVideo = false;
         }
 
         private void chk_enableAudio_Checked(object sender, RoutedEventArgs e)
         {
-            IsEnabledAudio = chk_enableAudio.IsChecked.HasValue && chk_enableAudio.IsChecked.Value;
+            IsEnabledAudio = true;
+        }
+
+        private void chk_enableAudio_Unchecked(object sender, RoutedEventArgs e)
+        {
+            IsEnabledAudio = false;
         }
 
         private void chk_enableLivePreview_Checked(object sender, RoutedEventArgs e)
         {
-            IsEnabledLivePreview = chk_enableLivePreview.IsChecked.HasValue && chk_enableLivePreview.IsChecked.Value;
+            IsEnabledLivePreview = true;
+        }
+
+        private void chk_enableLivePreview_Unchecked(object sender, RoutedEventArgs e)
+        {
+            IsEnabledLivePreview = false;
         }
     }
 }
