@@ -549,6 +549,8 @@ namespace BetterLiveScreen
 
             foreach (var decoder in decoderMap.Values) decoder.Close();
             h264Decoder?.Dispose();
+
+            WasapiRealtimePlay.Stop();
         }
 
         private void ScreenPreview(Mat mat)
