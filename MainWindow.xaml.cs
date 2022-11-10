@@ -380,7 +380,8 @@ namespace BetterLiveScreen
                                 int length = Rescreen.ScreenActualSize.Width * Rescreen.ScreenActualSize.Height * 4;
 
                                 Marshal.Copy(preview, 0, mat.Data, length);
-                                Mat mat2 = mat.CvtColor(ColorConversionCodes.BGRA2RGBA);
+                                Mat mat2 = mat.CvtColor(ColorConversionCodes.BGRA2BGR);
+                                Mat mat3 = mat2.CvtColor(ColorConversionCodes.BGRA2YUV_I420);
 
                                 unsafe
                                 {
