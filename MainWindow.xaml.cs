@@ -247,7 +247,7 @@ namespace BetterLiveScreen
                 AudioType = CaptureAudioType.WinCaptureAudio,
                 SelectedMonitor = RescreenSettings.PrimaryMonitor,
                 Fps = 30,
-                IsHalf = false,
+                IsHalf = true,
                 NvencEncoding = false
             });
             Rescreen.Start();
@@ -334,7 +334,7 @@ namespace BetterLiveScreen
                         }
 
                         //Live Preview
-                        byte[] previewBuffer = buffer.Decompress();
+                        byte[] previewBuffer = buffer; // buffer.Decompress();
 
                         if (Rescreen.Settings.NvencEncoding)
                         {
@@ -431,7 +431,7 @@ namespace BetterLiveScreen
                                     decoderMap.Add(livedUser.ToString(), decoder);
                                 }
                                 byte[] buffer = videoStream.ScreenQueue.Dequeue(); //compressed
-                                byte[] previewBuffer = buffer.Decompress();
+                                byte[] previewBuffer = buffer;////udp packet loss buffer.Decompress();
 
                                 if (videoStream.Info.NvencEncoding)
                                 {
