@@ -248,7 +248,7 @@ namespace BetterLiveScreen
                 SelectedMonitor = RescreenSettings.PrimaryMonitor,
                 Fps = 30,
                 IsHalf = false,
-                NvencEncoding = true
+                NvencEncoding = false
             });
             Rescreen.Start();
             Task.Run(RescreenRefreshed);
@@ -400,66 +400,74 @@ namespace BetterLiveScreen
                 {
                     var videoStream = Rescreen.VideoStreams[livedUser.ToString()];
 
-                    while (videoStream.ScreenQueue.Count > 0 || videoStream.AudioQueue.Count > 0)
+                    try
                     {
-                        if (videoStream.ScreenQueue.Count > 0)
+                        while (videoStream.ScreenQueue.Count > 0 || videoStream.AudioQueue.Count > 0)
                         {
-                            Decoder decoder = null;
-
-                            if (videoStream.Info.NvencEncoding && !decoderMap.TryGetValue(livedUser.ToString(), out decoder))
+                            if (videoStream.ScreenQueue.Count > 0)
                             {
-                                decoder = new Decoder(videoStream.Info.Width, videoStream.Info.Height, Codec.H264, Format.RGBA32);
-                                decoder.onDecoded += (s, e) =>
+                                Decoder decoder = null;
+
+                                if (videoStream.Info.NvencEncoding && !decoderMap.TryGetValue(livedUser.ToString(), out decoder))
                                 {
-                                    Mat mat = new Mat(decoder.height, decoder.width, MatType.CV_8UC4);
-                                    Kernel32.CopyMemory(mat.Data, e.Item1, (uint)e.Item2);
+                                    decoder = new Decoder(videoStream.Info.Width, videoStream.Info.Height, Codec.H264, Format.RGBA32);
+                                    decoder.onDecoded += (s, e) =>
+                                    {
+                                        Mat mat = new Mat(decoder.height, decoder.width, MatType.CV_8UC4);
+                                        Kernel32.CopyMemory(mat.Data, e.Item1, (uint)e.Item2);
 
-                                    Mat mat2 = new Mat();
-                                    Mat mat3 = new Mat();
+                                        Mat mat2 = new Mat();
+                                        Mat mat3 = new Mat();
 
-                                    Cv2.CvtColor(mat, mat2, ColorConversionCodes.RGBA2BGR);
-                                    Cv2.Resize(mat2, mat3, new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest);
+                                        Cv2.CvtColor(mat, mat2, ColorConversionCodes.RGBA2BGR);
+                                        Cv2.Resize(mat2, mat3, new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest);
 
-                                    ScreenPreview(mat3);
+                                        ScreenPreview(mat3);
+
+                                        mat.Dispose();
+                                        mat2.Dispose();
+                                    };
+
+                                    decoderMap.Add(livedUser.ToString(), decoder);
+                                }
+                                byte[] buffer = videoStream.ScreenQueue.Dequeue(); //compressed
+                                byte[] previewBuffer = buffer.Decompress();
+
+                                if (videoStream.Info.NvencEncoding)
+                                {
+                                    var handle = GCHandle.Alloc(previewBuffer, GCHandleType.Pinned);
+                                    var ptr = handle.AddrOfPinnedObject();
+
+                                    decoder.Decode(ptr, previewBuffer.Length);
+                                    handle.Free();
+                                }
+                                else
+                                {
+                                    var mat = new Mat(videoStream.Info.Height, videoStream.Info.Width, MatType.CV_8UC4);
+                                    int length = videoStream.Info.Width * videoStream.Info.Height * 4; // or src.Height * src.Step;
+
+                                    Marshal.Copy(previewBuffer, 0, mat.Data, length);
+                                    var mat2 = mat.Resize(new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest);
+
+                                    ScreenPreview(mat2);
 
                                     mat.Dispose();
-                                    mat2.Dispose();
-                                };
-
-                                decoderMap.Add(livedUser.ToString(), decoder);
+                                }
                             }
-                            byte[] buffer = videoStream.ScreenQueue.Dequeue(); //compressed
-                            byte[] previewBuffer = buffer.Decompress();
 
-                            if (videoStream.Info.NvencEncoding)
+                            if (videoStream.AudioQueue.Count > 0)
                             {
-                                var handle = GCHandle.Alloc(previewBuffer, GCHandleType.Pinned);
-                                var ptr = handle.AddrOfPinnedObject();
+                                byte[] buffer = videoStream.AudioQueue.Dequeue(); //compressed
+                                byte[] decompressed = buffer.Decompress();
 
-                                decoder.Decode(ptr, previewBuffer.Length);
-                                handle.Free();
-                            }
-                            else
-                            {
-                                var mat = new Mat(videoStream.Info.Height, videoStream.Info.Width, MatType.CV_8UC4);
-                                int length = videoStream.Info.Width * videoStream.Info.Height * 4; // or src.Height * src.Step;
 
-                                Marshal.Copy(previewBuffer, 0, mat.Data, length);
-                                var mat2 = mat.Resize(new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest);
-
-                                ScreenPreview(mat2);
-
-                                mat.Dispose();
                             }
                         }
-
-                        if (videoStream.AudioQueue.Count > 0)
-                        {
-                            byte[] buffer = videoStream.AudioQueue.Dequeue(); //compressed
-                            byte[] decompressed = buffer.Decompress();
-
-
-                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        if (ex is MessagePackSerializationException) continue; //udp packet loss
+                        else throw ex;
                     }
                 }
                 Thread.Sleep(10);
