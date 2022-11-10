@@ -35,7 +35,7 @@ namespace BetterLiveScreen.Clients
     public class ClientOne
     {
         public const int PORT_NUMBER = 4089;
-        public const int MAXIMUM_BUFFER_SIZE = 65507;
+        public const int MAXIMUM_BUFFER_SIZE = 1420; //65507;
         public const string DEFAULT_KEY = "blss_default_key";
 
         /// <summary>
@@ -501,7 +501,7 @@ namespace BetterLiveScreen.Clients
         public void SendBuffer(ReceiveInfo info, NetPeer peer)
         {
             byte[] buffer = MessagePackSerializer.Serialize(info);
-            peer?.Send(buffer, DeliveryMethod.ReliableUnordered);
+            peer?.Send(buffer, DeliveryMethod.Sequenced);
         }
 
         public void SendBufferToHost(ReceiveInfo info)
@@ -512,13 +512,13 @@ namespace BetterLiveScreen.Clients
         public void SendBufferToAll(ReceiveInfo info)
         {
             byte[] buffer = MessagePackSerializer.Serialize(info);
-            Client.SendToAll(buffer, DeliveryMethod.ReliableUnordered);
+            Client.SendToAll(buffer, DeliveryMethod.Sequenced);
         }
 
         public void SendBufferToAllExcept(ReceiveInfo info, NetPeer exceptPeer)
         {
             byte[] buffer = MessagePackSerializer.Serialize(info);
-            Client.SendToAll(buffer, DeliveryMethod.ReliableUnordered, exceptPeer);
+            Client.SendToAll(buffer, DeliveryMethod.Sequenced, exceptPeer);
         }
 
         /// <summary>
