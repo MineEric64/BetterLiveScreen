@@ -440,7 +440,7 @@ namespace BetterLiveScreen.Clients
                         if (bufferInfo2.Item2 + receivedInfo.Buffer.Length > bufferInfo2.Item1.Length) break; //unreliable packet loss
 
                         Buffer.BlockCopy(receivedInfo.Buffer, 0, bufferInfo2.Item1, bufferInfo2.Item2, receivedInfo.Buffer.Length);
-                        bufferInfo2.Item2 += receivedInfo.Buffer.Length;
+                        _bufferMap[userName][SendTypes.Audio] = (bufferInfo2.Item1, bufferInfo2.Item2 + receivedInfo.Buffer.Length);
 
                         if (receivedInfo.Step == receivedInfo.MaxStep)
                         {
