@@ -327,8 +327,7 @@ namespace BetterLiveScreen.Clients
                     #endregion
                     #region Streaming
                     case SendTypes.StreamStarted:
-                        jsonRaw = Decode(receivedInfo.ExtraBuffer);
-                        var videoInfo = JsonConvert.DeserializeObject<BitmapInfo>(jsonRaw);
+                        var videoInfo = MessagePackSerializer.Deserialize<BitmapInfo>(receivedInfo.ExtraBuffer);
                         userName = Decode(receivedInfo.Buffer);
 
                         StreamStarted?.Invoke(null, (userName, videoInfo));
