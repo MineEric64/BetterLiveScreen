@@ -41,6 +41,7 @@ using BetterLiveScreen.Extensions;
 using BetterLiveScreen.Interfaces;
 using BetterLiveScreen.Interfaces.Security;
 using BetterLiveScreen.Recording;
+using BetterLiveScreen.Recording.Audio.Wasapi;
 using BetterLiveScreen.Recording.Types;
 using BetterLiveScreen.Recording.Video;
 using BetterLiveScreen.Recording.Video.NvPipe;
@@ -56,6 +57,7 @@ using Window = System.Windows.Window;
 using NvDecoder = BetterLiveScreen.Recording.Video.NvPipe.Decoder;
 using H264Encoder = OpenH264Lib.Encoder;
 using H264Decoder = OpenH264Lib.Decoder;
+using System.Drawing.Drawing2D;
 
 namespace BetterLiveScreen
 {
@@ -282,9 +284,9 @@ namespace BetterLiveScreen
 
         private void RescreenRefreshed()
         {
-            void SendScreenBuffer(byte[] buffer, SendTypes sendType)
+            void SendScreenBuffer(byte[] buffer)
             {
-                var infos = ClientOne.DivideInfo(sendType, buffer);
+                var infos = ClientOne.DivideInfo(SendTypes.Video, buffer);
                 var json = new JObject()
                         {
                             { "buffer_length", buffer.Length },
@@ -345,7 +347,7 @@ namespace BetterLiveScreen
                         (data, length, frameType) =>
                         {
                             byte[] buffer = data.Compress();
-                            SendScreenBuffer(buffer, SendTypes.Video);
+                            SendScreenBuffer(buffer);
                         });
 
                     break;
@@ -368,7 +370,7 @@ namespace BetterLiveScreen
                         {
                             case EncodingType.Nvenc:
                             case EncodingType.CompressOnly:
-                                SendScreenBuffer(buffer, SendTypes.Video);
+                                SendScreenBuffer(buffer);
                                 break;
 
                             case EncodingType.OpenH264:
@@ -413,7 +415,24 @@ namespace BetterLiveScreen
                         if ((buffer?.Length ?? 0) == 0) continue;
 
                         //TODO: Send Audio Buffer
-                        SendScreenBuffer(buffer, SendTypes.Audio);
+                        var infos = ClientOne.DivideInfo(SendTypes.Audio, buffer);
+                        var json = new JObject()
+                        {
+                            { "buffer_length", buffer.Length },
+                            { "user", User.ToString() },
+                            { "checksum", Checksum.ComputeAddition(buffer) },
+                            { "audio_sample_rate", WasapiCapture.DeviceWaveFormat.SampleRate },
+                            { "audio_bits_per_sample", WasapiCapture.DeviceWaveFormat.BitsPerSample },
+                            { "audio_channel", WasapiCapture.DeviceWaveFormat.Channels },
+                        };
+
+                        foreach (var info in infos)
+                        {
+                            info.ExtraBuffer = ClientOne.Encode(json.ToString());
+
+                            if (!RoomManager.IsHost) Client.SendBufferToHost(info);
+                            else Client.SendBufferToAll(info); //test (need to add watch feature)
+                        }
                     }
                 }
 
@@ -512,7 +531,11 @@ namespace BetterLiveScreen
                                 byte[] buffer = videoStream.AudioQueue.Dequeue(); //compressed
                                 byte[] decompressed = buffer.Decompress();
 
+                                if (!WasapiRealtimePlay.IsInitialized) WasapiRealtimePlay.Initialize();
+                                if (!WasapiRealtimePlay.BufferMap.ContainsKey(livedUser.ToString())) WasapiRealtimePlay.AddToBufferMap(livedUser.ToString(), videoStream.AudioFormat);
 
+                                WasapiRealtimePlay.AddData(livedUser.ToString(), decompressed);
+                                WasapiRealtimePlay.Play();
                             }
                         }
                     }

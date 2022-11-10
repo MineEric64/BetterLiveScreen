@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using NAudio.Wave;
+
 using BetterLiveScreen.Interfaces;
 using BetterLiveScreen.Recording.Video;
 
@@ -16,6 +18,7 @@ namespace BetterLiveScreen.Recording.Types
         public Queue<byte[]> AudioQueue { get; set; }
 
         public BitmapInfo Info { get; set; }
+        public WaveFormat AudioFormat { get; set; }
 
         public VideoLike(BitmapInfo info)
         {
@@ -23,6 +26,11 @@ namespace BetterLiveScreen.Recording.Types
             AudioQueue = new Queue<byte[]>();
 
             Info = info;
+        }
+
+        public void ChangeFormat(WaveFormat format)
+        {
+            if (format.SampleRate != AudioFormat?.SampleRate || format.Channels != AudioFormat?.SampleRate) AudioFormat = format;
         }
 
         public static BitmapInfo FromRescreenSettings()

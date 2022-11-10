@@ -133,6 +133,7 @@
     <Compile Include="Recording\Audio\AudioSessionManagerV2.cs" />
     <Compile Include="Recording\Audio\Wasapi\WasapiCapture.cs" />
     <Compile Include="Recording\Audio\Wasapi\WasapiPlay.cs" />
+    <Compile Include="Recording\Audio\Wasapi\WasapiRealtimePlay.cs" />
     <Compile Include="Recording\Audio\WinCaptureAudio\AudioCaptureHelper.cs" />
     <Compile Include="Recording\Audio\WinCaptureAudio\AUDIOCLIENT_ACTIVATION_PARAMS.cs" />
     <Compile Include="Recording\Audio\WinCaptureAudio\AUDIOCLIENT_ACTIVATION_TYPE.cs" />

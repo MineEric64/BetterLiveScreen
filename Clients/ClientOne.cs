@@ -21,6 +21,9 @@ using MessagePack;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
+using NAudio;
+using NAudio.Wave;
+
 using BetterLiveScreen.Extensions;
 using BetterLiveScreen.Interfaces;
 using BetterLiveScreen.Interfaces.Security;
@@ -412,6 +415,9 @@ namespace BetterLiveScreen.Clients
                         userName = json["user"]?.ToString() ?? string.Empty;
                         checksum = json["checksum"]?.ToObject<byte>() ?? 0;
                         bufferLength = json["buffer_length"]?.ToObject<int>() ?? 0;
+                        int audioSampleRate = json["audio_sample_rate"]?.ToObject<int>() ?? 44100;
+                        int audioBitsPerSample = json["audio_bits_per_sample"]?.ToObject<int>() ?? 16;
+                        int audioChannel = json["audio_channel"]?.ToObject<int>() ?? 2;
 
                         if (_bufferMap.TryGetValue(userName, out var bufferMap3))
                         {
@@ -452,6 +458,7 @@ namespace BetterLiveScreen.Clients
                                 break;
                             }
 
+                            Rescreen.VideoStreams[userName].ChangeFormat(new WaveFormat(audioSampleRate, audioBitsPerSample, audioChannel));
                             AudioBufferReceived?.Invoke(null, (bufferInfo2.Item1, userName));
                         }
 
