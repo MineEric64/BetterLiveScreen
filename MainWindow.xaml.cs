@@ -376,7 +376,19 @@ namespace BetterLiveScreen
                                 break;
 
                             case EncodingType.OpenH264:
-                                encoder.Encode(preview);
+                                Mat mat = new Mat(Rescreen.ScreenActualSize.Height, Rescreen.ScreenActualSize.Width, MatType.CV_8UC4);
+                                int length = Rescreen.ScreenActualSize.Width * Rescreen.ScreenActualSize.Height * 4;
+
+                                Marshal.Copy(preview, 0, mat.Data, length);
+                                Mat mat2 = mat.CvtColor(ColorConversionCodes.BGRA2RGB);
+
+                                unsafe
+                                {
+                                    encoder.Encode(mat2.DataPointer);
+                                }
+                                mat2.Dispose();
+                                mat.Dispose();
+
                                 break;
                         }
 
