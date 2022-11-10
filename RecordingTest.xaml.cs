@@ -214,7 +214,8 @@ namespace BetterLiveScreen
                         while (Rescreen.MyVideoStream.AudioQueue.Count > 0)
                         {
                             byte[] buffer = Rescreen.MyVideoStream.AudioQueue.Dequeue();
-                            writer2.Write(buffer, 0, buffer.Length);
+                            byte[] decompressed = buffer.Decompress();
+                            writer2.Write(decompressed, 0, decompressed.Length);
                         }
                     }
                 }

@@ -30,6 +30,8 @@ using OpenCvSharp.WpfExtensions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
+using MessagePack;
+
 using BetterLiveScreen.Clients;
 using BetterLiveScreen.Extensions;
 using BetterLiveScreen.Interfaces;
@@ -116,11 +118,14 @@ namespace BetterLiveScreen
         private void InitializeClient()
         {
             Client = new ClientOne();
-
+            #region Client Events
+            #region Peer
             Client.Connected += (s, e) =>
             {
                 MessageBox.Show("Connected!", "Better Live Screen", MessageBoxButton.OK, MessageBoxImage.Information);
             };
+            #endregion
+            #region Room
             Client.Disconnected += (s, isForced) =>
             {
                 Users.Clear();
@@ -132,6 +137,12 @@ namespace BetterLiveScreen
                 Debug.WriteLine("[Info] Disconnected");
             };
 
+            Client.HostConnected += (s, e) =>
+            {
+                Debug.WriteLine("[Info] Connected");
+            };
+            #endregion
+            #region User
             Client.UserConnected += (s, userInfo) =>
             {
                 Users.Add(userInfo);
@@ -149,11 +160,35 @@ namespace BetterLiveScreen
 
                 Debug.WriteLine($"[Info] {userFullName} Left");
             };
-
-            Client.HostConnected += (s, e) =>
+            #endregion
+            #region Streaming
+            Client.StreamStarted += (s, userName) =>
             {
-                Debug.WriteLine("[Info] Connected");
+                var userInfo = Users.Where(x => x.Equals(userName)).First();
+                userInfo.IsLived = true;
             };
+            Client.StreamEnded += (s, userName) =>
+            {
+                var userInfo = Users.Where(x => x.Equals(userName)).First();
+                userInfo.IsLived = false;
+            };
+
+            #region Watch
+            #endregion
+            #region Video
+            Client.VideoBufferReceived += (s, buffer) =>
+            {
+                Debug.WriteLine($"Video Received! ({buffer.Length})");
+            };
+            #endregion
+            #region Audio
+            Client.AudioBufferReceived += (s, buffer) =>
+            {
+                Debug.WriteLine($"Audio Received! ({buffer.Length})");
+            };
+            #endregion
+            #endregion
+            #endregion
             Client.Start();
 
             DiscordHelper.Initialize();
@@ -209,13 +244,24 @@ namespace BetterLiveScreen
                 NvencEncoding = true
             });
             Rescreen.Start();
-
             Task.Run(RescreenRefreshed);
+
+            User.IsLived = true;
+            var info = new ReceiveInfo(SendTypes.StreamStarted, ClientOne.Encode(User.ToString()), BufferTypes.String);
+
+            if (!RoomManager.IsHost) Client.SendBufferToHost(info);
+            else Client.SendBufferToAll(info);
         }
 
         private void stopLive_Click(object sender, RoutedEventArgs e)
         {
             Rescreen.Stop();
+
+            User.IsLived = false;
+            var info = new ReceiveInfo(SendTypes.StreamEnded, ClientOne.Encode(User.ToString()), BufferTypes.String);
+
+            if (!RoomManager.IsHost) Client.SendBufferToHost(info);
+            else Client.SendBufferToAll(info);
         }
 
         private void RescreenRefreshed()
@@ -273,6 +319,14 @@ namespace BetterLiveScreen
                         byte[] buffer = Rescreen.MyVideoStream.ScreenQueue.Dequeue(); //compressed
 
                         //TODO: Send Screen Buffer
+                        var infos = ClientOne.DivideInfo(SendTypes.Video, buffer);
+                        infos.First().ExtraBuffer = MessagePackSerializer.Serialize(buffer.Length);
+
+                        foreach (var info in infos)
+                        {
+                            if (!RoomManager.IsHost) Client.SendBufferToHost(info);
+                            else Client.SendBufferToAll(info); //test (need to add watch feature)
+                        }
 
                         //Live Preview
                         byte[] previewBuffer = buffer.Decompress();
@@ -300,10 +354,17 @@ namespace BetterLiveScreen
                     }
                     if (Rescreen.MyVideoStream.AudioQueue.Count > 0)
                     {
-                        byte[] buffer = Rescreen.MyVideoStream.AudioQueue.Dequeue(); //not compressed
+                        byte[] buffer = Rescreen.MyVideoStream.AudioQueue.Dequeue(); //compressed
 
                         //TODO: Send Audio Buffer
+                        var infos = ClientOne.DivideInfo(SendTypes.Audio, buffer);
+                        infos.First().ExtraBuffer = MessagePackSerializer.Serialize(buffer.Length);
 
+                        foreach (var info in infos)
+                        {
+                            if (!RoomManager.IsHost) Client.SendBufferToHost(info);
+                            else Client.SendBufferToAll(info); //test (need to add watch feature)
+                        }
                     }
                 }
 

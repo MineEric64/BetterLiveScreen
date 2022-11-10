@@ -43,6 +43,10 @@ namespace BetterLiveScreen.Clients
         /// </summary>
         public static MessagePackSerializerOptions LZ4_OPTIONS => MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray);
 
+        /// <summary>
+        /// (Peer, (SendType, (buffer, read)))
+        /// </summary>
+        private Dictionary<IPEndPoint, Dictionary<SendTypes, (byte[], int)>> _bufferMap = new Dictionary<IPEndPoint, Dictionary<SendTypes, (byte[], int)>>();
         private EventBasedNetListener _listener;
         public NetManager Client { get; set; }
         public Queue<ReceiveInfo> ReceivedQueue { get; private set; } = new Queue<ReceiveInfo>();
@@ -61,6 +65,15 @@ namespace BetterLiveScreen.Clients
 
         //if the user joined, it will be invoked to host only.
         public event EventHandler HostConnected;
+
+        public event EventHandler<string> StreamStarted;
+        public event EventHandler<string> StreamEnded;
+
+        public event EventHandler<string> WatchStarted;
+        public event EventHandler<string> WatchEnded;
+
+        public event EventHandler<byte[]> VideoBufferReceived;
+        public event EventHandler<byte[]> AudioBufferReceived;
 
         public ClientOne()
         {
@@ -239,6 +252,35 @@ namespace BetterLiveScreen.Clients
                         SendBufferToAllExcept(receivedInfo, peer);
                         break;
                     #endregion
+                    #region Streaming
+                    case SendTypes.StreamStarted:
+                        SendBufferToAllExcept(receivedInfo, peer);
+                        break;
+
+                    case SendTypes.StreamEnded:
+                        SendBufferToAllExcept(receivedInfo, peer);
+                        break;
+
+                    #region Watch
+                    case SendTypes.WatchStarted:
+
+                        break;
+
+                    case SendTypes.WatchEnded:
+
+                        break;
+                    #endregion
+                    #region Video
+                    case SendTypes.Video:
+                        SendBufferToAllExcept(receivedInfo, peer); //test (need to add watch feature)
+                        break;
+                    #endregion
+                    #region Audio
+                    case SendTypes.Audio:
+                        SendBufferToAllExcept(receivedInfo, peer); //test (need to add watch feature)
+                        break;
+                    #endregion
+                    #endregion
                 }
             }
             else //For User
@@ -282,7 +324,103 @@ namespace BetterLiveScreen.Clients
                         UserDisconnected?.Invoke(null, userName);
 
                         break;
+                    #endregion
+                    #region Streaming
+                    case SendTypes.StreamStarted:
+                        userName = Decode(receivedInfo.Buffer);
+                        StreamStarted?.Invoke(null, userName);
+
+                        break;
+
+                    case SendTypes.StreamEnded:
+                        userName = Decode(receivedInfo.Buffer);
+                        StreamEnded?.Invoke(null, userName);
+
+                        break;
+                    #region Watch
+                    case SendTypes.WatchStarted:
+
+                        break;
+
+                    case SendTypes.WatchEnded:
+
+                        break;
+                    #endregion
+                    #region Video
+                    case SendTypes.Video:
+                        if (receivedInfo.Step == 0)
+                        {
+                            int bufferLength = MessagePackSerializer.Deserialize<int>(receivedInfo.ExtraBuffer);
+                            byte[] videoBuffer = new byte[bufferLength];
+
+                            if (_bufferMap.TryGetValue(peer.EndPoint, out var bufferMap2))
+                            {
+                                if (bufferMap2.TryGetValue(SendTypes.Video, out _))
+                                {
+                                    bufferMap2[SendTypes.Video] = (videoBuffer, 0);
+                                }
+                                else
+                                {
+                                    bufferMap2.Add(SendTypes.Video, (videoBuffer, 0));
+                                }
+                            }
+                            else
+                            {
+                                _bufferMap.Add(peer.EndPoint, new Dictionary<SendTypes, (byte[], int)>());
+                                _bufferMap[peer.EndPoint].Add(SendTypes.Video, (videoBuffer, 0));
+                            }
+                        }
+
+                        var bufferInfo = _bufferMap[peer.EndPoint][SendTypes.Video];
+
+                        Buffer.BlockCopy(receivedInfo.Buffer, 0, bufferInfo.Item1, bufferInfo.Item2, receivedInfo.Buffer.Length);
+                        bufferInfo.Item2 += receivedInfo.Buffer.Length;
+
+                        if (receivedInfo.Step == receivedInfo.MaxStep)
+                        {
+                            VideoBufferReceived?.Invoke(null, bufferInfo.Item1);
+                        }
+
+                        break;
+                    #endregion
+                    #region Audio
+                    case SendTypes.Audio:
+                        if (receivedInfo.Step == 0)
+                        {
+                            int bufferLength = MessagePackSerializer.Deserialize<int>(receivedInfo.ExtraBuffer);
+                            byte[] videoBuffer = new byte[bufferLength];
+
+                            if (_bufferMap.TryGetValue(peer.EndPoint, out var bufferMap2))
+                            {
+                                if (bufferMap2.TryGetValue(SendTypes.Audio, out _))
+                                {
+                                    bufferMap2[SendTypes.Audio] = (videoBuffer, 0);
+                                }
+                                else
+                                {
+                                    bufferMap2.Add(SendTypes.Audio, (videoBuffer, 0));
+                                }
+                            }
+                            else
+                            {
+                                _bufferMap.Add(peer.EndPoint, new Dictionary<SendTypes, (byte[], int)>());
+                                _bufferMap[peer.EndPoint].Add(SendTypes.Audio, (videoBuffer, 0));
+                            }
+                        }
+
+                        var bufferInfo2 = _bufferMap[peer.EndPoint][SendTypes.Audio];
+
+                        Buffer.BlockCopy(receivedInfo.Buffer, 0, bufferInfo2.Item1, bufferInfo2.Item2, receivedInfo.Buffer.Length);
+                        bufferInfo2.Item2 += receivedInfo.Buffer.Length;
+
+                        if (receivedInfo.Step == receivedInfo.MaxStep)
+                        {
+                            AudioBufferReceived?.Invoke(null, bufferInfo2.Item1);
+                        }
+
+                        break;
                         #endregion
+                    #endregion
                 }
             }
         }
@@ -454,7 +592,7 @@ namespace BetterLiveScreen.Clients
             return new IPEndPoint(address, PORT_NUMBER);
         }
 
-        public static IEnumerable<ReceiveInfo> GetDividedInfo(SendTypes sendType, byte[] buffer)
+        public static IEnumerable<ReceiveInfo> DivideInfo(SendTypes sendType, byte[] buffer)
         {
             int read = 0;
             int step = 0;

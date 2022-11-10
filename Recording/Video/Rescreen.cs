@@ -13,13 +13,13 @@ using System.Windows.Media.Imaging;
 
 using OpenCvSharp;
 
+using BetterLiveScreen.Extensions;
 using BetterLiveScreen.Recording;
 using BetterLiveScreen.Recording.Audio;
 using BetterLiveScreen.Recording.Audio.Wasapi;
 using BetterLiveScreen.Recording.Audio.WinCaptureAudio;
 using BetterLiveScreen.Recording.Types;
 using BetterLiveScreen.Recording.Video.WGC;
-using BetterLiveScreen.Extensions;
 
 using Size = System.Drawing.Size;
 using WasapiCapture = BetterLiveScreen.Recording.Audio.Wasapi.WasapiCapture;
@@ -165,13 +165,14 @@ namespace BetterLiveScreen.Recording.Video
 
         private static void ScreenRefreshed(object sender, byte[] e)
         {
-            var compressed = e.Compress(); //byte[] -> compressed byte[]
+            byte[] compressed = e.Compress(); //byte[] -> compressed byte[]
             MyVideoStream.ScreenQueue.Enqueue(compressed);
         }
 
         private static void AudioRefreshed(object sender, byte[] e)
         {
-            MyVideoStream.AudioQueue.Enqueue(e);
+            byte[] compressed = e.Compress(); //byte[] -> compressed byte[]
+            MyVideoStream.AudioQueue.Enqueue(compressed);
         }
 
         public static BitrateInfo GetBitrateInfoBySize(int height, int fps)
