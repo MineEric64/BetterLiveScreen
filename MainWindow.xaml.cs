@@ -79,6 +79,10 @@ namespace BetterLiveScreen
         public static MainWindow Me { get; private set; } = null;
         public static Dispatcher CurrentDispatcher { get; private set; } = null;
 
+        public static bool IsEnabledVideo { get; set; } = true;
+        public static bool IsEnabledAudio { get; set; } = true;
+        public static bool IsEnabledLivePreview { get; set; } = true;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -362,7 +366,7 @@ namespace BetterLiveScreen
             {
                 while (Rescreen.MyVideoStream.ScreenQueue.Count > 0 || Rescreen.MyVideoStream.AudioQueue.Count > 0)
                 {
-                    if (Rescreen.MyVideoStream.ScreenQueue.TryDequeue(out byte[] buffer)) //compressed
+                    if (IsEnabledVideo && Rescreen.MyVideoStream.ScreenQueue.TryDequeue(out byte[] buffer)) //compressed
                     {
                         byte[] preview = buffer.Decompress();
                         if ((buffer?.Length ?? 0) == 0) continue;
@@ -393,37 +397,41 @@ namespace BetterLiveScreen
                         }
 
                         //Live Preview
-                        switch (Rescreen.Settings.Encoding)
+                        if (IsEnabledLivePreview)
                         {
-                            case EncodingType.Nvenc:
-                                var handle = GCHandle.Alloc(preview, GCHandleType.Pinned);
-                                var ptr = handle.AddrOfPinnedObject();
+                            switch (Rescreen.Settings.Encoding)
+                            {
+                                case EncodingType.Nvenc:
+                                    var handle = GCHandle.Alloc(preview, GCHandleType.Pinned);
+                                    var ptr = handle.AddrOfPinnedObject();
 
-                                decoder.Decode(ptr, preview.Length);
-                                handle.Free();
+                                    decoder.Decode(ptr, preview.Length);
+                                    handle.Free();
 
-                                break;
+                                    break;
 
-                            case EncodingType.OpenH264:
-                            case EncodingType.CompressOnly:
-                                if (sw.ElapsedMilliseconds > PREVIEW_DPF)
-                                {
-                                    var mat = new Mat(Rescreen.ScreenActualSize.Height, Rescreen.ScreenActualSize.Width, MatType.CV_8UC4);
-                                    int length = Rescreen.ScreenActualSize.Width * Rescreen.ScreenActualSize.Height * 4; // or src.Height * src.Step;
+                                case EncodingType.OpenH264:
+                                case EncodingType.CompressOnly:
+                                    if (sw.ElapsedMilliseconds > PREVIEW_DPF)
+                                    {
+                                        var mat = new Mat(Rescreen.ScreenActualSize.Height, Rescreen.ScreenActualSize.Width, MatType.CV_8UC4);
+                                        int length = Rescreen.ScreenActualSize.Width * Rescreen.ScreenActualSize.Height * 4; // or src.Height * src.Step;
 
-                                    Marshal.Copy(preview, 0, mat.Data, length);
-                                    var mat2 = mat.Resize(new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest);
+                                        Marshal.Copy(preview, 0, mat.Data, length);
+                                        var mat2 = mat.Resize(new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest);
 
-                                    ScreenPreview(mat2);
-                                    mat.Dispose();
+                                        ScreenPreview(mat2);
+                                        mat.Dispose();
 
-                                    sw.Restart();
-                                }
+                                        sw.Restart();
+                                    }
 
-                                break;
+                                    break;
+                            }
                         }
+
                     }
-                    if (Rescreen.MyVideoStream.AudioQueue.TryDequeue(out byte[] buffer2)) //compressed
+                    if (IsEnabledAudio && Rescreen.MyVideoStream.AudioQueue.TryDequeue(out byte[] buffer2)) //compressed
                     {
                         //TODO: Send Audio Buffer
                         var infos = ClientOne.DivideInfo(SendTypes.Audio, buffer2);
@@ -445,8 +453,8 @@ namespace BetterLiveScreen
                             else Client.SendBufferToAll(info); //test (need to add watch feature)
                         }
                     }
+                    Thread.Sleep(10);
                 }
-
                 Thread.Sleep(10);
             }
             sw.Stop();
@@ -553,6 +561,7 @@ namespace BetterLiveScreen
                                 WasapiRealtimePlay.Play();
                             }
                         }
+                        Thread.Sleep(10);
                     }
                     catch (MessagePackSerializationException)
                     {
@@ -739,6 +748,21 @@ namespace BetterLiveScreen
             name4.Content = names[3];
 
             userConnected.Content = $"{Users.Count} / {RoomManager.MAX_USER_COUNT} Users Connected";
+        }
+
+        private void chk_enableVideo_Checked(object sender, RoutedEventArgs e)
+        {
+            IsEnabledVideo = chk_enableVideo.IsChecked.HasValue && chk_enableVideo.IsChecked.Value;
+        }
+
+        private void chk_enableAudio_Checked(object sender, RoutedEventArgs e)
+        {
+            IsEnabledAudio = chk_enableAudio.IsChecked.HasValue && chk_enableAudio.IsChecked.Value;
+        }
+
+        private void chk_enableLivePreview_Checked(object sender, RoutedEventArgs e)
+        {
+            IsEnabledLivePreview = chk_enableLivePreview.IsChecked.HasValue && chk_enableLivePreview.IsChecked.Value;
         }
     }
 }
