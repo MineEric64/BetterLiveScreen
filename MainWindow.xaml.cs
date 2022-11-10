@@ -230,7 +230,8 @@ namespace BetterLiveScreen
             Client?.Disconnect();
             Client?.Stop();
 
-            Application.Current.Shutdown();
+            //Application.Current.Shutdown();
+            Process.GetCurrentProcess().Kill();
         }
 
         private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -505,6 +506,12 @@ namespace BetterLiveScreen
                                         if (h264Decoder == null) h264Decoder = new H264Decoder("openh264-2.3.1-win64.dll");
 
                                         var bitmap = h264Decoder.Decode(preview, preview.Length);
+
+                                        if (bitmap == null)
+                                        {
+                                            Debug.WriteLine("[Warning] Decoded bitmap returned null. skipping to next frame.");
+                                            return;
+                                        }
                                         ScreenPreview(bitmap);
 
                                         break;
