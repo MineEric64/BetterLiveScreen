@@ -166,14 +166,8 @@ namespace BetterLiveScreen
             {
                 var userInfo = Users.Where(x => x.Equals(e.Item1)).First();
 
-                if (Rescreen.VideoStreams.TryGetValue(e.Item1, out var videoStream))
-                {
-                    videoStream.Info = e.Item2;
-                }
-                else
-                {
-                    Rescreen.VideoStreams.Add(e.Item1, new VideoLike(e.Item2));
-                }
+                if (Rescreen.VideoStreams.TryGetValue(e.Item1, out var videoStream)) videoStream.Info = e.Item2;
+                else Rescreen.VideoStreams.Add(e.Item1, new VideoLike(e.Item2));
                 userInfo.IsLived = true;
             };
             Client.StreamEnded += (s, userName) =>
@@ -187,6 +181,7 @@ namespace BetterLiveScreen
             #region Video
             Client.VideoBufferReceived += (s, e) =>
             {
+                if (!Rescreen.VideoStreams.TryGetValue(e.Item2, out var _)) Rescreen.VideoStreams.Add(e.Item2, new VideoLike(BitmapInfo.Empty));
                 Rescreen.VideoStreams[e.Item2].ScreenQueue.Enqueue(e.Item1);
                 Debug.WriteLine($"[{DateTime.Now}] {e.Item2}'s Screen Received! ({e.Item1.Length})");
             };
@@ -194,6 +189,7 @@ namespace BetterLiveScreen
             #region Audio
             Client.AudioBufferReceived += (s, e) =>
             {
+                if (!Rescreen.VideoStreams.TryGetValue(e.Item2, out var _)) Rescreen.VideoStreams.Add(e.Item2, new VideoLike(BitmapInfo.Empty));
                 Rescreen.VideoStreams[e.Item2].AudioQueue.Enqueue(e.Item1);
                 Debug.WriteLine($"[{DateTime.Now}] {e.Item2}'s Audio Received! ({e.Item1.Length})");
             };
