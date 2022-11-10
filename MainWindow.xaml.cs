@@ -165,7 +165,6 @@ namespace BetterLiveScreen
             Client.StreamStarted += (s, e) =>
             {
                 var userInfo = Users.Where(x => x.Equals(e.Item1)).First();
-                userInfo.IsLived = true;
 
                 if (Rescreen.VideoStreams.TryGetValue(e.Item1, out var videoStream))
                 {
@@ -175,6 +174,7 @@ namespace BetterLiveScreen
                 {
                     Rescreen.VideoStreams.Add(e.Item1, new VideoLike(e.Item2));
                 }
+                userInfo.IsLived = true;
             };
             Client.StreamEnded += (s, userName) =>
             {
