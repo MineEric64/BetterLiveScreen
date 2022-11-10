@@ -185,7 +185,7 @@ namespace BetterLiveScreen
             Client.VideoBufferReceived += (s, e) =>
             {
                 if (!Rescreen.VideoStreams.TryGetValue(e.Item2, out var _)) Rescreen.VideoStreams.Add(e.Item2, new VideoLike(BitmapInfo.Empty));
-                //Rescreen.VideoStreams[e.Item2].ScreenQueue.Enqueue(e.Item1);
+                Rescreen.VideoStreams[e.Item2].ScreenQueue.Enqueue(e.Item1);
                 Debug.WriteLine($"[{DateTime.Now}] {e.Item2}'s Screen Received! ({e.Item1.Length})");
             };
             #endregion
@@ -194,7 +194,7 @@ namespace BetterLiveScreen
             {
                 if (!Rescreen.VideoStreams.TryGetValue(e.Item2, out var _)) Rescreen.VideoStreams.Add(e.Item2, new VideoLike(BitmapInfo.Empty));
                 Rescreen.VideoStreams[e.Item2].AudioQueue.Enqueue(e.Item1);
-                //Debug.WriteLine($"[{DateTime.Now}] {e.Item2}'s Audio Received! ({e.Item1.Length})");
+                Debug.WriteLine($"[{DateTime.Now}] {e.Item2}'s Audio Received! ({e.Item1.Length})");
             };
             #endregion
             #endregion
@@ -338,9 +338,6 @@ namespace BetterLiveScreen
                             if (!RoomManager.IsHost) Client.SendBufferToHost(info);
                             else Client.SendBufferToAll(info); //test (need to add watch feature)
                         }
-
-                        Debug.WriteLine($"Sent, Checksum : {Checksum.ComputeAddition(buffer)}");
-                        continue;
 
                         //Live Preview
                         byte[] previewBuffer = buffer.Decompress();

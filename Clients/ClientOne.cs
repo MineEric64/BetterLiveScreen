@@ -389,10 +389,15 @@ namespace BetterLiveScreen.Clients
 
                         if (receivedInfo.Step == receivedInfo.MaxStep)
                         {
-                            VideoBufferReceived?.Invoke(null, (bufferInfo.Item1, userName));
-
                             byte bufferChecksum = Checksum.ComputeAddition(bufferInfo.Item1);
-                            Debug.WriteLine($"{bufferChecksum == checksum} : {checksum} == {bufferChecksum}");
+
+                            if (bufferChecksum != checksum)
+                            {
+                                Debug.WriteLine("[Warning] Checksum doesn't equals to original buffer's value. skip this buffer");
+                                break;
+                            }
+
+                            VideoBufferReceived?.Invoke(null, (bufferInfo.Item1, userName));
                         }
 
                         break;
