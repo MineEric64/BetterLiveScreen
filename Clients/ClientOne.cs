@@ -382,7 +382,6 @@ namespace BetterLiveScreen.Clients
 
                         if (receivedInfo.Step == receivedInfo.MaxStep)
                         {
-                            userName = Decode(receivedInfo.ExtraBuffer);
                             VideoBufferReceived?.Invoke(null, (bufferInfo.Item1, userName));
                         }
 
@@ -423,7 +422,6 @@ namespace BetterLiveScreen.Clients
 
                         if (receivedInfo.Step == receivedInfo.MaxStep)
                         {
-                            userName = Decode(receivedInfo.ExtraBuffer);
                             AudioBufferReceived?.Invoke(null, (bufferInfo2.Item1, userName));
                         }
 
@@ -486,7 +484,7 @@ namespace BetterLiveScreen.Clients
         public void SendBuffer(ReceiveInfo info, NetPeer peer)
         {
             byte[] buffer = MessagePackSerializer.Serialize(info);
-            peer?.Send(buffer, DeliveryMethod.ReliableUnordered);
+            peer?.Send(buffer, DeliveryMethod.ReliableOrdered);
         }
 
         public void SendBufferToHost(ReceiveInfo info)
@@ -497,13 +495,13 @@ namespace BetterLiveScreen.Clients
         public void SendBufferToAll(ReceiveInfo info)
         {
             byte[] buffer = MessagePackSerializer.Serialize(info);
-            Client.SendToAll(buffer, DeliveryMethod.ReliableUnordered);
+            Client.SendToAll(buffer, DeliveryMethod.ReliableOrdered);
         }
 
         public void SendBufferToAllExcept(ReceiveInfo info, NetPeer exceptPeer)
         {
             byte[] buffer = MessagePackSerializer.Serialize(info);
-            Client.SendToAll(buffer, DeliveryMethod.ReliableUnordered, exceptPeer);
+            Client.SendToAll(buffer, DeliveryMethod.ReliableOrdered, exceptPeer);
         }
 
         /// <summary>
