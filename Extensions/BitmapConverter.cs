@@ -42,7 +42,7 @@ namespace BetterLiveScreen.Extensions
             var bitmapSource = BitmapSource.Create(
                 bitmapData.Width, bitmapData.Height,
                 bitmap.HorizontalResolution, bitmap.VerticalResolution,
-                System.Windows.Media.PixelFormats.Bgra32, null,
+                System.Windows.Media.PixelFormats.Bgr24, null,
                 bitmapData.Scan0, bitmapData.Stride * bitmapData.Height, bitmapData.Stride);
 
             bitmap.UnlockBits(bitmapData);
