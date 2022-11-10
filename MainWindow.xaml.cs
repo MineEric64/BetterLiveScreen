@@ -523,7 +523,7 @@ namespace BetterLiveScreen
 
                             if (videoStream.AudioQueue.TryDequeue(out byte[] buffer2)) //compressed
                             {
-                                byte[] decompressed = buffer.Decompress();
+                                byte[] decompressed = buffer2.Decompress();
 
                                 if (!WasapiRealtimePlay.IsInitialized) WasapiRealtimePlay.Initialize();
                                 if (!WasapiRealtimePlay.BufferMap.ContainsKey(livedUser.ToString())) WasapiRealtimePlay.AddToBufferMap(livedUser.ToString(), videoStream.AudioFormat);
