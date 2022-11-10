@@ -348,7 +348,7 @@ namespace BetterLiveScreen.Clients
                     #endregion
                     #region Video
                     case SendTypes.Video:
-                        if (receivedInfo.Step == 1)
+                        if (receivedInfo.Step == 0)
                         {
                             int bufferLength = MessagePackSerializer.Deserialize<int>(receivedInfo.ExtraBuffer);
                             byte[] videoBuffer = new byte[bufferLength];
@@ -385,7 +385,7 @@ namespace BetterLiveScreen.Clients
                     #endregion
                     #region Audio
                     case SendTypes.Audio:
-                        if (receivedInfo.Step == 1)
+                        if (receivedInfo.Step == 0)
                         {
                             int bufferLength = MessagePackSerializer.Deserialize<int>(receivedInfo.ExtraBuffer);
                             byte[] videoBuffer = new byte[bufferLength];
@@ -596,7 +596,7 @@ namespace BetterLiveScreen.Clients
         {
             int read = 0;
             int step = 0;
-            int maxStep = (int)Math.Ceiling((double)buffer.Length / 65507);
+            int maxStep = (int)Math.Ceiling((double)buffer.Length / 65507) - 1;
 
             var infos = new List<ReceiveInfo>();
 
