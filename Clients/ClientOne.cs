@@ -35,7 +35,7 @@ namespace BetterLiveScreen.Clients
     public class ClientOne
     {
         public const int PORT_NUMBER = 4089;
-        public const int MAXIMUM_BUFFER_SIZE = 1420; //65507;
+        public const int MAXIMUM_BUFFER_SIZE = 1300; //65507;
         public const string DEFAULT_KEY = "blss_default_key";
 
         /// <summary>
@@ -384,6 +384,8 @@ namespace BetterLiveScreen.Clients
                         }
                         var bufferInfo = _bufferMap[userName][SendTypes.Video];
 
+                        if (bufferInfo.Item2 + receivedInfo.Buffer.Length > bufferInfo.Item1.Length) break; //unreliable packet loss
+
                         Buffer.BlockCopy(receivedInfo.Buffer, 0, bufferInfo.Item1, bufferInfo.Item2, receivedInfo.Buffer.Length);
                         _bufferMap[userName][SendTypes.Video] = (bufferInfo.Item1, bufferInfo.Item2 + receivedInfo.Buffer.Length);
 
@@ -434,11 +436,21 @@ namespace BetterLiveScreen.Clients
                         if (receivedInfo.Step > 0) userName = Decode(receivedInfo.ExtraBuffer);
                         var bufferInfo2 = _bufferMap[userName][SendTypes.Audio];
 
+                        if (bufferInfo2.Item2 + receivedInfo.Buffer.Length > bufferInfo2.Item1.Length) break; //unreliable packet loss
+
                         Buffer.BlockCopy(receivedInfo.Buffer, 0, bufferInfo2.Item1, bufferInfo2.Item2, receivedInfo.Buffer.Length);
                         bufferInfo2.Item2 += receivedInfo.Buffer.Length;
 
                         if (receivedInfo.Step == receivedInfo.MaxStep)
                         {
+                            byte bufferChecksum = Checksum.ComputeAddition(bufferInfo2.Item1);
+
+                            if (bufferChecksum != checksum)
+                            {
+                                Debug.WriteLine("[Warning] Checksum doesn't equals to original buffer's value. skip this buffer");
+                                break;
+                            }
+
                             AudioBufferReceived?.Invoke(null, (bufferInfo2.Item1, userName));
                         }
 
