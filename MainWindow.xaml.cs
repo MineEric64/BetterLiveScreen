@@ -322,11 +322,17 @@ namespace BetterLiveScreen
 
                         //TODO: Send Screen Buffer
                         var infos = ClientOne.DivideInfo(SendTypes.Video, buffer);
-                        infos.First().ExtraBuffer = MessagePackSerializer.Serialize(buffer.Length);
-                        infos.Last().ExtraBuffer = ClientOne.Encode(User.ToString());
+                        var json = new JObject()
+                        {
+                            { "buffer_length", buffer.Length },
+                            { "user", User.ToString() }
+                        };
+                        infos.First().ExtraBuffer = ClientOne.Encode(json.ToString());
 
                         foreach (var info in infos)
                         {
+                            if (info.ExtraBuffer.Length == 0) info.ExtraBuffer = ClientOne.Encode(User.ToString());
+
                             if (!RoomManager.IsHost) Client.SendBufferToHost(info);
                             else Client.SendBufferToAll(info); //test (need to add watch feature)
                         }
@@ -362,11 +368,17 @@ namespace BetterLiveScreen
 
                         //TODO: Send Audio Buffer
                         var infos = ClientOne.DivideInfo(SendTypes.Audio, buffer);
-                        infos.First().ExtraBuffer = MessagePackSerializer.Serialize(buffer.Length);
-                        infos.Last().ExtraBuffer = ClientOne.Encode(User.ToString());
+                        var json = new JObject()
+                        {
+                            { "buffer_length", buffer.Length },
+                            { "user", User.ToString() }
+                        };
+                        infos.First().ExtraBuffer = ClientOne.Encode(json.ToString());
 
                         foreach (var info in infos)
                         {
+                            if (info.ExtraBuffer.Length == 0) info.ExtraBuffer = ClientOne.Encode(User.ToString());
+
                             if (!RoomManager.IsHost) Client.SendBufferToHost(info);
                             else Client.SendBufferToAll(info); //test (need to add watch feature)
                         }

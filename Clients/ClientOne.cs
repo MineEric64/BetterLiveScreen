@@ -44,9 +44,9 @@ namespace BetterLiveScreen.Clients
         public static MessagePackSerializerOptions LZ4_OPTIONS => MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray);
 
         /// <summary>
-        /// (Peer, (SendType, (buffer, read)))
+        /// (User, (SendType, (buffer, read)))
         /// </summary>
-        private Dictionary<IPEndPoint, Dictionary<SendTypes, (byte[], int)>> _bufferMap = new Dictionary<IPEndPoint, Dictionary<SendTypes, (byte[], int)>>();
+        private Dictionary<string, Dictionary<SendTypes, (byte[], int)>> _bufferMap = new Dictionary<string, Dictionary<SendTypes, (byte[], int)>>();
         private EventBasedNetListener _listener;
         public NetManager Client { get; set; }
         public Queue<ReceiveInfo> ReceivedQueue { get; private set; } = new Queue<ReceiveInfo>();
@@ -285,7 +285,7 @@ namespace BetterLiveScreen.Clients
             }
             else //For User
             {
-                string userName;
+                string userName = string.Empty;
 
                 switch (receivedInfo.SendType)
                 {
@@ -351,10 +351,12 @@ namespace BetterLiveScreen.Clients
                     case SendTypes.Video:
                         if (receivedInfo.Step == 0)
                         {
-                            int bufferLength = MessagePackSerializer.Deserialize<int>(receivedInfo.ExtraBuffer);
+                            json = JObject.Parse(Decode(receivedInfo.ExtraBuffer));
+                            userName = json["user"]?.ToString() ?? string.Empty;
+                            int bufferLength = json["buffer_length"]?.ToObject<int>() ?? 0;
                             byte[] videoBuffer = new byte[bufferLength];
 
-                            if (_bufferMap.TryGetValue(peer.EndPoint, out var bufferMap2))
+                            if (_bufferMap.TryGetValue(userName, out var bufferMap2))
                             {
                                 if (bufferMap2.TryGetValue(SendTypes.Video, out _))
                                 {
@@ -367,12 +369,13 @@ namespace BetterLiveScreen.Clients
                             }
                             else
                             {
-                                _bufferMap.Add(peer.EndPoint, new Dictionary<SendTypes, (byte[], int)>());
-                                _bufferMap[peer.EndPoint].Add(SendTypes.Video, (videoBuffer, 0));
+                                _bufferMap.Add(userName, new Dictionary<SendTypes, (byte[], int)>());
+                                _bufferMap[userName].Add(SendTypes.Video, (videoBuffer, 0));
                             }
                         }
 
-                        var bufferInfo = _bufferMap[peer.EndPoint][SendTypes.Video];
+                        if (receivedInfo.Step > 0) userName = Decode(receivedInfo.ExtraBuffer);
+                        var bufferInfo = _bufferMap[userName][SendTypes.Video];
 
                         Buffer.BlockCopy(receivedInfo.Buffer, 0, bufferInfo.Item1, bufferInfo.Item2, receivedInfo.Buffer.Length);
                         bufferInfo.Item2 += receivedInfo.Buffer.Length;
@@ -389,10 +392,12 @@ namespace BetterLiveScreen.Clients
                     case SendTypes.Audio:
                         if (receivedInfo.Step == 0)
                         {
-                            int bufferLength = MessagePackSerializer.Deserialize<int>(receivedInfo.ExtraBuffer);
+                            json = JObject.Parse(Decode(receivedInfo.ExtraBuffer));
+                            userName = json["user"]?.ToString() ?? string.Empty;
+                            int bufferLength = json["buffer_length"]?.ToObject<int>() ?? 0;
                             byte[] videoBuffer = new byte[bufferLength];
 
-                            if (_bufferMap.TryGetValue(peer.EndPoint, out var bufferMap2))
+                            if (_bufferMap.TryGetValue(userName, out var bufferMap2))
                             {
                                 if (bufferMap2.TryGetValue(SendTypes.Audio, out _))
                                 {
@@ -405,12 +410,13 @@ namespace BetterLiveScreen.Clients
                             }
                             else
                             {
-                                _bufferMap.Add(peer.EndPoint, new Dictionary<SendTypes, (byte[], int)>());
-                                _bufferMap[peer.EndPoint].Add(SendTypes.Audio, (videoBuffer, 0));
+                                _bufferMap.Add(userName, new Dictionary<SendTypes, (byte[], int)>());
+                                _bufferMap[userName].Add(SendTypes.Audio, (videoBuffer, 0));
                             }
                         }
 
-                        var bufferInfo2 = _bufferMap[peer.EndPoint][SendTypes.Audio];
+                        if (receivedInfo.Step > 0) userName = Decode(receivedInfo.ExtraBuffer);
+                        var bufferInfo2 = _bufferMap[userName][SendTypes.Audio];
 
                         Buffer.BlockCopy(receivedInfo.Buffer, 0, bufferInfo2.Item1, bufferInfo2.Item2, receivedInfo.Buffer.Length);
                         bufferInfo2.Item2 += receivedInfo.Buffer.Length;
