@@ -386,7 +386,6 @@ namespace BetterLiveScreen.Clients
                         }
 
                         var bufferInfo = _bufferMap[userName][SendTypes.Video];
-
                         if (bufferInfo.Item2 + receivedInfo.Buffer.Length > bufferInfo.Item1.Length) break; //unreliable packet loss
 
                         Buffer.BlockCopy(receivedInfo.Buffer, 0, bufferInfo.Item1, bufferInfo.Item2, receivedInfo.Buffer.Length);
@@ -437,9 +436,7 @@ namespace BetterLiveScreen.Clients
                             _bufferMap[userName].Add(SendTypes.Audio, (videoBuffer, 0));
                         }
 
-                        if (receivedInfo.Step > 0) userName = Decode(receivedInfo.ExtraBuffer);
                         var bufferInfo2 = _bufferMap[userName][SendTypes.Audio];
-
                         if (bufferInfo2.Item2 + receivedInfo.Buffer.Length > bufferInfo2.Item1.Length) break; //unreliable packet loss
 
                         Buffer.BlockCopy(receivedInfo.Buffer, 0, bufferInfo2.Item1, bufferInfo2.Item2, receivedInfo.Buffer.Length);
