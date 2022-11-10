@@ -144,17 +144,23 @@ namespace BetterLiveScreen.Clients
         {
             if (!RoomManager.IsHost)
             {
+                Debug.WriteLine("[Warning] This user is not host. reject the connection.");
                 request.Reject();
+
                 return;
             }
 
             if (Client.ConnectedPeersCount < RoomManager.MAX_USER_COUNT /* max connections */)
             {
-                request.AcceptIfKey(DEFAULT_KEY);
+                if (request.AcceptIfKey(DEFAULT_KEY) != null)
+                    Debug.WriteLine("[Info] The connection is accepted by host.");
+                else
+                    Debug.WriteLine("[Warning] Can't be accepted, the key doesn't equals to default key.");
             }
             else
             {
                 request.Reject();
+                Debug.WriteLine("[Warning] The number of connected users is exceed to max. reject the connection.");
             }
         }
 
@@ -379,7 +385,7 @@ namespace BetterLiveScreen.Clients
                         var bufferInfo = _bufferMap[userName][SendTypes.Video];
 
                         Buffer.BlockCopy(receivedInfo.Buffer, 0, bufferInfo.Item1, bufferInfo.Item2, receivedInfo.Buffer.Length);
-                        bufferInfo.Item2 += receivedInfo.Buffer.Length;
+                        _bufferMap[userName][SendTypes.Video] = (bufferInfo.Item1, bufferInfo.Item2 + receivedInfo.Buffer.Length);
 
                         if (receivedInfo.Step == receivedInfo.MaxStep)
                         {
