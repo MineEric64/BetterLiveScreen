@@ -130,7 +130,21 @@ namespace BetterLiveScreen.Recording.Video
             Task.Factory.StartNew(() =>
             {
                 // Duplicate the output
-                using (var duplicatedOutput = output1.DuplicateOutput(device))
+                OutputDuplication duplicatedOutput = null;
+
+                try
+                {
+                    duplicatedOutput = output1.DuplicateOutput(device);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[Error] Desktop Duplication Not Supported. Error Message : {ex}");
+                    MessageBox.Show("The screen can't be captured when using Desktop Duplication.\nPlease use another capture method.", "Better Live Screen : Error", MessageBoxButton.OK, MessageBoxImage.Error);
+
+                    return;
+                }
+
+                using (duplicatedOutput)
                 {
                     var startDate = DateTime.MinValue;
                     int needElapsed = 0;
