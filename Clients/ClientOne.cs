@@ -293,6 +293,7 @@ namespace BetterLiveScreen.Clients
             {
                 string userName = string.Empty;
                 byte checksum = 0;
+                int bufferLength = 0;
 
                 switch (receivedInfo.SendType)
                 {
@@ -359,29 +360,31 @@ namespace BetterLiveScreen.Clients
                         json = JObject.Parse(Decode(receivedInfo.ExtraBuffer));
                         userName = json["user"]?.ToString() ?? string.Empty;
                         checksum = json["checksum"]?.ToObject<byte>() ?? 0;
+                        bufferLength = json["buffer_length"]?.ToObject<int>() ?? 0;
 
-                        if (receivedInfo.Step == 0)
+                        if (_bufferMap.TryGetValue(userName, out var bufferMap2))
                         {
-                            int bufferLength = json["buffer_length"]?.ToObject<int>() ?? 0;
-                            byte[] videoBuffer = new byte[bufferLength];
-
-                            if (_bufferMap.TryGetValue(userName, out var bufferMap2))
+                            if (bufferMap2.TryGetValue(SendTypes.Video, out var prevBufferInfo))
                             {
-                                if (bufferMap2.TryGetValue(SendTypes.Video, out _))
+                                if (prevBufferInfo.Item1.Length != bufferLength) //prev info detected, need to refresh
                                 {
+                                    byte[] videoBuffer = new byte[bufferLength];
                                     bufferMap2[SendTypes.Video] = (videoBuffer, 0);
-                                }
-                                else
-                                {
-                                    bufferMap2.Add(SendTypes.Video, (videoBuffer, 0));
                                 }
                             }
                             else
                             {
-                                _bufferMap.Add(userName, new Dictionary<SendTypes, (byte[], int)>());
-                                _bufferMap[userName].Add(SendTypes.Video, (videoBuffer, 0));
+                                byte[] videoBuffer = new byte[bufferLength];
+                                bufferMap2.Add(SendTypes.Video, (videoBuffer, 0));
                             }
                         }
+                        else
+                        {
+                            byte[] videoBuffer = new byte[bufferLength];
+                            _bufferMap.Add(userName, new Dictionary<SendTypes, (byte[], int)>());
+                            _bufferMap[userName].Add(SendTypes.Video, (videoBuffer, 0));
+                        }
+
                         var bufferInfo = _bufferMap[userName][SendTypes.Video];
 
                         if (bufferInfo.Item2 + receivedInfo.Buffer.Length > bufferInfo.Item1.Length) break; //unreliable packet loss
@@ -409,28 +412,29 @@ namespace BetterLiveScreen.Clients
                         json = JObject.Parse(Decode(receivedInfo.ExtraBuffer));
                         userName = json["user"]?.ToString() ?? string.Empty;
                         checksum = json["checksum"]?.ToObject<byte>() ?? 0;
+                        bufferLength = json["buffer_length"]?.ToObject<int>() ?? 0;
 
-                        if (receivedInfo.Step == 0)
+                        if (_bufferMap.TryGetValue(userName, out var bufferMap3))
                         {
-                            int bufferLength = json["buffer_length"]?.ToObject<int>() ?? 0;
-                            byte[] videoBuffer = new byte[bufferLength];
-
-                            if (_bufferMap.TryGetValue(userName, out var bufferMap2))
+                            if (bufferMap3.TryGetValue(SendTypes.Audio, out var prevBufferInfo))
                             {
-                                if (bufferMap2.TryGetValue(SendTypes.Audio, out _))
+                                if (prevBufferInfo.Item1.Length != bufferLength) //prev info detected, need to refresh
                                 {
-                                    bufferMap2[SendTypes.Audio] = (videoBuffer, 0);
-                                }
-                                else
-                                {
-                                    bufferMap2.Add(SendTypes.Audio, (videoBuffer, 0));
+                                    byte[] videoBuffer = new byte[bufferLength];
+                                    bufferMap3[SendTypes.Audio] = (videoBuffer, 0);
                                 }
                             }
                             else
                             {
-                                _bufferMap.Add(userName, new Dictionary<SendTypes, (byte[], int)>());
-                                _bufferMap[userName].Add(SendTypes.Audio, (videoBuffer, 0));
+                                byte[] videoBuffer = new byte[bufferLength];
+                                bufferMap3.Add(SendTypes.Audio, (videoBuffer, 0));
                             }
+                        }
+                        else
+                        {
+                            byte[] videoBuffer = new byte[bufferLength];
+                            _bufferMap.Add(userName, new Dictionary<SendTypes, (byte[], int)>());
+                            _bufferMap[userName].Add(SendTypes.Audio, (videoBuffer, 0));
                         }
 
                         if (receivedInfo.Step > 0) userName = Decode(receivedInfo.ExtraBuffer);

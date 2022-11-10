@@ -257,7 +257,7 @@ namespace BetterLiveScreen
                 SelectedMonitor = RescreenSettings.PrimaryMonitor,
                 Fps = 30,
                 IsHalf = true,
-                Encoding = EncodingType.Nvenc
+                Encoding = EncodingType.OpenH264
             });
             Rescreen.Start();
             Task.Run(RescreenRefreshed);
@@ -291,12 +291,10 @@ namespace BetterLiveScreen
                             { "user", User.ToString() },
                             { "checksum", Checksum.ComputeAddition(buffer) }
                         };
-                infos.First().ExtraBuffer = ClientOne.Encode(json.ToString());
-                json.Remove("buffer_length");
 
                 foreach (var info in infos)
                 {
-                    if (info.ExtraBuffer.Length == 0) info.ExtraBuffer = ClientOne.Encode(json.ToString());
+                    info.ExtraBuffer = ClientOne.Encode(json.ToString());
 
                     if (!RoomManager.IsHost) Client.SendBufferToHost(info);
                     else Client.SendBufferToAll(info); //test (need to add watch feature)
