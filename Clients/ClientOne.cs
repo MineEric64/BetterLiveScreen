@@ -66,14 +66,14 @@ namespace BetterLiveScreen.Clients
         //if the user joined, it will be invoked to host only.
         public event EventHandler HostConnected;
 
-        public event EventHandler<string> StreamStarted;
+        public event EventHandler<(string, BitmapInfo)> StreamStarted;
         public event EventHandler<string> StreamEnded;
 
         public event EventHandler<string> WatchStarted;
         public event EventHandler<string> WatchEnded;
 
-        public event EventHandler<byte[]> VideoBufferReceived;
-        public event EventHandler<byte[]> AudioBufferReceived;
+        public event EventHandler<(byte[], string)> VideoBufferReceived;
+        public event EventHandler<(byte[], string)> AudioBufferReceived;
 
         public ClientOne()
         {
@@ -327,9 +327,11 @@ namespace BetterLiveScreen.Clients
                     #endregion
                     #region Streaming
                     case SendTypes.StreamStarted:
-                        userName = Decode(receivedInfo.Buffer);
-                        StreamStarted?.Invoke(null, userName);
+                        jsonRaw = Decode(receivedInfo.Buffer);
+                        var videoInfo = JsonConvert.DeserializeObject<BitmapInfo>(jsonRaw);
+                        userName = Decode(receivedInfo.ExtraBuffer);
 
+                        StreamStarted?.Invoke(null, (userName, videoInfo));
                         break;
 
                     case SendTypes.StreamEnded:
@@ -378,7 +380,8 @@ namespace BetterLiveScreen.Clients
 
                         if (receivedInfo.Step == receivedInfo.MaxStep)
                         {
-                            VideoBufferReceived?.Invoke(null, bufferInfo.Item1);
+                            userName = Decode(receivedInfo.ExtraBuffer);
+                            VideoBufferReceived?.Invoke(null, (bufferInfo.Item1, userName));
                         }
 
                         break;
@@ -415,7 +418,8 @@ namespace BetterLiveScreen.Clients
 
                         if (receivedInfo.Step == receivedInfo.MaxStep)
                         {
-                            AudioBufferReceived?.Invoke(null, bufferInfo2.Item1);
+                            userName = Decode(receivedInfo.ExtraBuffer);
+                            AudioBufferReceived?.Invoke(null, (bufferInfo2.Item1, userName));
                         }
 
                         break;

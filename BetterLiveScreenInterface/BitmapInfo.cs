@@ -18,13 +18,17 @@ namespace BetterLiveScreen.Interfaces
         [Key(1)]
         public int Height { get; set; }
 
-        [IgnoreMember]
-        public static BitmapInfo Empty => new BitmapInfo(0, 0);
+        [Key(2)]
+        public bool NvencEncoding { get; set; }
 
-        public BitmapInfo(int width, int height)
+        [IgnoreMember]
+        public static BitmapInfo Empty => new BitmapInfo(0, 0, false);
+
+        public BitmapInfo(int width, int height, bool nvencEncoding)
         {
             Width = width;
             Height = height;
+            NvencEncoding = nvencEncoding;
         }
     }
 }

@@ -162,10 +162,19 @@ namespace BetterLiveScreen
             };
             #endregion
             #region Streaming
-            Client.StreamStarted += (s, userName) =>
+            Client.StreamStarted += (s, e) =>
             {
-                var userInfo = Users.Where(x => x.Equals(userName)).First();
+                var userInfo = Users.Where(x => x.Equals(e.Item1)).First();
                 userInfo.IsLived = true;
+
+                if (Rescreen.VideoStreams.TryGetValue(e.Item1, out var videoStream))
+                {
+                    videoStream.Info = e.Item2;
+                }
+                else
+                {
+                    Rescreen.VideoStreams.Add(e.Item1, new VideoLike(e.Item2));
+                }
             };
             Client.StreamEnded += (s, userName) =>
             {
@@ -176,15 +185,17 @@ namespace BetterLiveScreen
             #region Watch
             #endregion
             #region Video
-            Client.VideoBufferReceived += (s, buffer) =>
+            Client.VideoBufferReceived += (s, e) =>
             {
-                Debug.WriteLine($"Video Received! ({buffer.Length})");
+                Rescreen.VideoStreams[e.Item2].ScreenQueue.Enqueue(e.Item1);
+                Debug.WriteLine($"[{DateTime.Now}] {e.Item2}'s Screen Received! ({e.Item1.Length})");
             };
             #endregion
             #region Audio
-            Client.AudioBufferReceived += (s, buffer) =>
+            Client.AudioBufferReceived += (s, e) =>
             {
-                Debug.WriteLine($"Audio Received! ({buffer.Length})");
+                Rescreen.VideoStreams[e.Item2].AudioQueue.Enqueue(e.Item1);
+                Debug.WriteLine($"[{DateTime.Now}] {e.Item2}'s Audio Received! ({e.Item1.Length})");
             };
             #endregion
             #endregion
@@ -247,7 +258,7 @@ namespace BetterLiveScreen
             Task.Run(RescreenRefreshed);
 
             User.IsLived = true;
-            var info = new ReceiveInfo(SendTypes.StreamStarted, ClientOne.Encode(User.ToString()), BufferTypes.String);
+            var info = new ReceiveInfo(SendTypes.StreamStarted, ClientOne.Encode(User.ToString()), BufferTypes.String, MessagePackSerializer.Serialize(Rescreen.MyVideoStream.Info));
 
             if (!RoomManager.IsHost) Client.SendBufferToHost(info);
             else Client.SendBufferToAll(info);
@@ -266,16 +277,6 @@ namespace BetterLiveScreen
 
         private void RescreenRefreshed()
         {
-            void Preview(Mat mat)
-            {
-                Dispatcher.BeginInvoke(new Action(() => {
-                    var source = mat.ToWriteableBitmap();
-
-                    screen_main.Source = source;
-                    mat.Dispose();
-                }), DispatcherPriority.Render);
-            }
-
             Decoder decoder = null;
             const int PREVIEW_DPF = 33; //preview referesh delay per frame
             var sw = new Stopwatch();
@@ -298,7 +299,7 @@ namespace BetterLiveScreen
                         Cv2.CvtColor(mat, mat2, ColorConversionCodes.RGBA2BGR);
                         Cv2.Resize(mat2, mat3, new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest);
 
-                        Preview(mat3);
+                        ScreenPreview(mat3);
 
                         mat.Dispose();
                         mat2.Dispose();
@@ -317,10 +318,12 @@ namespace BetterLiveScreen
                     if (Rescreen.MyVideoStream.ScreenQueue.Count > 0)
                     {
                         byte[] buffer = Rescreen.MyVideoStream.ScreenQueue.Dequeue(); //compressed
+                        if ((buffer?.Length ?? 0) == 0) continue;
 
                         //TODO: Send Screen Buffer
                         var infos = ClientOne.DivideInfo(SendTypes.Video, buffer);
                         infos.First().ExtraBuffer = MessagePackSerializer.Serialize(buffer.Length);
+                        infos.Last().ExtraBuffer = ClientOne.Encode(User.ToString());
 
                         foreach (var info in infos)
                         {
@@ -347,7 +350,7 @@ namespace BetterLiveScreen
                             Marshal.Copy(previewBuffer, 0, mat.Data, length);
                             var mat2 = mat.Resize(new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest);
 
-                            Preview(mat2);
+                            ScreenPreview(mat2);
 
                             mat.Dispose();
                         }
@@ -355,10 +358,12 @@ namespace BetterLiveScreen
                     if (Rescreen.MyVideoStream.AudioQueue.Count > 0)
                     {
                         byte[] buffer = Rescreen.MyVideoStream.AudioQueue.Dequeue(); //compressed
+                        if ((buffer?.Length ?? 0) == 0) continue;
 
                         //TODO: Send Audio Buffer
                         var infos = ClientOne.DivideInfo(SendTypes.Audio, buffer);
                         infos.First().ExtraBuffer = MessagePackSerializer.Serialize(buffer.Length);
+                        infos.Last().ExtraBuffer = ClientOne.Encode(User.ToString());
 
                         foreach (var info in infos)
                         {
@@ -372,6 +377,90 @@ namespace BetterLiveScreen
             }
             sw.Stop();
             decoder?.Close();
+        }
+
+        private void ClientBufferRefreshed()
+        {
+            Dictionary<string, Decoder> decoderMap = new Dictionary<string, Decoder>();
+
+            while (RoomManager.IsConnected) //need to change user watching
+            {
+                //max 1 (need to support)
+                var livedUser = Users.Where(x => x.IsLived).First();
+                var videoStream = Rescreen.VideoStreams[livedUser.ToString()];
+
+                while (videoStream.ScreenQueue.Count > 0 || videoStream.AudioQueue.Count > 0)
+                {
+                    if (videoStream.ScreenQueue.Count > 0)
+                    {
+                        Decoder decoder = null;
+
+                        if (videoStream.Info.NvencEncoding && !decoderMap.TryGetValue(livedUser.ToString(), out decoder))
+                        {
+                            decoder = new Decoder(videoStream.Info.Width, videoStream.Info.Height, Codec.H264, Format.RGBA32);
+                            decoder.onDecoded += (s, e) =>
+                            {
+                                Mat mat = new Mat(decoder.height, decoder.width, MatType.CV_8UC4);
+                                Kernel32.CopyMemory(mat.Data, e.Item1, (uint)e.Item2);
+
+                                Mat mat2 = new Mat();
+                                Mat mat3 = new Mat();
+
+                                Cv2.CvtColor(mat, mat2, ColorConversionCodes.RGBA2BGR);
+                                Cv2.Resize(mat2, mat3, new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest);
+
+                                ScreenPreview(mat3);
+
+                                mat.Dispose();
+                                mat2.Dispose();
+                            };
+
+                            decoderMap.Add(livedUser.ToString(), decoder);
+                        }
+                        byte[] buffer = videoStream.ScreenQueue.Dequeue(); //compressed
+                        byte[] previewBuffer = buffer.Decompress();
+
+                        if (videoStream.Info.NvencEncoding)
+                        {
+                            var handle = GCHandle.Alloc(previewBuffer, GCHandleType.Pinned);
+                            var ptr = handle.AddrOfPinnedObject();
+
+                            decoder.Decode(ptr, previewBuffer.Length);
+                            handle.Free();
+                        }
+                        else
+                        {
+                            var mat = new Mat(videoStream.Info.Height, videoStream.Info.Width, MatType.CV_8UC4);
+                            int length = videoStream.Info.Width * videoStream.Info.Height * 4; // or src.Height * src.Step;
+
+                            Marshal.Copy(previewBuffer, 0, mat.Data, length);
+                            var mat2 = mat.Resize(new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest);
+
+                            ScreenPreview(mat2);
+
+                            mat.Dispose();
+                        }
+                    }
+
+                    if (Rescreen.MyVideoStream.AudioQueue.Count > 0)
+                    {
+                        byte[] buffer = Rescreen.MyVideoStream.AudioQueue.Dequeue(); //compressed
+                        byte[] decompressed = buffer.Decompress();
+
+
+                    }
+                }
+            }
+        }
+
+        private void ScreenPreview(Mat mat)
+        {
+            Dispatcher.BeginInvoke(new Action(() => {
+                var source = mat.ToWriteableBitmap();
+
+                screen_main.Source = source;
+                mat.Dispose();
+            }), DispatcherPriority.Render);
         }
 
         private async void serverIpConnect_Click(object sender, RoutedEventArgs e)
@@ -457,6 +546,8 @@ namespace BetterLiveScreen
                         serverIpConnect.Content = "Disconnect";
                         UpdateUserUI();
                         DiscordHelper.SetPresenceIfJoined();
+
+                        Task.Run(ClientBufferRefreshed); //test (need to add watch feature)
 
                         MessageBox.Show($"Connected to {RoomManager.CurrentRoom.Name}!", "BetterLiveScreen", MessageBoxButton.OK, MessageBoxImage.Information);
                         break;

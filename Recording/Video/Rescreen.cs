@@ -71,7 +71,7 @@ namespace BetterLiveScreen.Recording.Video
         {
             if (!VideoStreams.ContainsKey(MainWindow.User.ToString()))
             {
-                VideoStreams.Add(MainWindow.User.ToString(), new VideoLike());
+                VideoStreams.Add(MainWindow.User.ToString(), new VideoLike(VideoLike.FromRescreenSettings()));
             }
             _flow.Reset();
 
