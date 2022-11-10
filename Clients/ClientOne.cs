@@ -47,9 +47,9 @@ namespace BetterLiveScreen.Clients
         public static MessagePackSerializerOptions LZ4_OPTIONS => MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray);
 
         /// <summary>
-        /// (User, (SendType, (buffer, read)))
+        /// (User, (SendType, buffer))
         /// </summary>
-        private Dictionary<string, Dictionary<SendTypes, (byte[], int)>> _bufferMap = new Dictionary<string, Dictionary<SendTypes, (byte[], int)>>();
+        private Dictionary<string, Dictionary<SendTypes, byte[]>> _bufferMap = new Dictionary<string, Dictionary<SendTypes, byte[]>>();
         private EventBasedNetListener _listener;
         public NetManager Client { get; set; }
         public Queue<ReceiveInfo> ReceivedQueue { get; private set; } = new Queue<ReceiveInfo>();
@@ -367,36 +367,35 @@ namespace BetterLiveScreen.Clients
 
                         if (_bufferMap.TryGetValue(userName, out var bufferMap2))
                         {
-                            if (bufferMap2.TryGetValue(SendTypes.Video, out var prevBufferInfo))
+                            if (bufferMap2.TryGetValue(SendTypes.Video, out var prevBuffer))
                             {
-                                if (prevBufferInfo.Item1.Length != bufferLength || prevBufferInfo.Item2 == prevBufferInfo.Item1.Length) //prev info detected, need to refresh
+                                if (prevBuffer == null)
                                 {
                                     byte[] videoBuffer = new byte[bufferLength];
-                                    bufferMap2[SendTypes.Video] = (videoBuffer, 0);
+                                    bufferMap2[SendTypes.Video] = videoBuffer;
                                 }
                             }
                             else
                             {
                                 byte[] videoBuffer = new byte[bufferLength];
-                                bufferMap2.Add(SendTypes.Video, (videoBuffer, 0));
+                                bufferMap2.Add(SendTypes.Video, videoBuffer);
                             }
                         }
                         else
                         {
                             byte[] videoBuffer = new byte[bufferLength];
-                            _bufferMap.Add(userName, new Dictionary<SendTypes, (byte[], int)>());
-                            _bufferMap[userName].Add(SendTypes.Video, (videoBuffer, 0));
+                            _bufferMap.Add(userName, new Dictionary<SendTypes, byte[]>());
+                            _bufferMap[userName].Add(SendTypes.Video, videoBuffer);
                         }
 
-                        var bufferInfo = _bufferMap[userName][SendTypes.Video];
-                        if (bufferInfo.Item2 + receivedInfo.Buffer.Length > bufferInfo.Item1.Length) break; //unreliable packet loss
+                        byte[] bufferInfo = _bufferMap[userName][SendTypes.Video];
+                        int offset = receivedInfo.Step * MAXIMUM_BUFFER_SIZE;
 
-                        Buffer.BlockCopy(receivedInfo.Buffer, 0, bufferInfo.Item1, bufferInfo.Item2, receivedInfo.Buffer.Length);
-                        _bufferMap[userName][SendTypes.Video] = (bufferInfo.Item1, bufferInfo.Item2 + receivedInfo.Buffer.Length);
+                        Buffer.BlockCopy(receivedInfo.Buffer, 0, bufferInfo, offset, receivedInfo.Buffer.Length);
 
                         if (receivedInfo.Step == receivedInfo.MaxStep)
                         {
-                            byte bufferChecksum = Checksum.ComputeAddition(bufferInfo.Item1);
+                            byte bufferChecksum = Checksum.ComputeAddition(bufferInfo);
 
                             if (bufferChecksum != checksum)
                             {
@@ -404,7 +403,8 @@ namespace BetterLiveScreen.Clients
                                 break;
                             }
 
-                            VideoBufferReceived?.Invoke(null, (bufferInfo.Item1, userName));
+                            VideoBufferReceived?.Invoke(null, (bufferInfo, userName));
+                            _bufferMap[userName][SendTypes.Video] = null;
                         }
 
                         break;
@@ -421,36 +421,35 @@ namespace BetterLiveScreen.Clients
 
                         if (_bufferMap.TryGetValue(userName, out var bufferMap3))
                         {
-                            if (bufferMap3.TryGetValue(SendTypes.Audio, out var prevBufferInfo))
+                            if (bufferMap3.TryGetValue(SendTypes.Audio, out var prevBuffer))
                             {
-                                if (prevBufferInfo.Item1.Length != bufferLength || prevBufferInfo.Item2 == prevBufferInfo.Item1.Length) //prev info detected, need to refresh
+                                if (prevBuffer == null)
                                 {
                                     byte[] videoBuffer = new byte[bufferLength];
-                                    bufferMap3[SendTypes.Audio] = (videoBuffer, 0);
+                                    bufferMap3[SendTypes.Audio] = videoBuffer;
                                 }
                             }
                             else
                             {
                                 byte[] videoBuffer = new byte[bufferLength];
-                                bufferMap3.Add(SendTypes.Audio, (videoBuffer, 0));
+                                bufferMap3.Add(SendTypes.Audio, videoBuffer);
                             }
                         }
                         else
                         {
                             byte[] videoBuffer = new byte[bufferLength];
-                            _bufferMap.Add(userName, new Dictionary<SendTypes, (byte[], int)>());
-                            _bufferMap[userName].Add(SendTypes.Audio, (videoBuffer, 0));
+                            _bufferMap.Add(userName, new Dictionary<SendTypes, byte[]>());
+                            _bufferMap[userName].Add(SendTypes.Audio, videoBuffer);
                         }
 
                         var bufferInfo2 = _bufferMap[userName][SendTypes.Audio];
-                        if (bufferInfo2.Item2 + receivedInfo.Buffer.Length > bufferInfo2.Item1.Length) break; //unreliable packet loss
+                        int offset2 = receivedInfo.Step * MAXIMUM_BUFFER_SIZE;
 
-                        Buffer.BlockCopy(receivedInfo.Buffer, 0, bufferInfo2.Item1, bufferInfo2.Item2, receivedInfo.Buffer.Length);
-                        _bufferMap[userName][SendTypes.Audio] = (bufferInfo2.Item1, bufferInfo2.Item2 + receivedInfo.Buffer.Length);
+                        Buffer.BlockCopy(receivedInfo.Buffer, 0, bufferInfo2, offset2, receivedInfo.Buffer.Length);
 
                         if (receivedInfo.Step == receivedInfo.MaxStep)
                         {
-                            byte bufferChecksum = Checksum.ComputeAddition(bufferInfo2.Item1);
+                            byte bufferChecksum = Checksum.ComputeAddition(bufferInfo2);
 
                             if (bufferChecksum != checksum)
                             {
@@ -459,7 +458,8 @@ namespace BetterLiveScreen.Clients
                             }
 
                             Rescreen.VideoStreams[userName].ChangeFormat(new WaveFormat(audioSampleRate, audioBitsPerSample, audioChannel));
-                            AudioBufferReceived?.Invoke(null, (bufferInfo2.Item1, userName));
+                            AudioBufferReceived?.Invoke(null, (bufferInfo2, userName));
+                            _bufferMap[userName][SendTypes.Audio] = null;
                         }
 
                         break;
@@ -521,7 +521,7 @@ namespace BetterLiveScreen.Clients
         public void SendBuffer(ReceiveInfo info, NetPeer peer)
         {
             byte[] buffer = MessagePackSerializer.Serialize(info);
-            peer?.Send(buffer, DeliveryMethod.Sequenced);
+            peer?.Send(buffer, DeliveryMethod.ReliableUnordered);
         }
 
         public void SendBufferToHost(ReceiveInfo info)
@@ -532,13 +532,13 @@ namespace BetterLiveScreen.Clients
         public void SendBufferToAll(ReceiveInfo info)
         {
             byte[] buffer = MessagePackSerializer.Serialize(info);
-            Client.SendToAll(buffer, DeliveryMethod.Sequenced);
+            Client.SendToAll(buffer, DeliveryMethod.ReliableUnordered);
         }
 
         public void SendBufferToAllExcept(ReceiveInfo info, NetPeer exceptPeer)
         {
             byte[] buffer = MessagePackSerializer.Serialize(info);
-            Client.SendToAll(buffer, DeliveryMethod.Sequenced, exceptPeer);
+            Client.SendToAll(buffer, DeliveryMethod.ReliableUnordered, exceptPeer);
         }
 
         /// <summary>
@@ -638,24 +638,33 @@ namespace BetterLiveScreen.Clients
 
         public static IEnumerable<ReceiveInfo> DivideInfo(SendTypes sendType, byte[] buffer)
         {
-            int read = 0;
             int step = 0;
             int maxStep = (int)Math.Ceiling((double)buffer.Length / MAXIMUM_BUFFER_SIZE) - 1;
 
             var infos = new List<ReceiveInfo>();
 
-            while (read < buffer.Length)
+            while (step <= maxStep)
             {
-                int bytesRead = read + MAXIMUM_BUFFER_SIZE < buffer.Length ? MAXIMUM_BUFFER_SIZE : buffer.Length - read;
+                int bytesRead = GetBufferSize(buffer.Length, step, maxStep);
+                int offset = step * MAXIMUM_BUFFER_SIZE;
+
                 byte[] buffer2 = new byte[bytesRead];
 
-                Buffer.BlockCopy(buffer, read, buffer2, 0, bytesRead);
+                Buffer.BlockCopy(buffer, offset, buffer2, 0, bytesRead);
                 infos.Add(new ReceiveInfo(sendType, step++, maxStep, buffer2, BufferTypes.ByteArray));
-
-                read += bytesRead;
             }
 
             return infos;
+        }
+
+        public static int GetBufferSize(int length, int step, int maxStep)
+        {
+            return (step != maxStep) ? MAXIMUM_BUFFER_SIZE : length - (maxStep * MAXIMUM_BUFFER_SIZE);
+        }
+
+        public static int GetBufferSize(int length, ReceiveInfo info)
+        {
+            return GetBufferSize(length, info.Step, info.MaxStep);
         }
     }
 }
