@@ -369,7 +369,7 @@ namespace BetterLiveScreen.Clients
                         {
                             if (bufferMap2.TryGetValue(SendTypes.Video, out var prevBufferInfo))
                             {
-                                if (prevBufferInfo.Item1.Length != bufferLength) //prev info detected, need to refresh
+                                if (prevBufferInfo.Item1.Length != bufferLength || prevBufferInfo.Item2 == prevBufferInfo.Item1.Length) //prev info detected, need to refresh
                                 {
                                     byte[] videoBuffer = new byte[bufferLength];
                                     bufferMap2[SendTypes.Video] = (videoBuffer, 0);
@@ -423,7 +423,7 @@ namespace BetterLiveScreen.Clients
                         {
                             if (bufferMap3.TryGetValue(SendTypes.Audio, out var prevBufferInfo))
                             {
-                                if (prevBufferInfo.Item1.Length != bufferLength) //prev info detected, need to refresh
+                                if (prevBufferInfo.Item1.Length != bufferLength || prevBufferInfo.Item2 == prevBufferInfo.Item1.Length) //prev info detected, need to refresh
                                 {
                                     byte[] videoBuffer = new byte[bufferLength];
                                     bufferMap3[SendTypes.Audio] = (videoBuffer, 0);

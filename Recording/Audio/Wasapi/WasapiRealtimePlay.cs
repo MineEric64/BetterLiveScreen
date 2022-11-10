@@ -65,7 +65,11 @@ namespace BetterLiveScreen.Recording.Audio.Wasapi
         {
             if (BufferMap.ContainsKey(userName)) BufferMap.Remove(userName);
 
-            var buffered = new BufferedWaveProvider(format);
+            var buffered = new BufferedWaveProvider(format)
+            {
+                BufferDuration = TimeSpan.FromSeconds(1),
+                DiscardOnBufferOverflow = true
+            };
 
             BufferMap.Add(userName, buffered);
             _mixer.AddMixerInput(buffered);

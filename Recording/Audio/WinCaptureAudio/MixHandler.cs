@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -16,7 +17,7 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
         public AudioCaptureHelper Helper { get; set; }
         public Process CurrentProcess { get; set; }
 
-        public Queue<byte[]> Buffer { get; set; }
+        public ConcurrentQueue<byte[]> Buffer { get; set; }
         public BufferedWaveProvider BufferedWave { get; set; }
 
         public MixHandler(AudioCaptureHelper helper, Process currentProcess)
@@ -24,7 +25,7 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
             Helper = helper;
             CurrentProcess = currentProcess;
 
-            Buffer = new Queue<byte[]>();
+            Buffer = new ConcurrentQueue<byte[]>();
             BufferedWave = new BufferedWaveProvider(WasapiCapture.DeviceWaveFormat)
             {
                 BufferDuration = TimeSpan.FromSeconds(1),

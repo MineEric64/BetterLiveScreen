@@ -121,7 +121,7 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
 
             if (IsRunning) handler.Helper.Stop();
             handler.Helper.Dispose();
-            handler.Buffer.Clear();
+            while (!handler.Buffer.IsEmpty) handler.Buffer.TryDequeue(out _);
             handler.BufferedWave.ClearBuffer();
 
             _sessionMap.Remove(processName);
@@ -155,9 +155,8 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
 
                 foreach (var session in _sessionMap.Values)
                 {
-                    if (session.Buffer.Count == 0) continue;
+                    if (!session.Buffer.TryDequeue(out byte[] buffer)) continue;
 
-                    byte[] buffer = session.Buffer.Dequeue();
                     VolumeSampleProvider volumed;
 
                     session.BufferedWave.ClearBuffer();
