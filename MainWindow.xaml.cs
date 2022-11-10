@@ -366,7 +366,7 @@ namespace BetterLiveScreen
             {
                 while (Rescreen.MyVideoStream.ScreenQueue.Count > 0 || Rescreen.MyVideoStream.AudioQueue.Count > 0)
                 {
-                    if (IsEnabledVideo && Rescreen.MyVideoStream.ScreenQueue.TryDequeue(out byte[] buffer)) //compressed
+                    if (Rescreen.MyVideoStream.ScreenQueue.TryDequeue(out byte[] buffer) && IsEnabledVideo) //compressed
                     {
                         byte[] preview = buffer.Decompress();
                         if ((buffer?.Length ?? 0) == 0) continue;
@@ -431,7 +431,7 @@ namespace BetterLiveScreen
                         }
 
                     }
-                    if (IsEnabledAudio && Rescreen.MyVideoStream.AudioQueue.TryDequeue(out byte[] buffer2)) //compressed
+                    if (Rescreen.MyVideoStream.AudioQueue.TryDequeue(out byte[] buffer2) && IsEnabledAudio) //compressed
                     {
                         //TODO: Send Audio Buffer
                         var infos = ClientOne.DivideInfo(SendTypes.Audio, buffer2);
