@@ -182,8 +182,9 @@ namespace BetterLiveScreen
             Client.VideoBufferReceived += (s, e) =>
             {
                 if (!Rescreen.VideoStreams.TryGetValue(e.Item2, out var _)) Rescreen.VideoStreams.Add(e.Item2, new VideoLike(BitmapInfo.Empty));
-                Rescreen.VideoStreams[e.Item2].ScreenQueue.Enqueue(e.Item1);
-                Debug.WriteLine($"[{DateTime.Now}] {e.Item2}'s Screen Received! ({e.Item1.Length})");
+                //Rescreen.VideoStreams[e.Item2].ScreenQueue.Enqueue(e.Item1);
+                Debug.WriteLine($"Received, Checksum : {Checksum.ComputeAddition(e.Item1)}, {Checksum.ComputeMD5(e.Item1)}");
+                //Debug.WriteLine($"[{DateTime.Now}] {e.Item2}'s Screen Received! ({e.Item1.Length})");
             };
             #endregion
             #region Audio
@@ -191,7 +192,7 @@ namespace BetterLiveScreen
             {
                 if (!Rescreen.VideoStreams.TryGetValue(e.Item2, out var _)) Rescreen.VideoStreams.Add(e.Item2, new VideoLike(BitmapInfo.Empty));
                 Rescreen.VideoStreams[e.Item2].AudioQueue.Enqueue(e.Item1);
-                Debug.WriteLine($"[{DateTime.Now}] {e.Item2}'s Audio Received! ({e.Item1.Length})");
+                //Debug.WriteLine($"[{DateTime.Now}] {e.Item2}'s Audio Received! ({e.Item1.Length})");
             };
             #endregion
             #endregion
@@ -317,6 +318,9 @@ namespace BetterLiveScreen
                         if ((buffer?.Length ?? 0) == 0) continue;
 
                         //TODO: Send Screen Buffer
+                        Debug.WriteLine($"Sent, Checksum : {Checksum.ComputeAddition(buffer)}, {Checksum.ComputeMD5(buffer)}");
+                        continue;
+
                         var infos = ClientOne.DivideInfo(SendTypes.Video, buffer);
                         var json = new JObject()
                         {

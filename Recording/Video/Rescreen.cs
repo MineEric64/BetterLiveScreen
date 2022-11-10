@@ -13,6 +13,8 @@ using System.Windows.Media.Imaging;
 
 using OpenCvSharp;
 
+using TurboJpegWrapper;
+
 using BetterLiveScreen.Extensions;
 using BetterLiveScreen.Recording;
 using BetterLiveScreen.Recording.Audio;
@@ -163,15 +165,15 @@ namespace BetterLiveScreen.Recording.Video
             IsRecording = false;
         }
 
-        private static void ScreenRefreshed(object sender, byte[] e)
+        private static void ScreenRefreshed(object sender, byte[] buffer)
         {
-            byte[] compressed = e.Compress(); //byte[] -> compressed byte[]
+            byte[] compressed = buffer.Compress(); //byte[] -> compressed byte[]
             MyVideoStream.ScreenQueue.Enqueue(compressed);
         }
 
-        private static void AudioRefreshed(object sender, byte[] e)
+        private static void AudioRefreshed(object sender, byte[] buffer)
         {
-            byte[] compressed = e.Compress(); //byte[] -> compressed byte[]
+            byte[] compressed = buffer.Compress(); //byte[] -> compressed byte[]
             MyVideoStream.AudioQueue.Enqueue(compressed);
         }
 
@@ -197,7 +199,7 @@ namespace BetterLiveScreen.Recording.Video
         public static double GetAverageMbps(Queue<byte[]> screenQueue, double fps)
         {
             var lengthList = new List<int>();
-            var screenList = new List<byte[]>(screenQueue);
+            var screenList = screenQueue.ToList();
             int length = 0;
             int position = 0;
 

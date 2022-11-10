@@ -74,6 +74,7 @@
     <Compile Include="BufferTypes.cs" />
     <Compile Include="ReceiveInfo.cs" />
     <Compile Include="ResponseCodes.cs" />
+    <Compile Include="Security\Checksum.cs" />
     <Compile Include="Security\SHA512.cs" />
     <Compile Include="SendType.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
