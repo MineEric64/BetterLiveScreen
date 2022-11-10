@@ -286,6 +286,7 @@ namespace BetterLiveScreen.Clients
             else //For User
             {
                 string userName = string.Empty;
+                byte checksum = 0;
 
                 switch (receivedInfo.SendType)
                 {
@@ -349,10 +350,12 @@ namespace BetterLiveScreen.Clients
                     #endregion
                     #region Video
                     case SendTypes.Video:
+                        json = JObject.Parse(Decode(receivedInfo.ExtraBuffer));
+                        userName = json["user"]?.ToString() ?? string.Empty;
+                        checksum = json["checksum"]?.ToObject<byte>() ?? 0;
+
                         if (receivedInfo.Step == 0)
                         {
-                            json = JObject.Parse(Decode(receivedInfo.ExtraBuffer));
-                            userName = json["user"]?.ToString() ?? string.Empty;
                             int bufferLength = json["buffer_length"]?.ToObject<int>() ?? 0;
                             byte[] videoBuffer = new byte[bufferLength];
 
@@ -372,11 +375,7 @@ namespace BetterLiveScreen.Clients
                                 _bufferMap.Add(userName, new Dictionary<SendTypes, (byte[], int)>());
                                 _bufferMap[userName].Add(SendTypes.Video, (videoBuffer, 0));
                             }
-
-                            Debug.WriteLine(receivedInfo.MaxStep);
                         }
-
-                        if (receivedInfo.Step > 0) userName = Decode(receivedInfo.ExtraBuffer);
                         var bufferInfo = _bufferMap[userName][SendTypes.Video];
 
                         Buffer.BlockCopy(receivedInfo.Buffer, 0, bufferInfo.Item1, bufferInfo.Item2, receivedInfo.Buffer.Length);
@@ -385,16 +384,21 @@ namespace BetterLiveScreen.Clients
                         if (receivedInfo.Step == receivedInfo.MaxStep)
                         {
                             VideoBufferReceived?.Invoke(null, (bufferInfo.Item1, userName));
+
+                            byte bufferChecksum = Checksum.ComputeAddition(bufferInfo.Item1);
+                            Debug.WriteLine($"{bufferChecksum == checksum} : {checksum} == {bufferChecksum}");
                         }
 
                         break;
                     #endregion
                     #region Audio
                     case SendTypes.Audio:
+                        json = JObject.Parse(Decode(receivedInfo.ExtraBuffer));
+                        userName = json["user"]?.ToString() ?? string.Empty;
+                        checksum = json["checksum"]?.ToObject<byte>() ?? 0;
+
                         if (receivedInfo.Step == 0)
                         {
-                            json = JObject.Parse(Decode(receivedInfo.ExtraBuffer));
-                            userName = json["user"]?.ToString() ?? string.Empty;
                             int bufferLength = json["buffer_length"]?.ToObject<int>() ?? 0;
                             byte[] videoBuffer = new byte[bufferLength];
 

@@ -183,8 +183,7 @@ namespace BetterLiveScreen
             {
                 if (!Rescreen.VideoStreams.TryGetValue(e.Item2, out var _)) Rescreen.VideoStreams.Add(e.Item2, new VideoLike(BitmapInfo.Empty));
                 //Rescreen.VideoStreams[e.Item2].ScreenQueue.Enqueue(e.Item1);
-                Debug.WriteLine($"Received, Checksum : {Checksum.ComputeAddition(e.Item1)}, {Checksum.ComputeMD5(e.Item1)}");
-                //Debug.WriteLine($"[{DateTime.Now}] {e.Item2}'s Screen Received! ({e.Item1.Length})");
+                Debug.WriteLine($"[{DateTime.Now}] {e.Item2}'s Screen Received! ({e.Item1.Length})");
             };
             #endregion
             #region Audio
@@ -318,24 +317,27 @@ namespace BetterLiveScreen
                         if ((buffer?.Length ?? 0) == 0) continue;
 
                         //TODO: Send Screen Buffer
-                        Debug.WriteLine($"Sent, Checksum : {Checksum.ComputeAddition(buffer)}, {Checksum.ComputeMD5(buffer)}");
-                        continue;
 
                         var infos = ClientOne.DivideInfo(SendTypes.Video, buffer);
                         var json = new JObject()
                         {
                             { "buffer_length", buffer.Length },
-                            { "user", User.ToString() }
+                            { "user", User.ToString() },
+                            { "checksum", Checksum.ComputeAddition(buffer) }
                         };
                         infos.First().ExtraBuffer = ClientOne.Encode(json.ToString());
+                        json.Remove("buffer_length");
 
                         foreach (var info in infos)
                         {
-                            if (info.ExtraBuffer.Length == 0) info.ExtraBuffer = ClientOne.Encode(User.ToString());
+                            if (info.ExtraBuffer.Length == 0) info.ExtraBuffer = ClientOne.Encode(json.ToString());
 
                             if (!RoomManager.IsHost) Client.SendBufferToHost(info);
                             else Client.SendBufferToAll(info); //test (need to add watch feature)
                         }
+
+                        Debug.WriteLine($"Sent, Checksum : {Checksum.ComputeAddition(buffer)}");
+                        continue;
 
                         //Live Preview
                         byte[] previewBuffer = buffer.Decompress();
@@ -371,13 +373,15 @@ namespace BetterLiveScreen
                         var json = new JObject()
                         {
                             { "buffer_length", buffer.Length },
-                            { "user", User.ToString() }
+                            { "user", User.ToString() },
+                            { "checksum", Checksum.ComputeAddition(buffer) }
                         };
                         infos.First().ExtraBuffer = ClientOne.Encode(json.ToString());
+                        json.Remove("buffer_length");
 
                         foreach (var info in infos)
                         {
-                            if (info.ExtraBuffer.Length == 0) info.ExtraBuffer = ClientOne.Encode(User.ToString());
+                            if (info.ExtraBuffer.Length == 0) info.ExtraBuffer = ClientOne.Encode(json.ToString());
 
                             if (!RoomManager.IsHost) Client.SendBufferToHost(info);
                             else Client.SendBufferToAll(info); //test (need to add watch feature)
