@@ -45,6 +45,7 @@ namespace BetterLiveScreen.Recording.Video
         public static Dictionary<string, BitrateInfo> BitrateInfos { get; } = new Dictionary<string, BitrateInfo>();
 
         public static RescreenSettings Settings { get; private set; } = RescreenSettings.Default;
+        public static CaptureSupports Supports { get; private set; } = CaptureSupports.Default;
 
         public static Size ScreenActualSize => Settings.IsHalf ? Settings.SelectedMonitor.ScreenSize.DivideBy(2) : Settings.SelectedMonitor.ScreenSize;
         public static int DelayPerFrame => 1000 / Settings.Fps;
@@ -80,16 +81,38 @@ namespace BetterLiveScreen.Recording.Video
             switch (Settings.VideoType)
             {
                 case CaptureVideoType.DD:
+                    if (!Supports.DesktopDuplication)
+                    {
+                        if (!Supports.WGC) //Nodap
+                        {
+                            Debug.WriteLine("[Warning] Desktop Duplication & WGC can't be started.");
+                            MessageBox.Show("Go Live can't be started because any capture method doesn't supports on this computer.",
+                                "Better Live Screen : Error", MessageBoxButton.OK, MessageBoxImage.Error);
+
+                            return;
+                        }
+
+                        Settings.VideoType = CaptureVideoType.WGC;
+                        Supports.DesktopDuplication = false;
+
+                        Debug.WriteLine("[Warning] Desktop Duplication Not Supported. Set Capture Video Type to WGC.");
+                        Start();
+
+                        return;
+                    }
+
                     _raw.ScreenRefreshed += ScreenRefreshed;
                     _raw.Start();
 
                     break;
 
                 case CaptureVideoType.WGC:
-                    if (!WGCHelper.IsInitialized && !WGCHelper.Initialize())
+                    if ((!WGCHelper.IsInitialized && !WGCHelper.Initialize()) || !Supports.WGC)
                     {
-                        Debug.WriteLine("[Warning] WGC Not Supported. Set Capture Video Type to Desktop Duplication.");
                         Settings.VideoType = CaptureVideoType.DD; //WGC Not Supported
+                        Supports.WGC = false;
+
+                        Debug.WriteLine("[Warning] WGC Not Supported. Set Capture Video Type to Desktop Duplication.");
                         Start();
 
                         return;

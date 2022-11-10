@@ -112,17 +112,17 @@ namespace BetterLiveScreen
             xPlay.Content = "II";
         }
 
-        public static async Task<bool> RecordTestAsync(CaptureVideoType videoType, CaptureAudioType audioType, int milliseconds, MonitorInfo monitor, int fps, bool isHalf, bool nvencEncoding, int bitRate = -1)
+        public static async Task<bool> RecordTestAsync(CaptureVideoType videoType, CaptureAudioType audioType, int milliseconds, MonitorInfo monitor, int fps, bool isHalf, EncodingType encoding, int bitRate = -1)
         {
             Rescreen.Settings.VideoType = videoType;
             Rescreen.Settings.AudioType = audioType;
             Rescreen.Settings.SelectedMonitor = monitor;
             Rescreen.Settings.Fps = fps;
             Rescreen.Settings.IsHalf = isHalf;
-            Rescreen.Settings.NvencEncoding = nvencEncoding;
+            Rescreen.Settings.Encoding = encoding;
 
             if (bitRate > 0) Rescreen.Settings.Bitrate = bitRate;
-            else if (nvencEncoding) Rescreen.Settings.Bitrate = BitrateInfo.GetBitrateFromMbps(Rescreen.GetBitrateInfoBySize(Rescreen.ScreenActualSize.Height, Rescreen.FpsIfUnfixed60).MbpsAverage);
+            Rescreen.Settings.Bitrate = BitrateInfo.GetBitrateFromMbps(Rescreen.GetBitrateInfoBySize(Rescreen.ScreenActualSize.Height, Rescreen.FpsIfUnfixed60).MbpsAverage);
 
             Rescreen.Start();
 
@@ -146,23 +146,30 @@ namespace BetterLiveScreen
                 Decoder decoder = null;
 
                 //write video file
-                if (Rescreen.Settings.NvencEncoding)
+                switch (Rescreen.Settings.Encoding)
                 {
-                    //Format : RGBA
-                    decoder = new Decoder(Rescreen.ScreenActualSize.Width, Rescreen.ScreenActualSize.Height, Codec.H264, Format.RGBA32);
-                    decoder.onDecoded += (s, e) =>
-                    {
-                        Mat mat = new Mat(decoder.height, decoder.width, MatType.CV_8UC4);
-                        Kernel32.CopyMemory(mat.Data, e.Item1, (uint)e.Item2);
+                    case EncodingType.Nvenc:
+                        //Format : RGBA
+                        decoder = new Decoder(Rescreen.ScreenActualSize.Width, Rescreen.ScreenActualSize.Height, Codec.H264, Format.RGBA32);
+                        decoder.onDecoded += (s, e) =>
+                        {
+                            Mat mat = new Mat(decoder.height, decoder.width, MatType.CV_8UC4);
+                            Kernel32.CopyMemory(mat.Data, e.Item1, (uint)e.Item2);
 
-                        Mat mat2 = new Mat();
+                            Mat mat2 = new Mat();
 
-                        Cv2.CvtColor(mat, mat2, ColorConversionCodes.RGBA2BGR);
-                        writer.Write(mat2);
+                            Cv2.CvtColor(mat, mat2, ColorConversionCodes.RGBA2BGR);
+                            writer.Write(mat2);
 
-                        mat.Dispose();
-                        mat2.Dispose();
-                    };
+                            mat.Dispose();
+                            mat2.Dispose();
+                        };
+
+                        break;
+
+                    case EncodingType.OpenH264:
+
+                        break;
                 }
 
                 while (Rescreen.MyVideoStream.ScreenQueue.Count > 0)
@@ -170,22 +177,30 @@ namespace BetterLiveScreen
                     byte[] buffer = Rescreen.MyVideoStream.ScreenQueue.Dequeue();
                     byte[] raw = buffer.Decompress();
 
-                    if (Rescreen.Settings.NvencEncoding)
+                    switch (Rescreen.Settings.Encoding)
                     {
-                        var handle = GCHandle.Alloc(raw, GCHandleType.Pinned);
-                        var ptr = handle.AddrOfPinnedObject();
+                        case EncodingType.Nvenc:
+                            var handle = GCHandle.Alloc(raw, GCHandleType.Pinned);
+                            var ptr = handle.AddrOfPinnedObject();
 
-                        decoder.Decode(ptr, raw.Length);
-                        handle.Free();
-                    }
-                    else
-                    {
-                        var src = new Mat(Rescreen.ScreenActualSize.Height, Rescreen.ScreenActualSize.Width, MatType.CV_8UC4);
-                        int length = Rescreen.ScreenActualSize.Width * Rescreen.ScreenActualSize.Height * 4; // or src.Height * src.Step;
-                        Marshal.Copy(raw, 0, src.Data, length);
+                            decoder.Decode(ptr, raw.Length);
+                            handle.Free();
 
-                        writer.Write(src);
-                        src.Dispose();
+                            break;
+
+                        case EncodingType.OpenH264:
+
+                            break;
+
+                        case EncodingType.CompressOnly:
+                            var src = new Mat(Rescreen.ScreenActualSize.Height, Rescreen.ScreenActualSize.Width, MatType.CV_8UC4);
+                            int length = Rescreen.ScreenActualSize.Width * Rescreen.ScreenActualSize.Height * 4; // or src.Height * src.Step;
+                            Marshal.Copy(raw, 0, src.Data, length);
+
+                            writer.Write(src);
+                            src.Dispose();
+
+                            break;
                     }
                 }
 

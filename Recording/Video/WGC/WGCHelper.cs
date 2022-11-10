@@ -219,7 +219,7 @@ namespace BetterLiveScreen.Recording.Video.WGC
             _smallerTexture = new Texture2D(_sharpDevice, smallerTextureDesc);
             _smallerTextureView = new ShaderResourceView(_sharpDevice, _smallerTexture);
 
-            if (Rescreen.Settings.NvencEncoding)
+            if (Rescreen.Settings.Encoding == EncodingType.Nvenc)
             {
                 _encoder = new Encoder();
 
@@ -244,7 +244,10 @@ namespace BetterLiveScreen.Recording.Video.WGC
 
                 if (!_encoder.isValid)
                 {
-                    Rescreen.Settings.NvencEncoding = false;
+                    Rescreen.Settings.Encoding = EncodingType.OpenH264;
+                    Rescreen.Supports.Nvenc = false;
+
+                    Debug.WriteLine("[Warning] Nvenc Encoding Not Supported. Set Encoding to OpenH264.");
                 }
             }
 
@@ -269,7 +272,7 @@ namespace BetterLiveScreen.Recording.Video.WGC
                 _sharpDevice.ImmediateContext.CopySubresourceRegion(_smallerTexture, 1, null, _frameTexture, 0);
             }
 
-            if (Rescreen.Settings.NvencEncoding)
+            if (Rescreen.Settings.Encoding == EncodingType.Nvenc)
             {
                 bool idr = Rescreen.Settings.Fps > 0 ? _frameCount++ % Rescreen.Settings.Fps == 0 : false;
 

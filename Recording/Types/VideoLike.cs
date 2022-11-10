@@ -27,7 +27,7 @@ namespace BetterLiveScreen.Recording.Types
 
         public static BitmapInfo FromRescreenSettings()
         {
-            return new BitmapInfo(Rescreen.ScreenActualSize.Width, Rescreen.ScreenActualSize.Height, Rescreen.Settings.NvencEncoding);
+            return new BitmapInfo(Rescreen.ScreenActualSize.Width, Rescreen.ScreenActualSize.Height, Rescreen.Settings.Encoding.ToString());
         }
     }
 }

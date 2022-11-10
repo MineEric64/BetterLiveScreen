@@ -32,6 +32,10 @@ using Newtonsoft.Json.Linq;
 
 using MessagePack;
 
+using TurboJpegWrapper;
+
+using OpenH264Lib;
+
 using BetterLiveScreen.Clients;
 using BetterLiveScreen.Extensions;
 using BetterLiveScreen.Interfaces;
@@ -49,7 +53,9 @@ using Path = System.IO.Path;
 using CvSize = OpenCvSharp.Size;
 using BitmapConverter = BetterLiveScreen.Extensions.BitmapConverter;
 using Window = System.Windows.Window;
-using Decoder = BetterLiveScreen.Recording.Video.NvPipe.Decoder;
+using NvDecoder = BetterLiveScreen.Recording.Video.NvPipe.Decoder;
+using H264Encoder = OpenH264Lib.Encoder;
+using H264Decoder = OpenH264Lib.Decoder;
 
 namespace BetterLiveScreen
 {
@@ -251,7 +257,7 @@ namespace BetterLiveScreen
                 SelectedMonitor = RescreenSettings.PrimaryMonitor,
                 Fps = 30,
                 IsHalf = true,
-                NvencEncoding = false
+                Encoding = EncodingType.Nvenc
             });
             Rescreen.Start();
             Task.Run(RescreenRefreshed);
@@ -276,37 +282,76 @@ namespace BetterLiveScreen
 
         private void RescreenRefreshed()
         {
-            Decoder decoder = null;
+            void SendScreenBuffer(byte[] buffer, SendTypes sendType)
+            {
+                var infos = ClientOne.DivideInfo(sendType, buffer);
+                var json = new JObject()
+                        {
+                            { "buffer_length", buffer.Length },
+                            { "user", User.ToString() },
+                            { "checksum", Checksum.ComputeAddition(buffer) }
+                        };
+                infos.First().ExtraBuffer = ClientOne.Encode(json.ToString());
+                json.Remove("buffer_length");
+
+                foreach (var info in infos)
+                {
+                    if (info.ExtraBuffer.Length == 0) info.ExtraBuffer = ClientOne.Encode(json.ToString());
+
+                    if (!RoomManager.IsHost) Client.SendBufferToHost(info);
+                    else Client.SendBufferToAll(info); //test (need to add watch feature)
+                }
+            }
+
+            NvDecoder decoder = null;
+            H264Encoder encoder = null;
+
             const int PREVIEW_DPF = 33; //preview referesh delay per frame
             var sw = new Stopwatch();
 
-            //initialize decoder
-            if (Rescreen.Settings.NvencEncoding)
+            //initialize encoder & decoder
+            switch (Rescreen.Settings.Encoding)
             {
-                //Format : RGBA
-                decoder = new Decoder(Rescreen.ScreenActualSize.Width, Rescreen.ScreenActualSize.Height, Codec.H264, Format.RGBA32);
-                decoder.onDecoded += (s, e) =>
-                {
-                    if (sw.ElapsedMilliseconds > PREVIEW_DPF)
+                case EncodingType.Nvenc:
+                    //Format : RGBA
+                    decoder = new NvDecoder(Rescreen.ScreenActualSize.Width, Rescreen.ScreenActualSize.Height, Codec.H264, Format.RGBA32);
+                    decoder.onDecoded += (s, e) =>
                     {
-                        Mat mat = new Mat(decoder.height, decoder.width, MatType.CV_8UC4);
-                        Kernel32.CopyMemory(mat.Data, e.Item1, (uint)e.Item2);
+                        if (sw.ElapsedMilliseconds > PREVIEW_DPF)
+                        {
+                            Mat mat = new Mat(decoder.height, decoder.width, MatType.CV_8UC4);
+                            Kernel32.CopyMemory(mat.Data, e.Item1, (uint)e.Item2);
 
-                        Mat mat2 = new Mat();
-                        Mat mat3 = new Mat();
+                            Mat mat2 = new Mat();
+                            Mat mat3 = new Mat();
 
-                        Cv2.CvtColor(mat, mat2, ColorConversionCodes.RGBA2BGR);
-                        Cv2.Resize(mat2, mat3, new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest);
+                            Cv2.CvtColor(mat, mat2, ColorConversionCodes.RGBA2BGR);
+                            Cv2.Resize(mat2, mat3, new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest);
 
-                        ScreenPreview(mat3);
+                            ScreenPreview(mat3);
 
-                        mat.Dispose();
-                        mat2.Dispose();
+                            mat.Dispose();
+                            mat2.Dispose();
 
-                        sw.Restart();
-                    }
-                };
-             }
+                            sw.Restart();
+                        }
+                    };
+
+                    break;
+
+                case EncodingType.OpenH264:
+                    const float KEYFRAME_INTERVAL = 0.2f;
+
+                    encoder = new H264Encoder("openh264-2.3.1-win64.dll");
+                    encoder.Setup(Rescreen.ScreenActualSize.Width, Rescreen.ScreenActualSize.Height, Rescreen.Settings.Bitrate, Rescreen.FpsIfUnfixed60, KEYFRAME_INTERVAL,
+                        (data, length, frameType) =>
+                        {
+                            byte[] buffer = data.Compress();
+                            SendScreenBuffer(buffer, SendTypes.Video);
+                        });
+
+                    break;
+            }
 
             sw.Start();
 
@@ -317,50 +362,51 @@ namespace BetterLiveScreen
                     if (Rescreen.MyVideoStream.ScreenQueue.Count > 0)
                     {
                         byte[] buffer = Rescreen.MyVideoStream.ScreenQueue.Dequeue(); //compressed
+                        byte[] preview = buffer.Decompress();
                         if ((buffer?.Length ?? 0) == 0) continue;
 
                         //TODO: Send Screen Buffer
-
-                        var infos = ClientOne.DivideInfo(SendTypes.Video, buffer);
-                        var json = new JObject()
+                        switch (Rescreen.Settings.Encoding)
                         {
-                            { "buffer_length", buffer.Length },
-                            { "user", User.ToString() },
-                            { "checksum", Checksum.ComputeAddition(buffer) }
-                        };
-                        infos.First().ExtraBuffer = ClientOne.Encode(json.ToString());
-                        json.Remove("buffer_length");
+                            case EncodingType.Nvenc:
+                            case EncodingType.CompressOnly:
+                                SendScreenBuffer(buffer, SendTypes.Video);
+                                break;
 
-                        foreach (var info in infos)
-                        {
-                            if (info.ExtraBuffer.Length == 0) info.ExtraBuffer = ClientOne.Encode(json.ToString());
-
-                            if (!RoomManager.IsHost) Client.SendBufferToHost(info);
-                            else Client.SendBufferToAll(info); //test (need to add watch feature)
+                            case EncodingType.OpenH264:
+                                encoder.Encode(preview);
+                                break;
                         }
 
                         //Live Preview
-                        byte[] previewBuffer = buffer.Decompress();
-
-                        if (Rescreen.Settings.NvencEncoding)
+                        switch (Rescreen.Settings.Encoding)
                         {
-                            var handle = GCHandle.Alloc(previewBuffer, GCHandleType.Pinned);
-                            var ptr = handle.AddrOfPinnedObject();
+                            case EncodingType.Nvenc:
+                                var handle = GCHandle.Alloc(preview, GCHandleType.Pinned);
+                                var ptr = handle.AddrOfPinnedObject();
 
-                            decoder.Decode(ptr, previewBuffer.Length);
-                            handle.Free();
-                        }
-                        else
-                        {
-                            var mat = new Mat(Rescreen.ScreenActualSize.Height, Rescreen.ScreenActualSize.Width, MatType.CV_8UC4);
-                            int length = Rescreen.ScreenActualSize.Width * Rescreen.ScreenActualSize.Height * 4; // or src.Height * src.Step;
+                                decoder.Decode(ptr, preview.Length);
+                                handle.Free();
 
-                            Marshal.Copy(previewBuffer, 0, mat.Data, length);
-                            var mat2 = mat.Resize(new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest);
+                                break;
 
-                            ScreenPreview(mat2);
+                            case EncodingType.OpenH264:
+                            case EncodingType.CompressOnly:
+                                if (sw.ElapsedMilliseconds > PREVIEW_DPF)
+                                {
+                                    var mat = new Mat(Rescreen.ScreenActualSize.Height, Rescreen.ScreenActualSize.Width, MatType.CV_8UC4);
+                                    int length = Rescreen.ScreenActualSize.Width * Rescreen.ScreenActualSize.Height * 4; // or src.Height * src.Step;
 
-                            mat.Dispose();
+                                    Marshal.Copy(preview, 0, mat.Data, length);
+                                    var mat2 = mat.Resize(new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest);
+
+                                    ScreenPreview(mat2);
+                                    mat.Dispose();
+
+                                    sw.Restart();
+                                }
+
+                                break;
                         }
                     }
                     if (Rescreen.MyVideoStream.AudioQueue.Count > 0)
@@ -369,35 +415,22 @@ namespace BetterLiveScreen
                         if ((buffer?.Length ?? 0) == 0) continue;
 
                         //TODO: Send Audio Buffer
-                        var infos = ClientOne.DivideInfo(SendTypes.Audio, buffer);
-                        var json = new JObject()
-                        {
-                            { "buffer_length", buffer.Length },
-                            { "user", User.ToString() },
-                            { "checksum", Checksum.ComputeAddition(buffer) }
-                        };
-                        infos.First().ExtraBuffer = ClientOne.Encode(json.ToString());
-                        json.Remove("buffer_length");
-
-                        foreach (var info in infos)
-                        {
-                            if (info.ExtraBuffer.Length == 0) info.ExtraBuffer = ClientOne.Encode(json.ToString());
-
-                            if (!RoomManager.IsHost) Client.SendBufferToHost(info);
-                            else Client.SendBufferToAll(info); //test (need to add watch feature)
-                        }
+                        SendScreenBuffer(buffer, SendTypes.Audio);
                     }
                 }
 
                 Thread.Sleep(10);
             }
             sw.Stop();
+
             decoder?.Close();
+            encoder?.Dispose();
         }
 
         private void ClientBufferRefreshed()
         {
-            Dictionary<string, Decoder> decoderMap = new Dictionary<string, Decoder>();
+            H264Decoder h264Decoder = null;
+            Dictionary<string, NvDecoder> decoderMap = new Dictionary<string, NvDecoder>();
 
             while (RoomManager.IsConnected) //need to change user watching
             {
@@ -407,6 +440,7 @@ namespace BetterLiveScreen
                 if (livedUser != null)
                 {
                     var videoStream = Rescreen.VideoStreams[livedUser.ToString()];
+                    Enum.TryParse(videoStream.Info.Encoding, out EncodingType encoding);
 
                     try
                     {
@@ -414,52 +448,64 @@ namespace BetterLiveScreen
                         {
                             if (videoStream.ScreenQueue.Count > 0)
                             {
-                                Decoder decoder = null;
-
-                                if (videoStream.Info.NvencEncoding && !decoderMap.TryGetValue(livedUser.ToString(), out decoder))
-                                {
-                                    decoder = new Decoder(videoStream.Info.Width, videoStream.Info.Height, Codec.H264, Format.RGBA32);
-                                    decoder.onDecoded += (s, e) =>
-                                    {
-                                        Mat mat = new Mat(decoder.height, decoder.width, MatType.CV_8UC4);
-                                        Kernel32.CopyMemory(mat.Data, e.Item1, (uint)e.Item2);
-
-                                        Mat mat2 = new Mat();
-                                        Mat mat3 = new Mat();
-
-                                        Cv2.CvtColor(mat, mat2, ColorConversionCodes.RGBA2BGR);
-                                        Cv2.Resize(mat2, mat3, new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest);
-
-                                        ScreenPreview(mat3);
-
-                                        mat.Dispose();
-                                        mat2.Dispose();
-                                    };
-
-                                    decoderMap.Add(livedUser.ToString(), decoder);
-                                }
                                 byte[] buffer = videoStream.ScreenQueue.Dequeue(); //compressed
-                                byte[] previewBuffer = buffer.Decompress();
+                                byte[] preview = buffer.Decompress();
 
-                                if (videoStream.Info.NvencEncoding)
+                                switch (encoding)
                                 {
-                                    var handle = GCHandle.Alloc(previewBuffer, GCHandleType.Pinned);
-                                    var ptr = handle.AddrOfPinnedObject();
+                                    case EncodingType.Nvenc:
+                                        NvDecoder nvDecoder = null;
 
-                                    decoder.Decode(ptr, previewBuffer.Length);
-                                    handle.Free();
-                                }
-                                else
-                                {
-                                    var mat = new Mat(videoStream.Info.Height, videoStream.Info.Width, MatType.CV_8UC4);
-                                    int length = videoStream.Info.Width * videoStream.Info.Height * 4; // or src.Height * src.Step;
+                                        if (!decoderMap.TryGetValue(livedUser.ToString(), out nvDecoder))
+                                        {
+                                            nvDecoder = new NvDecoder(videoStream.Info.Width, videoStream.Info.Height, Codec.H264, Format.RGBA32);
+                                            nvDecoder.onDecoded += (s, e) =>
+                                            {
+                                                Mat mat1 = new Mat(nvDecoder.height, nvDecoder.width, MatType.CV_8UC4);
+                                                Kernel32.CopyMemory(mat1.Data, e.Item1, (uint)e.Item2);
 
-                                    Marshal.Copy(previewBuffer, 0, mat.Data, length);
-                                    var mat2 = mat.Resize(new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest);
+                                                Mat mat12 = new Mat();
+                                                Mat mat13 = new Mat();
 
-                                    ScreenPreview(mat2);
+                                                Cv2.CvtColor(mat1, mat12, ColorConversionCodes.RGBA2BGR);
+                                                Cv2.Resize(mat12, mat13, new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest);
 
-                                    mat.Dispose();
+                                                ScreenPreview(mat13);
+
+                                                mat1.Dispose();
+                                                mat12.Dispose();
+                                            };
+
+                                            decoderMap.Add(livedUser.ToString(), nvDecoder);
+                                        }
+
+                                        var handle = GCHandle.Alloc(preview, GCHandleType.Pinned);
+                                        var ptr = handle.AddrOfPinnedObject();
+
+                                        nvDecoder.Decode(ptr, preview.Length);
+                                        handle.Free();
+
+                                        break;
+
+                                    case EncodingType.OpenH264:
+                                        if (h264Decoder == null) h264Decoder = new H264Decoder("openh264-2.3.1-win64.dll");
+
+                                        var bitmap = h264Decoder.Decode(preview, preview.Length);
+                                        ScreenPreview(bitmap);
+
+                                        break;
+
+                                    case EncodingType.CompressOnly:
+                                        var mat2 = new Mat(videoStream.Info.Height, videoStream.Info.Width, MatType.CV_8UC4);
+                                        int length = videoStream.Info.Width * videoStream.Info.Height * 4; // or src.Height * src.Step;
+
+                                        Marshal.Copy(preview, 0, mat2.Data, length);
+                                        var mat22 = mat2.Resize(new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest);
+
+                                        ScreenPreview(mat22);
+                                        mat2.Dispose();
+
+                                        break;
                                 }
                             }
 
@@ -480,10 +526,8 @@ namespace BetterLiveScreen
                 Thread.Sleep(10);
             }
 
-            foreach (var decoder in decoderMap.Values)
-            {
-                decoder.Close();
-            }
+            foreach (var decoder in decoderMap.Values) decoder.Close();
+            h264Decoder?.Dispose();
         }
 
         private void ScreenPreview(Mat mat)
@@ -493,6 +537,16 @@ namespace BetterLiveScreen
 
                 screen_main.Source = source;
                 mat.Dispose();
+            }), DispatcherPriority.Render);
+        }
+
+        private void ScreenPreview(Bitmap bitmap)
+        {
+            Dispatcher.BeginInvoke(new Action(() => {
+                var source = bitmap.ToImage();
+
+                screen_main.Source = source;
+                bitmap.Dispose();
             }), DispatcherPriority.Render);
         }
 

@@ -15,7 +15,7 @@ namespace BetterLiveScreen.Recording.Video
         public int Fps { get; set; }
         public MonitorInfo SelectedMonitor { get; set; }
         public bool IsHalf { get; set; }
-        public bool NvencEncoding { get; set; }
+        public EncodingType Encoding { get; set; }
         public int Bitrate { get; set; }
 
         public CaptureVideoType VideoType { get; set; }
@@ -27,7 +27,7 @@ namespace BetterLiveScreen.Recording.Video
             Fps = 30,
             SelectedMonitor = PrimaryMonitor,
             IsHalf = false,
-            NvencEncoding = true,
+            Encoding = EncodingType.Nvenc,
             Bitrate = BitrateInfo.GetBitrateFromMbps(4),
             VideoType = CaptureVideoType.DD,
             AudioType = CaptureAudioType.WinCaptureAudio

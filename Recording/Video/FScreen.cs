@@ -17,6 +17,7 @@ using SharpDX.Direct3D11;
 using OpenCvSharp;
 
 using BetterLiveScreen.Extensions;
+using BetterLiveScreen.Recording.Types;
 using BetterLiveScreen.Recording.Video.NvEncoder;
 using BetterLiveScreen.Recording.Video.NvPipe;
 using BetterLiveScreen.Recording.Video.WGC;
@@ -97,7 +98,7 @@ namespace BetterLiveScreen.Recording.Video
 
             Encoder encoder = null;
 
-            if (Rescreen.Settings.NvencEncoding)
+            if (Rescreen.Settings.Encoding == EncodingType.Nvenc)
             {
                 encoder = new Encoder();
 
@@ -122,8 +123,10 @@ namespace BetterLiveScreen.Recording.Video
 
                 if (!encoder.isValid)
                 {
-                    Rescreen.Settings.NvencEncoding = false;
-                    Debug.WriteLine("[Warning] Nvenc Encoding Not Supported. Set Nvenc Encoding to false.");
+                    Rescreen.Settings.Encoding = EncodingType.OpenH264;
+                    Rescreen.Supports.Nvenc = false;
+
+                    Debug.WriteLine("[Warning] Nvenc Encoding Not Supported. Set Encoding to OpenH264.");
                 }
             }
 
@@ -138,6 +141,8 @@ namespace BetterLiveScreen.Recording.Video
                 }
                 catch (Exception ex)
                 {
+                    Rescreen.Supports.DesktopDuplication = false;
+
                     Debug.WriteLine($"[Error] Desktop Duplication Not Supported. Error Message : {ex}");
                     MessageBox.Show("The screen can't be captured when using Desktop Duplication.\nPlease use another capture method.", "Better Live Screen : Error", MessageBoxButton.OK, MessageBoxImage.Error);
 
@@ -196,7 +201,7 @@ namespace BetterLiveScreen.Recording.Video
                                 device.ImmediateContext.CopySubresourceRegion(smallerTexture, 1, null, stagingTexture, 0);
                             }
 
-                            if (Rescreen.Settings.NvencEncoding)
+                            if (Rescreen.Settings.Encoding == EncodingType.Nvenc)
                             {
                                 bool idr = Rescreen.Settings.Fps > 0 ? frameCount++ % Rescreen.Settings.Fps == 0 : false;
                                 

@@ -68,6 +68,10 @@
     <Reference Include="Composition.WindowsRuntimeHelpers_NETStd">
       <HintPath>DLLs\Composition.WindowsRuntimeHelpers_NETStd.dll</HintPath>
     </Reference>
+    <Reference Include="OpenH264Lib, Version=1.0.8349.41727, Culture=neutral, processorArchitecture=AMD64">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>DLLs\OpenH264Lib.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
@@ -143,7 +147,9 @@
     <Compile Include="Recording\Audio\WinCaptureAudio\PropVariant.cs" />
     <Compile Include="Recording\Types\BitrateInfo.cs" />
     <Compile Include="Recording\Types\CaptureAudioType.cs" />
+    <Compile Include="Recording\Types\CaptureSupports.cs" />
     <Compile Include="Recording\Types\CaptureVideoType.cs" />
+    <Compile Include="Recording\Types\EncodingType.cs" />
     <Compile Include="Recording\Video\NvEncoder\Encoder.cs" />
     <Compile Include="Recording\Video\NvEncoder\Lib.cs" />
     <Compile Include="Recording\Video\NvPipe\Decoder.cs" />
@@ -273,12 +279,12 @@
   <ItemGroup />
   <ItemGroup>
     <Content Include="DLLs\BLSI.dll" />
-    <Content Include="DLLs\Deprecated\EuNet\EuNet.Client.dll" />
-    <Content Include="DLLs\Deprecated\EuNet\EuNet.Core.dll" />
-    <Content Include="DLLs\Deprecated\EuNet\EuNet.dll" />
-    <Content Include="DLLs\Deprecated\EuNet\EuNet.Rpc.dll" />
-    <Content Include="DLLs\Deprecated\EuNet\EuNet.Server.dll" />
-    <Content Include="DLLs\Deprecated\Open.P2P.dll" />
+    <ContentWithTargetPath Include="DLLs\openh264-2.3.1-win64.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>openh264-2.3.1-win64.dll</TargetPath>
+    </ContentWithTargetPath>
+    <None Include="DLLs\openh264-2.3.1-win64.dll" />
+    <Content Include="DLLs\OpenH264Lib.dll" />
     <Resource Include="Recording\Audio\AudioRender\README.txt" />
     <Content Include="DLLs\Deprecated\AuxSense.dll" />
     <Content Include="DLLs\Composition.WindowsRuntimeHelpers_NETStd.dll" />
