@@ -372,6 +372,8 @@ namespace BetterLiveScreen.Clients
                                 _bufferMap.Add(userName, new Dictionary<SendTypes, (byte[], int)>());
                                 _bufferMap[userName].Add(SendTypes.Video, (videoBuffer, 0));
                             }
+
+                            Debug.WriteLine(receivedInfo.MaxStep);
                         }
 
                         if (receivedInfo.Step > 0) userName = Decode(receivedInfo.ExtraBuffer);

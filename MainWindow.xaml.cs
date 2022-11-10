@@ -334,7 +334,7 @@ namespace BetterLiveScreen
                         }
 
                         //Live Preview
-                        byte[] previewBuffer = buffer; // buffer.Decompress();
+                        byte[] previewBuffer = buffer.Decompress();
 
                         if (Rescreen.Settings.NvencEncoding)
                         {
@@ -431,7 +431,7 @@ namespace BetterLiveScreen
                                     decoderMap.Add(livedUser.ToString(), decoder);
                                 }
                                 byte[] buffer = videoStream.ScreenQueue.Dequeue(); //compressed
-                                byte[] previewBuffer = buffer;////udp packet loss buffer.Decompress();
+                                byte[] previewBuffer = buffer.Decompress();
 
                                 if (videoStream.Info.NvencEncoding)
                                 {

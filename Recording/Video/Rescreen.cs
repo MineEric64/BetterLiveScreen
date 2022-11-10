@@ -165,8 +165,8 @@ namespace BetterLiveScreen.Recording.Video
 
         private static void ScreenRefreshed(object sender, byte[] e)
         {
-            //byte[] compressed = e.Compress(); //byte[] -> compressed byte[]
-            MyVideoStream.ScreenQueue.Enqueue(e); //compressed);
+            byte[] compressed = e.Compress(); //byte[] -> compressed byte[]
+            MyVideoStream.ScreenQueue.Enqueue(compressed);
         }
 
         private static void AudioRefreshed(object sender, byte[] e)
