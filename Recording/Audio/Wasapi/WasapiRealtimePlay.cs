@@ -18,6 +18,8 @@ namespace BetterLiveScreen.Recording.Audio.Wasapi
         private static MixingSampleProvider _mixer;
         public static Dictionary<string, BufferedWaveProvider> BufferMap { get; private set; } = new Dictionary<string, BufferedWaveProvider>();
 
+        public static WaveFormat StandardFormat { get; } = WaveFormat.CreateIeeeFloatWaveFormat(44100, 2);
+
         public static bool IsInitialized { get; private set; } = false;
         public static bool IsPlaying { get; private set; } = false;
 
@@ -33,7 +35,7 @@ namespace BetterLiveScreen.Recording.Audio.Wasapi
                     IsPlaying = false;
                 };
                 _prevDeviceId = device.ID;
-                _mixer = new MixingSampleProvider(WasapiCapture.DeviceWaveFormat);
+                _mixer = new MixingSampleProvider(StandardFormat);
 
                 IsInitialized = true;
             }
@@ -69,7 +71,7 @@ namespace BetterLiveScreen.Recording.Audio.Wasapi
                 BufferDuration = TimeSpan.FromSeconds(1),
                 DiscardOnBufferOverflow = true
             };
-            var converted = new WaveFormatConversionProvider(WasapiCapture.DeviceWaveFormat, buffered);
+            var converted = new WaveFormatConversionProvider(StandardFormat, buffered);
 
             BufferMap.Add(userName, buffered);
             _mixer.AddMixerInput(converted);
