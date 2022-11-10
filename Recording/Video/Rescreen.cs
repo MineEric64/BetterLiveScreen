@@ -196,8 +196,13 @@ namespace BetterLiveScreen.Recording.Video
 
         private static void AudioRefreshed(object sender, byte[] buffer)
         {
-            byte[] compressed = buffer.Compress(); //byte[] -> compressed byte[]
-            MyVideoStream.AudioQueue.Enqueue(compressed);
+            bool discardIfEmpty = true;
+
+            if (!discardIfEmpty || buffer.Any(x => x != 0))
+            {
+                byte[] compressed = buffer.Compress(); //byte[] -> compressed byte[]
+                MyVideoStream.AudioQueue.Enqueue(compressed);
+            }
         }
 
         public static BitrateInfo GetBitrateInfoBySize(int height, int fps)
