@@ -441,7 +441,6 @@ namespace BetterLiveScreen
                             { "user", User.ToString() },
                             { "checksum", Checksum.ComputeAddition(buffer2) },
                             { "audio_sample_rate", WasapiCapture.DeviceWaveFormat.SampleRate },
-                            { "audio_bits_per_sample", WasapiCapture.DeviceWaveFormat.BitsPerSample },
                             { "audio_channel", WasapiCapture.DeviceWaveFormat.Channels },
                         };
 
@@ -453,7 +452,7 @@ namespace BetterLiveScreen
                             else Client.SendBufferToAll(info); //test (need to add watch feature)
                         }
                     }
-                    Thread.Sleep(10);
+                    Thread.Sleep(1);
                 }
                 Thread.Sleep(10);
             }
@@ -561,7 +560,7 @@ namespace BetterLiveScreen
                                 WasapiRealtimePlay.Play();
                             }
                         }
-                        Thread.Sleep(10);
+                        Thread.Sleep(1);
                     }
                     catch (MessagePackSerializationException)
                     {

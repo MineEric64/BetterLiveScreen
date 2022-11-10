@@ -416,7 +416,6 @@ namespace BetterLiveScreen.Clients
                         checksum = json["checksum"]?.ToObject<byte>() ?? 0;
                         bufferLength = json["buffer_length"]?.ToObject<int>() ?? 0;
                         int audioSampleRate = json["audio_sample_rate"]?.ToObject<int>() ?? 44100;
-                        int audioBitsPerSample = json["audio_bits_per_sample"]?.ToObject<int>() ?? 16;
                         int audioChannel = json["audio_channel"]?.ToObject<int>() ?? 2;
 
                         if (_bufferMap.TryGetValue(userName, out var bufferMap3))
