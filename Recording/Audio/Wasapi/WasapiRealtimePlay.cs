@@ -71,7 +71,8 @@ namespace BetterLiveScreen.Recording.Audio.Wasapi
                 BufferDuration = TimeSpan.FromSeconds(1),
                 DiscardOnBufferOverflow = true
             };
-            var converted = new WaveFormatConversionProvider(StandardFormat, buffered);
+            var converted = new WdlResamplingSampleProvider(buffered.ToSampleProvider(), 44100);
+            //var converted = new WaveFormatConversionProvider(StandardFormat, buffered);
 
             BufferMap.Add(userName, buffered);
             _mixer.AddMixerInput(converted);
