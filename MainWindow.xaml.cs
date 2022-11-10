@@ -510,7 +510,7 @@ namespace BetterLiveScreen
                                         if (bitmap == null)
                                         {
                                             Debug.WriteLine("[Warning] Decoded bitmap returned null. skipping to next frame.");
-                                            return;
+                                            continue;
                                         }
                                         ScreenPreview(bitmap);
 
