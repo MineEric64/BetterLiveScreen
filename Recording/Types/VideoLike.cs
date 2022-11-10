@@ -9,21 +9,22 @@ using NAudio.Wave;
 
 using BetterLiveScreen.Interfaces;
 using BetterLiveScreen.Recording.Video;
+using System.Collections.Concurrent;
 
 namespace BetterLiveScreen.Recording.Types
 {
     public class VideoLike
     {
-        public Queue<byte[]> ScreenQueue { get; set; }
-        public Queue<byte[]> AudioQueue { get; set; }
+        public ConcurrentQueue<byte[]> ScreenQueue { get; set; }
+        public ConcurrentQueue<byte[]> AudioQueue { get; set; }
 
         public BitmapInfo Info { get; set; }
         public WaveFormat AudioFormat { get; set; }
 
         public VideoLike(BitmapInfo info)
         {
-            ScreenQueue = new Queue<byte[]>();
-            AudioQueue = new Queue<byte[]>();
+            ScreenQueue = new ConcurrentQueue<byte[]>();
+            AudioQueue = new ConcurrentQueue<byte[]>();
 
             Info = info;
         }

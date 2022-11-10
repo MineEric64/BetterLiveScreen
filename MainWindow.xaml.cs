@@ -359,9 +359,8 @@ namespace BetterLiveScreen
             {
                 while (Rescreen.MyVideoStream.ScreenQueue.Count > 0 || Rescreen.MyVideoStream.AudioQueue.Count > 0)
                 {
-                    if (Rescreen.MyVideoStream.ScreenQueue.Count > 0)
+                    if (Rescreen.MyVideoStream.ScreenQueue.TryDequeue(out byte[] buffer)) //compressed
                     {
-                        byte[] buffer = Rescreen.MyVideoStream.ScreenQueue.Dequeue(); //compressed
                         byte[] preview = buffer.Decompress();
                         if ((buffer?.Length ?? 0) == 0) continue;
 
@@ -409,18 +408,15 @@ namespace BetterLiveScreen
                                 break;
                         }
                     }
-                    if (Rescreen.MyVideoStream.AudioQueue.Count > 0)
+                    if (Rescreen.MyVideoStream.AudioQueue.TryDequeue(out byte[] buffer2)) //compressed
                     {
-                        byte[] buffer = Rescreen.MyVideoStream.AudioQueue.Dequeue(); //compressed
-                        if ((buffer?.Length ?? 0) == 0) continue;
-
                         //TODO: Send Audio Buffer
-                        var infos = ClientOne.DivideInfo(SendTypes.Audio, buffer);
+                        var infos = ClientOne.DivideInfo(SendTypes.Audio, buffer2);
                         var json = new JObject()
                         {
-                            { "buffer_length", buffer.Length },
+                            { "buffer_length", buffer2.Length },
                             { "user", User.ToString() },
-                            { "checksum", Checksum.ComputeAddition(buffer) },
+                            { "checksum", Checksum.ComputeAddition(buffer2) },
                             { "audio_sample_rate", WasapiCapture.DeviceWaveFormat.SampleRate },
                             { "audio_bits_per_sample", WasapiCapture.DeviceWaveFormat.BitsPerSample },
                             { "audio_channel", WasapiCapture.DeviceWaveFormat.Channels },
@@ -463,9 +459,8 @@ namespace BetterLiveScreen
                     {
                         while (videoStream.ScreenQueue.Count > 0 || videoStream.AudioQueue.Count > 0)
                         {
-                            if (videoStream.ScreenQueue.Count > 0)
+                            if (videoStream.ScreenQueue.TryDequeue(out byte[] buffer)) //compressed
                             {
-                                byte[] buffer = videoStream.ScreenQueue.Dequeue(); //compressed
                                 byte[] preview = buffer.Decompress();
 
                                 switch (encoding)
@@ -526,9 +521,8 @@ namespace BetterLiveScreen
                                 }
                             }
 
-                            if (videoStream.AudioQueue.Count > 0)
+                            if (videoStream.AudioQueue.TryDequeue(out byte[] buffer2)) //compressed
                             {
-                                byte[] buffer = videoStream.AudioQueue.Dequeue(); //compressed
                                 byte[] decompressed = buffer.Decompress();
 
                                 if (!WasapiRealtimePlay.IsInitialized) WasapiRealtimePlay.Initialize();

@@ -38,7 +38,7 @@ namespace BetterLiveScreen.Clients
     public class ClientOne
     {
         public const int PORT_NUMBER = 4089;
-        public const int MAXIMUM_BUFFER_SIZE = 1300; //65507;
+        public const int MAXIMUM_BUFFER_SIZE = 1200; //65507;
         public const string DEFAULT_KEY = "blss_default_key";
 
         /// <summary>

@@ -219,7 +219,7 @@ namespace BetterLiveScreen.Recording.Video
             return list.Count > 0 ? list.Average().ToString("0.##") : "0";
         }
 
-        public static double GetAverageMbps(Queue<byte[]> screenQueue, double fps)
+        public static double GetAverageMbps(ConcurrentQueue<byte[]> screenQueue, double fps)
         {
             var lengthList = new List<int>();
             var screenList = screenQueue.ToList();
