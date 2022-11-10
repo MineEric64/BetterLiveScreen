@@ -464,10 +464,9 @@ namespace BetterLiveScreen
                             }
                         }
                     }
-                    catch (Exception ex)
+                    catch (MessagePackSerializationException)
                     {
-                        if (ex is MessagePackSerializationException) continue; //udp packet loss
-                        else throw ex;
+                        continue; //udp packet loss
                     }
                 }
                 Thread.Sleep(10);
