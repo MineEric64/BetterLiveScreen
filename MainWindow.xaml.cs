@@ -712,13 +712,11 @@ namespace BetterLiveScreen
                 Debug.WriteLine($"Room Host : {room.HostName}");
                 Debug.WriteLine($"Room Current User Count : {room.CurrentUserCount}");
                 Debug.WriteLine($"Room Password Required : {room.PasswordRequired}");
-            }
-            else
-            {
-                MessageBox.Show("Failed to get room's information from the address.", "BetterLiveScreen : Error", MessageBoxButton.OK, MessageBoxImage.Error);
+
+                return true;
             }
 
-            return room != null;
+            return false;
         }
 
         public async Task ConnectRoom(string password = "")
