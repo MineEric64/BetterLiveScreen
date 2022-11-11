@@ -728,7 +728,7 @@ namespace BetterLiveScreen
             switch (connectedInfo.ResponseCode)
             {
                 case ResponseCodes.OK:
-                    RoomManager.Password = password;
+                    //RoomManager.Password = password;
 
                     string json = ClientOne.Decode(connectedInfo.Buffer);
                     var jsonRaw = JObject.Parse(json);

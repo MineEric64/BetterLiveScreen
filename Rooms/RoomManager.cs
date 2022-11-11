@@ -36,13 +36,14 @@ namespace BetterLiveScreen.Rooms
 
         public static bool IsHost => CurrentRoom != null && CurrentRoomId != Guid.Empty && CurrentRoom.Host.Equals(My.User);
         public const int MAX_USER_COUNT = 5;
+        public const int MAX_PASSWORD_LENGTH = 112; //SHAed
 
         #region User Methods
         public static async Task<ReceiveInfo> ConnectAsync(string password = "")
         {
             var json = new JObject
             {
-                { "password", !string.IsNullOrEmpty(password) ? SHA512.Hash(password) : string.Empty },
+                { "password", !string.IsNullOrEmpty(password) ? SHA512.Hash(password).Substring(0, MAX_PASSWORD_LENGTH) : string.Empty },
                 { "user", My.User.NameInfo.ToString() },
                 { "user_avatar_url", My.User.AvatarURL }
             };
@@ -106,7 +107,7 @@ namespace BetterLiveScreen.Rooms
         {
             CurrentRoom = new RoomInfo(name, description, My.User, !string.IsNullOrWhiteSpace(password), 1);
             CurrentRoomId = Guid.NewGuid();
-            Password = SHA512.Hash(password);
+            Password = string.IsNullOrEmpty(password) ? "" : SHA512.Hash(password).Substring(0, MAX_PASSWORD_LENGTH);
 
             IsConnected = true;
         }
