@@ -44,6 +44,8 @@ namespace BetterLiveScreen.Clients
 
         public static void SetPresenceIfCreated()
         {
+            Client.UpdateState("Streaming Live");
+
             Client.UpdateSecrets(new Secrets()
             {
                 JoinSecret = RoomManager.GetInviteSecret()
@@ -75,6 +77,8 @@ namespace BetterLiveScreen.Clients
 
         public static void SetPresenceIfJoined()
         {
+            Client.UpdateState("Streaming Live");
+
             Client.UpdateParty(new Party()
             {
                 ID = RoomManager.CurrentRoomId.ToString(),
@@ -89,6 +93,8 @@ namespace BetterLiveScreen.Clients
 
         public static void SetPresenceIfLeft()
         {
+            Client.UpdateState(string.Empty);
+
             Client.UpdateSecrets(new Secrets());
             Client.UpdateParty(new Party());
 

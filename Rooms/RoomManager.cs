@@ -62,6 +62,7 @@ namespace BetterLiveScreen.Rooms
                 My.Client.SendBufferToHost(info);
                 My.Client.Disconnect();
             }
+            DiscordHelper.SetPresenceIfLeft();
 
             CurrentRoom = null;
             CurrentRoomId = Guid.Empty;
