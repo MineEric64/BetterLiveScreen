@@ -11,13 +11,13 @@ using Newtonsoft.Json.Linq;
 using MessagePack;
 
 using BetterLiveScreen.Clients;
+using BetterLiveScreen.Extensions;
 using BetterLiveScreen.Interfaces;
 using BetterLiveScreen.Interfaces.Security;
 using BetterLiveScreen.Recording.Video;
 using BetterLiveScreen.Users;
 
 using My = BetterLiveScreen.MainWindow;
-using SharpDX.Direct3D11;
 
 namespace BetterLiveScreen.Rooms
 {
@@ -121,8 +121,10 @@ namespace BetterLiveScreen.Rooms
         #endregion
         public static string GetInviteSecret()
         {
-            //var response = await MainWindow.Client.GetInviteSecret(CurrentRoom.Id, MainWindow.User.ToString());
-            return DiscordRPC.Secrets.CreateFriendlySecret(new Random());
+            return "192.168.0.43;";
+            
+            if (IsHost) return string.Join(";", NetworkManager.GetPublicIPAddress(), Password);
+            return string.Concat(My.Client.Client.FirstPeer.EndPoint.Address.ToString(), ";");
         }
     }
 }

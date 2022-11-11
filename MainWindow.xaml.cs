@@ -666,15 +666,11 @@ namespace BetterLiveScreen
                 return;
             }
 
-            var room = await RoomManager.GetRoomInfoAsync(serverIp.Text);
-            
-            if (room != null)
+            if (await ShowRoomInfo(serverIp.Text))
             {
-                RoomManager.CurrentRoom = room;
-
                 string password = string.Empty;
 
-                if (room.PasswordRequired)
+                if (RoomManager.CurrentRoom.PasswordRequired)
                 {
                     var textWindow = new ChooseText();
 
@@ -683,66 +679,93 @@ namespace BetterLiveScreen
                     password = SHA512.Hash(await textWindow.WaitAsyncUntilOK());
                 }
 
-                var connectedInfo = await RoomManager.ConnectAsync(password);
-
-                switch (connectedInfo.ResponseCode)
-                {
-                    case ResponseCodes.OK:
-                        RoomManager.Password = password;
-
-                        string json = ClientOne.Decode(connectedInfo.Buffer);
-                        var jsonRaw = JObject.Parse(json);
-
-                        var users = jsonRaw["users"]?.ToArray();
-                        string id = jsonRaw["room_id"]?.ToString();
-
-                        foreach (var user in users)
-                        {
-                            string fullName = user?["full_name"]?.ToString();
-                            string avatarUrl = user?["avatar_url"]?.ToString() ?? string.Empty;
-                            bool? isLived = user?["is_lived"]?.ToObject<bool>();
-
-                            if (users != null && fullName != null && isLived.HasValue)
-                            {
-                                Users.Add(new UserInfo(fullName, avatarUrl, isLived.Value));
-                            }
-                            else
-                            {
-                                Debug.WriteLine("[Error] Something went wrong when connecting.");
-
-                                var info = connectedInfo.GetFailed(ResponseCodes.Failed);
-                                Client.SendBufferToHost(info);
-
-                                return;
-                            }
-                        }
-                        RoomManager.CurrentRoom.CurrentUserCount = Users.Count;
-                        RoomManager.CurrentRoomId = Guid.Parse(id);
-                        RoomManager.IsConnected = true;
-
-                        serverIpConnect.Content = "Disconnect";
-                        UpdateUserUI();
-
-                        DiscordHelper.SetPresenceIfJoined();
-
-                        Task.Run(ClientBufferRefreshedVideo); //test (need to add watch feature)
-                        Task.Run(ClientBufferRefreshedAudio); //test (need to add watch feature)
-
-                        MessageBox.Show($"Connected to {RoomManager.CurrentRoom.Name}!", "BetterLiveScreen", MessageBoxButton.OK, MessageBoxImage.Information);
-                        break;
-
-                    case ResponseCodes.AccessDenied:
-                        MessageBox.Show("Wrong password!", "BetterLiveScreen : Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                        break;
-
-                    case ResponseCodes.TooManyUsers:
-                        MessageBox.Show("The number of user is exceeded.", "BetterLiveScreen : Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                        break;
-                }
+                await ConnectRoom(password);
             }
             else
             {
                 MessageBox.Show("Failed to get room's information from the address.", "BetterLiveScreen : Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        public async Task<bool> ShowRoomInfo(string address)
+        {
+            var room = await RoomManager.GetRoomInfoAsync(address);
+
+            if (room != null)
+            {
+                RoomManager.CurrentRoom = room;
+
+                Debug.WriteLine($"Room Name : {room.Name}");
+                Debug.WriteLine($"Room Description : {room.Description}");
+                Debug.WriteLine($"Room Host : {room.HostName}");
+                Debug.WriteLine($"Room Current User Count : {room.CurrentUserCount}");
+                Debug.WriteLine($"Room Password Required : {room.PasswordRequired}");
+            }
+            else
+            {
+                MessageBox.Show("Failed to get room's information from the address.", "BetterLiveScreen : Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+
+            return room != null;
+        }
+
+        public async Task ConnectRoom(string password = "")
+        {
+            var connectedInfo = await RoomManager.ConnectAsync(password);
+
+            switch (connectedInfo.ResponseCode)
+            {
+                case ResponseCodes.OK:
+                    RoomManager.Password = password;
+
+                    string json = ClientOne.Decode(connectedInfo.Buffer);
+                    var jsonRaw = JObject.Parse(json);
+
+                    var users = jsonRaw["users"]?.ToArray();
+                    string id = jsonRaw["room_id"]?.ToString();
+
+                    foreach (var user in users)
+                    {
+                        string fullName = user?["full_name"]?.ToString();
+                        string avatarUrl = user?["avatar_url"]?.ToString() ?? string.Empty;
+                        bool? isLived = user?["is_lived"]?.ToObject<bool>();
+
+                        if (users != null && fullName != null && isLived.HasValue)
+                        {
+                            Users.Add(new UserInfo(fullName, avatarUrl, isLived.Value));
+                        }
+                        else
+                        {
+                            Debug.WriteLine("[Error] Something went wrong when connecting.");
+
+                            var info = connectedInfo.GetFailed(ResponseCodes.Failed);
+                            Client.SendBufferToHost(info);
+
+                            return;
+                        }
+                    }
+                    RoomManager.CurrentRoom.CurrentUserCount = Users.Count;
+                    RoomManager.CurrentRoomId = Guid.Parse(id);
+                    RoomManager.IsConnected = true;
+
+                    serverIpConnect.Content = "Disconnect";
+                    UpdateUserUI();
+
+                    DiscordHelper.SetPresenceIfJoined();
+
+                    _ = Task.Run(ClientBufferRefreshedVideo); //test (need to add watch feature)
+                    _ = Task.Run(ClientBufferRefreshedAudio); //test (need to add watch feature)
+
+                    MessageBox.Show($"Connected to {RoomManager.CurrentRoom.Name}!", "BetterLiveScreen", MessageBoxButton.OK, MessageBoxImage.Information);
+                    break;
+
+                case ResponseCodes.AccessDenied:
+                    MessageBox.Show("Wrong password!", "BetterLiveScreen : Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    break;
+
+                case ResponseCodes.TooManyUsers:
+                    MessageBox.Show("The number of user is exceeded.", "BetterLiveScreen : Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    break;
             }
         }
 

@@ -6,6 +6,7 @@ using System.Net.NetworkInformation;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using System.Net.Sockets;
 
 namespace BetterLiveScreen.Extensions
 {
@@ -26,6 +27,22 @@ namespace BetterLiveScreen.Extensions
                 Debug.WriteLine("[Error] Can't get public ip address.");
             }
             return string.Empty;
+        }
+
+        public static string GetLocalIPAddress()
+        {
+            if (!IsAvailable) return string.Empty;
+
+            var host = Dns.GetHostEntry(Dns.GetHostName());
+
+            foreach (var ip in host.AddressList)
+            {
+                if (ip.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    return ip.ToString();
+                }
+            }
+            throw new Exception("No network adapters with an IPv4 address in the system!");
         }
     }
 }
