@@ -291,11 +291,11 @@ namespace BetterLiveScreen.Recording.Video
                     stagingTexture.Dispose();
                     smallerTexture.Dispose();
                     smallerTextureView.Dispose();
+
+                    encoder?.Destroy();
                 }
             });
             while (!_init) ;
-
-            //encoder?.Destroy();
         }
 
         public void Stop()

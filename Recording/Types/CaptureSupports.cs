@@ -119,8 +119,8 @@ namespace BetterLiveScreen.Recording.Types
                 device,
                 (s, e) => { },
                 out var encoder);
-
             encoder.Destroy();
+
             return supported;
         }
 
