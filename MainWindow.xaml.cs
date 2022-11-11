@@ -160,6 +160,8 @@ namespace BetterLiveScreen
             {
                 Users.Add(userInfo);
                 Dispatcher.Invoke(UpdateUserUI);
+                RoomManager.CurrentRoom.CurrentUserCount = Users.Count;
+
                 DiscordHelper.SetPresenceIfUserUpdated();
 
                 Debug.WriteLine($"[Info] {userInfo} Joined");
@@ -170,6 +172,8 @@ namespace BetterLiveScreen
                 {
                     Users.Remove(Users.Where(x => x.Equals(userFullName)).First());
                     Dispatcher.Invoke(UpdateUserUI);
+                    RoomManager.CurrentRoom.CurrentUserCount = Users.Count;
+
                     DiscordHelper.SetPresenceIfUserUpdated();
                 }
 
