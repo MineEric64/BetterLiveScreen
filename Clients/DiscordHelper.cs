@@ -66,6 +66,13 @@ namespace BetterLiveScreen.Clients
         {
             if (!Client.IsInitialized || Client.CurrentUser == null) return;
 
+            if (RoomManager.IsHost)
+            {
+                Client.UpdateSecrets(new Secrets()
+                {
+                    JoinSecret = RoomManager.GetInviteSecret()
+                });
+            }
             Client.UpdateParty(new Party()
             {
                 ID = RoomManager.CurrentRoomId.ToString(),
