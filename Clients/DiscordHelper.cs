@@ -50,11 +50,14 @@ namespace BetterLiveScreen.Clients
             string[] splitted = e.Secret.Split(';');
 
             if (splitted.Length == 0) return;
-            if (!My.StartWindow.IsAccepted)
+            My.CurrentDispatcher.Invoke(() =>
             {
-                My.StartWindow.IsAccepted = true;
-                My.StartWindow.Close();
-            }
+                if (!My.StartWindow.IsAccepted)
+                {
+                    My.StartWindow.IsAccepted = true;
+                    My.StartWindow.Close();
+                }
+            });
 
             string address = splitted[0];
             string password = splitted.Length >= 2 ? splitted[1] : string.Empty;
