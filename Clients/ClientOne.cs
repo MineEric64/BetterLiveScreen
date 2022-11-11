@@ -75,8 +75,9 @@ namespace BetterLiveScreen.Clients
         public event EventHandler<string> WatchStarted;
         public event EventHandler<string> WatchEnded;
 
-        public event EventHandler<(byte[], string)> VideoBufferReceived;
-        public event EventHandler<(byte[], string)> AudioBufferReceived;
+        //(buffer, userName, timestamp)
+        public event EventHandler<(byte[], string, long)> VideoBufferReceived;
+        public event EventHandler<(byte[], string, long)> AudioBufferReceived;
 
         public ClientOne()
         {
@@ -296,6 +297,7 @@ namespace BetterLiveScreen.Clients
             {
                 string userName = string.Empty;
                 byte checksum = 0;
+                long timestamp = 0;
                 int bufferLength = 0;
 
                 switch (receivedInfo.SendType)
@@ -364,6 +366,7 @@ namespace BetterLiveScreen.Clients
                         userName = json["user"]?.ToString() ?? string.Empty;
                         checksum = json["checksum"]?.ToObject<byte>() ?? 0;
                         bufferLength = json["buffer_length"]?.ToObject<int>() ?? 0;
+                        timestamp = json["timestamp"]?.ToObject<long>() ?? DateTimeOffset.Now.ToUnixTimeMilliseconds();
 
                         if (_bufferMap.TryGetValue(userName, out var bufferMap2))
                         {
@@ -403,7 +406,7 @@ namespace BetterLiveScreen.Clients
                                 break;
                             }
 
-                            VideoBufferReceived?.Invoke(null, (bufferInfo, userName));
+                            VideoBufferReceived?.Invoke(null, (bufferInfo, userName, timestamp));
                             _bufferMap[userName][SendTypes.Video] = null;
                         }
 
@@ -417,6 +420,7 @@ namespace BetterLiveScreen.Clients
                         bufferLength = json["buffer_length"]?.ToObject<int>() ?? 0;
                         int audioSampleRate = json["audio_sample_rate"]?.ToObject<int>() ?? 44100;
                         int audioChannel = json["audio_channel"]?.ToObject<int>() ?? 2;
+                        timestamp = json["timestamp"]?.ToObject<long>() ?? DateTimeOffset.Now.ToUnixTimeMilliseconds();
 
                         if (_bufferMap.TryGetValue(userName, out var bufferMap3))
                         {
@@ -457,7 +461,7 @@ namespace BetterLiveScreen.Clients
                             }
 
                             Rescreen.VideoStreams[userName].ChangeFormat(WaveFormat.CreateIeeeFloatWaveFormat(audioSampleRate, audioChannel));
-                            AudioBufferReceived?.Invoke(null, (bufferInfo2, userName));
+                            AudioBufferReceived?.Invoke(null, (bufferInfo2, userName, timestamp));
                             _bufferMap[userName][SendTypes.Audio] = null;
                         }
 

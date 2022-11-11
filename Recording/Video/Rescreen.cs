@@ -191,7 +191,9 @@ namespace BetterLiveScreen.Recording.Video
         private static void ScreenRefreshed(object sender, byte[] buffer)
         {
             byte[] compressed = buffer.Compress(); //byte[] -> compressed byte[]
-            MyVideoStream.ScreenQueue.Enqueue(compressed);
+            long timestamp = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+
+            MyVideoStream.ScreenQueue.Enqueue((compressed, timestamp));
         }
 
         private static void AudioRefreshed(object sender, byte[] buffer)
@@ -201,7 +203,9 @@ namespace BetterLiveScreen.Recording.Video
             if (!discardIfEmpty || buffer.Any(x => x != 0))
             {
                 byte[] compressed = buffer.Compress(); //byte[] -> compressed byte[]
-                MyVideoStream.AudioQueue.Enqueue(compressed);
+                long timestamp = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+
+                MyVideoStream.AudioQueue.Enqueue((compressed, timestamp));
             }
         }
 
@@ -225,7 +229,7 @@ namespace BetterLiveScreen.Recording.Video
             return cloned.Count > 0 ? cloned.Average().ToString("0.##") : "0";
         }
 
-        public static double GetAverageMbps(ConcurrentQueue<byte[]> screenQueue, double fps)
+        public static double GetAverageMbps(ConcurrentQueue<(byte[], long)> screenQueue, double fps)
         {
             var lengthList = new List<int>();
             var screenList = screenQueue.ToList();
@@ -240,7 +244,7 @@ namespace BetterLiveScreen.Recording.Video
                     lengthList.Add(length);
                     length = 0;
                 }
-                length += screen.Length;
+                length += screen.Item1.Length;
             }
 
             if (lengthList.Count == 0) return 0.0;

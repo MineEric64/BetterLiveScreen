@@ -172,9 +172,9 @@ namespace BetterLiveScreen
                         break;
                 }
 
-                while (Rescreen.MyVideoStream.ScreenQueue.TryDequeue(out byte[] buffer))
+                while (Rescreen.MyVideoStream.ScreenQueue.TryDequeue(out var screen))
                 {
-                    byte[] raw = buffer.Decompress();
+                    byte[] raw = screen.Item1.Decompress();
 
                     switch (Rescreen.Settings.Encoding)
                     {
@@ -225,9 +225,9 @@ namespace BetterLiveScreen
                 {
                     using (var writer2 = new LameMP3FileWriter(TestAudioFilePath, wf, 128))
                     {
-                        while (Rescreen.MyVideoStream.AudioQueue.TryDequeue(out byte[] buffer))
+                        while (Rescreen.MyVideoStream.AudioQueue.TryDequeue(out var audio))
                         {
-                            byte[] decompressed = buffer.Decompress();
+                            byte[] decompressed = audio.Item1.Decompress();
                             writer2.Write(decompressed, 0, decompressed.Length);
                         }
                     }

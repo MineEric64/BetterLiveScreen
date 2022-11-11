@@ -15,16 +15,17 @@ namespace BetterLiveScreen.Recording.Types
 {
     public class VideoLike
     {
-        public ConcurrentQueue<byte[]> ScreenQueue { get; set; }
-        public ConcurrentQueue<byte[]> AudioQueue { get; set; }
+        //(buffer, timestamp)
+        public ConcurrentQueue<(byte[], long)> ScreenQueue { get; set; }
+        public ConcurrentQueue<(byte[], long)> AudioQueue { get; set; }
 
         public BitmapInfo Info { get; set; }
         public WaveFormat AudioFormat { get; set; }
 
         public VideoLike(BitmapInfo info)
         {
-            ScreenQueue = new ConcurrentQueue<byte[]>();
-            AudioQueue = new ConcurrentQueue<byte[]>();
+            ScreenQueue = new ConcurrentQueue<(byte[], long)>();
+            AudioQueue = new ConcurrentQueue<(byte[], long)>();
 
             Info = info;
         }
