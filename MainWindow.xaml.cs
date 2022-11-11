@@ -716,11 +716,13 @@ namespace BetterLiveScreen
                                 return;
                             }
                         }
+                        RoomManager.CurrentRoom.CurrentUserCount = Users.Count;
                         RoomManager.CurrentRoomId = Guid.Parse(id);
                         RoomManager.IsConnected = true;
 
                         serverIpConnect.Content = "Disconnect";
                         UpdateUserUI();
+
                         DiscordHelper.SetPresenceIfJoined();
 
                         Task.Run(ClientBufferRefreshedVideo); //test (need to add watch feature)
