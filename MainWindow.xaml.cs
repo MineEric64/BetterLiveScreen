@@ -144,6 +144,7 @@ namespace BetterLiveScreen
                 Rescreen.Stop();
 
                 Dispatcher.Invoke(InitializeUI);
+                DiscordHelper.SetPresenceIfLeft();
 
                 if (isForced) MessageBox.Show("Host disconnected the connection.", "Better Live Screen", MessageBoxButton.OK, MessageBoxImage.Information);
                 Debug.WriteLine("[Info] Disconnected");
@@ -159,6 +160,7 @@ namespace BetterLiveScreen
             {
                 Users.Add(userInfo);
                 Dispatcher.Invoke(UpdateUserUI);
+                DiscordHelper.SetPresenceIfUserUpdated();
 
                 Debug.WriteLine($"[Info] {userInfo} Joined");
             };
@@ -168,6 +170,7 @@ namespace BetterLiveScreen
                 {
                     Users.Remove(Users.Where(x => x.Equals(userFullName)).First());
                     Dispatcher.Invoke(UpdateUserUI);
+                    DiscordHelper.SetPresenceIfUserUpdated();
                 }
 
                 Debug.WriteLine($"[Info] {userFullName} Left");
@@ -754,7 +757,7 @@ namespace BetterLiveScreen
             }
 
             RoomManager.Create("BLSS", $"{User.NameInfo.Name}'s Server");
-            DiscordHelper.SetPresenceIfJoined();
+            DiscordHelper.SetPresenceIfCreated();
 
             userConnected.Content = $"1 / {RoomManager.MAX_USER_COUNT} Users Connected";
             serverCreate.Content = "Delete Room";

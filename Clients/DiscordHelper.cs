@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using System.Windows;
 
 using DiscordRPC;
+using DiscordRPC.Events;
+using DiscordRPC.Message;
 
 using BetterLiveScreen.Rooms;
 
@@ -27,21 +29,21 @@ namespace BetterLiveScreen.Clients
                 },
                 Timestamps = new Timestamps(DateTime.UtcNow),
             });
-            Client.RegisterUriScheme(null, null);
+            Client.RegisterUriScheme();
             Client.OnError += (s, e) =>
             {
                 MessageBox.Show(e.Message);
             };
-            Client.OnJoin += (s, e) =>
-            {
-
-            };
+            Client.OnJoin += OnJoin;
         }
 
-        public static void SetPresenceIfJoined()
+        private static void OnJoin(object sender, JoinMessage e)
         {
-            if (!Client.IsInitialized || Client.CurrentUser == null) return;
 
+        }
+
+        public static void SetPresenceIfCreated()
+        {
             Client.UpdateSecrets(new Secrets()
             {
                 JoinSecret = RoomManager.GetInviteSecret()
@@ -51,10 +53,47 @@ namespace BetterLiveScreen.Clients
                 ID = RoomManager.CurrentRoomId.ToString(),
                 Size = RoomManager.CurrentRoom.CurrentUserCount,
                 Max = RoomManager.MAX_USER_COUNT,
-                Privacy = Party.PrivacySetting.Private
+                Privacy = Party.PrivacySetting.Public
             });
+
+            Client.SetSubscription(EventType.Join | EventType.JoinRequest);
+            Client.Subscribe(EventType.Join | EventType.JoinRequest);
+        }
+
+        public static void SetPresenceIfUserUpdated()
+        {
+            if (!Client.IsInitialized || Client.CurrentUser == null) return;
+
+            Client.UpdateParty(new Party()
+            {
+                ID = RoomManager.CurrentRoomId.ToString(),
+                Size = RoomManager.CurrentRoom.CurrentUserCount,
+                Max = RoomManager.MAX_USER_COUNT,
+                Privacy = Party.PrivacySetting.Public
+            });
+        }
+
+        public static void SetPresenceIfJoined()
+        {
+            Client.UpdateParty(new Party()
+            {
+                ID = RoomManager.CurrentRoomId.ToString(),
+                Size = RoomManager.CurrentRoom.CurrentUserCount,
+                Max = RoomManager.MAX_USER_COUNT,
+                Privacy = Party.PrivacySetting.Public
+            });
+
             Client.SetSubscription(EventType.Join);
             Client.Subscribe(EventType.Join);
+        }
+
+        public static void SetPresenceIfLeft()
+        {
+            Client.UpdateSecrets(new Secrets());
+            Client.UpdateParty(new Party());
+
+            Client.SetSubscription(EventType.None);
+            Client.Subscribe(EventType.None);
         }
     }
 }
