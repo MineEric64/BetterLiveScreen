@@ -111,14 +111,17 @@ namespace BetterLiveScreen.Recording.Types
             //Get device from adapter
             var device = new D3D11Device(adapter);
 
-            return SupportsNvenc(
+            bool supported = SupportsNvenc(
                 Rescreen.ScreenActualSize.Width,
                 Rescreen.ScreenActualSize.Height,
                 Rescreen.FpsIfUnfixed60,
                 BitrateInfo.GetBitrateFromMbps(Rescreen.GetBitrateInfoBySize(Rescreen.ScreenActualSize.Height, Rescreen.FpsIfUnfixed60).MbpsAverage),
                 device,
                 (s, e) => { },
-                out _);
+                out var encoder);
+
+            encoder.Destroy();
+            return supported;
         }
 
         public static bool SupportsNvenc(int width, int height, int fps, int bitrate, D3D11Device device, EventHandler<(IntPtr, int)> onEncoded, out NvEncoder encoder)
