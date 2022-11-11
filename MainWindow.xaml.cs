@@ -72,6 +72,7 @@ namespace BetterLiveScreen
 
         public static ClientOne Client { get; set; }
 
+        public static StartPage StartWindow { get; private set; } = new StartPage();
         public static BetterShareWindow ShareWindow { get; private set; } = new BetterShareWindow();
 
         public static bool IsDevMode { get; private set; } = false;
@@ -98,11 +99,9 @@ namespace BetterLiveScreen
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            var startPage = new StartPage();
-
-            startPage.Closing += (s, ee) =>
+            StartWindow.Closing += (s, ee) =>
             {
-                if (startPage.IsAccepted)
+                if (StartWindow.IsAccepted)
                 {
                     usericon.Fill = BitmapConverter.CreateImageBrush(User.GetAvatarImage());
                     username.Content = User.NameInfo.Name;
@@ -120,7 +119,7 @@ namespace BetterLiveScreen
 
             InitializeUI();
 
-            startPage.Show();
+            StartWindow.Show();
             this.IsEnabled = false;
 
             RenderOptions.SetBitmapScalingMode(screen_main, BitmapScalingMode.LowQuality);

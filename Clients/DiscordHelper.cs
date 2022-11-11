@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,7 +11,8 @@ using DiscordRPC.Events;
 using DiscordRPC.Message;
 
 using BetterLiveScreen.Rooms;
-using System.Diagnostics;
+
+using My = BetterLiveScreen.MainWindow;
 
 namespace BetterLiveScreen.Clients
 {
@@ -36,12 +38,15 @@ namespace BetterLiveScreen.Clients
             {
                 MessageBox.Show(e.Message);
             };
+            Client.OnSubscribe += (s, e) =>
+            {
+                MessageBox.Show("Subscribed to " + e.Event.ToString());
+            };
 
             Client.OnJoin += OnJoin;
             Client.OnJoinRequested += OnJoinRequested;
 
             Client.SetSubscription(EventType.Join);
-            Client.Subscribe(EventType.Join);
         }
 
         private static async void OnJoin(object sender, JoinMessage e)
@@ -49,12 +54,18 @@ namespace BetterLiveScreen.Clients
             string[] splitted = e.Secret.Split(';');
 
             if (splitted.Length == 0) return;
+            if (!My.StartWindow.IsAccepted)
+            {
+                My.StartWindow.IsAccepted = true;
+                My.StartWindow.Close();
+            }
+
             string address = splitted[0];
             string password = splitted.Length >= 2 ? splitted[1] : string.Empty;
 
-            if (await MainWindow.Me.ShowRoomInfo(address))
+            if (await My.CurrentDispatcher.Invoke(async () => await My.Me.ShowRoomInfo(address)))
             {
-                await MainWindow.Me.ConnectRoom(password);
+                await My.CurrentDispatcher.Invoke(async () => await My.Me.ConnectRoom(password));
             }
         }
 
@@ -92,7 +103,6 @@ namespace BetterLiveScreen.Clients
             });
 
             Client.SetSubscription(EventType.Join | EventType.JoinRequest);
-            Client.Subscribe(EventType.Join | EventType.JoinRequest);
         }
 
         public static void SetPresenceIfUserUpdated()
@@ -127,16 +137,8 @@ namespace BetterLiveScreen.Clients
                 Privacy = Party.PrivacySetting.Public
             });
 
-            if (RoomManager.CurrentRoom.PasswordRequired)
-            {
-                Client.SetSubscription(EventType.Join);
-                Client.Subscribe(EventType.Join);
-            }
-            else
-            {
-                Client.SetSubscription(EventType.Join | EventType.JoinRequest);
-                Client.Subscribe(EventType.Join | EventType.JoinRequest);
-            }
+            var @event = RoomManager.CurrentRoom.PasswordRequired ? EventType.Join : (EventType.Join | EventType.JoinRequest);
+            Client.SetSubscription(@event);
         }
 
         public static void SetPresenceIfLeft()
