@@ -123,34 +123,18 @@ namespace BetterLiveScreen.Recording.Video
 
                 if (!encoder.isValid)
                 {
-                    Rescreen.Settings.Encoding = EncodingType.OpenH264;
                     Rescreen.Supports.Nvenc = false;
+                    Debug.WriteLine("[Warning] Nvenc Encoding Not Supported.");
 
-                    Debug.WriteLine("[Warning] Nvenc Encoding Not Supported. Set Encoding to OpenH264.");
+                    _init = true;
+                    return;
                 }
             }
 
             Task.Factory.StartNew(() =>
             {
                 // Duplicate the output
-                OutputDuplication duplicatedOutput = null;
-
-                try
-                {
-                    duplicatedOutput = output1.DuplicateOutput(device);
-                }
-                catch (Exception ex)
-                {
-                    Rescreen.Supports.DesktopDuplication = false;
-
-                    Debug.WriteLine($"[Error] Desktop Duplication Not Supported. Error Message : {ex}");
-                    MessageBox.Show("The screen can't be captured when using Desktop Duplication.\nPlease use another capture method.", "Better Live Screen : Error", MessageBoxButton.OK, MessageBoxImage.Error);
-
-                    _init = true;
-                    return;
-                }
-
-                using (duplicatedOutput)
+                using (OutputDuplication duplicatedOutput = output1.DuplicateOutput(device))
                 {
                     var startDate = DateTime.MinValue;
                     int needElapsed = 0;
@@ -310,6 +294,8 @@ namespace BetterLiveScreen.Recording.Video
                 }
             });
             while (!_init) ;
+
+            //encoder?.Destroy();
         }
 
         public void Stop()

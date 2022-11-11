@@ -21,7 +21,7 @@ namespace BetterLiveScreen.Recording.Video
         public CaptureVideoType VideoType { get; set; }
         public CaptureAudioType AudioType { get; set; }
 
-        public static MonitorInfo PrimaryMonitor => MonitorEnumerationHelper.GetMonitors().Where((m) => m.IsPrimary).First();
+        public static MonitorInfo PrimaryMonitor => MonitorEnumerationHelper.GetMonitors().Where((m) => m.IsPrimary).FirstOrDefault();
         public static RescreenSettings Default => new RescreenSettings()
         {
             Fps = 30,

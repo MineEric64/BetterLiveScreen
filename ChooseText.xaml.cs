@@ -57,7 +57,7 @@ namespace BetterLiveScreen
         {
             while (!IsOKed && !IsClosed)
             {
-                await Task.Delay(10);
+                await Task.Delay(30);
             }
             return Text;
         }

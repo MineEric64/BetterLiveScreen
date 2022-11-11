@@ -121,7 +121,7 @@ namespace BetterLiveScreen.Rooms
         #endregion
         public static string GetInviteSecret()
         {
-            return "192.168.0.43;";
+            //return "192.168.0.43;";
             
             if (IsHost) return string.Join(";", NetworkManager.GetPublicIPAddress(), Password);
             return string.Concat(My.Client.Client.FirstPeer.EndPoint.Address.ToString(), ";");

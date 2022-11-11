@@ -261,23 +261,18 @@ namespace BetterLiveScreen
             MessageBox.Show(ex.ToString(), "BetterLiveScreen: Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
 
-        private void goLive_Click(object sender, RoutedEventArgs e)
+        private async void goLive_Click(object sender, RoutedEventArgs e)
         {
             //TODO: Change Settings by User
-            Rescreen.MakeSettings(new RescreenSettings()
-            {
-                VideoType = CaptureVideoType.DD,
-                AudioType = CaptureAudioType.WinCaptureAudio,
-                SelectedMonitor = RescreenSettings.PrimaryMonitor,
-                Fps = 30,
-                IsHalf = true,
-                Encoding = EncodingType.OpenH264
-            });
-            Rescreen.Settings.Bitrate = BitrateInfo.GetBitrateFromMbps(Rescreen.GetBitrateInfoBySize(Rescreen.ScreenActualSize.Height, Rescreen.FpsIfUnfixed60).MbpsAverage);
+            var liveSelect = new LiveSelectWindow();
 
+            liveSelect.Show();
+            if (!await liveSelect.WaitAsyncUntilOK()) return;
+
+            //Screen Share
             Rescreen.Start();
-            Task.Run(RescreenRefreshedVideo);
-            Task.Run(RescreenRefreshedAudio);
+            _ = Task.Run(RescreenRefreshedVideo);
+            _ = Task.Run(RescreenRefreshedAudio);
 
             User.IsLived = true;
             var info = new ReceiveInfo(SendTypes.StreamStarted, ClientOne.Encode(User.ToString()), BufferTypes.String, MessagePackSerializer.Serialize(Rescreen.MyVideoStream.Info));

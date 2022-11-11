@@ -109,6 +109,9 @@
     <Compile Include="Extensions\Ole32.cs" />
     <Compile Include="Extensions\ProcessHelper.cs" />
     <Compile Include="Extensions\User32.cs" />
+    <Compile Include="LiveSelectWindow.xaml.cs">
+      <DependentUpon>LiveSelectWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Recording\Audio\AudioRender\AudioRenderer.cs" />
     <Compile Include="Recording\Audio\AudioRender\Types\CLSCTX.cs" />
     <Compile Include="Recording\Audio\AudioRender\Types\EDataFlow.cs" />
@@ -182,6 +185,10 @@
     <Page Include="ChooseText.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
+    </Page>
+    <Page Include="LiveSelectWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>

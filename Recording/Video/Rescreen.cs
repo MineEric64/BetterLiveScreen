@@ -81,23 +81,12 @@ namespace BetterLiveScreen.Recording.Video
             switch (Settings.VideoType)
             {
                 case CaptureVideoType.DD:
+                    CaptureSupports.SupportsDesktopDuplication();
+
                     if (!Supports.DesktopDuplication)
                     {
-                        if (!Supports.WGC) //Nodap
-                        {
-                            Debug.WriteLine("[Warning] Desktop Duplication & WGC can't be started.");
-                            MessageBox.Show("Go Live can't be started because any capture method doesn't supports on this computer.",
-                                "Better Live Screen : Error", MessageBoxButton.OK, MessageBoxImage.Error);
-
-                            return;
-                        }
-
-                        Settings.VideoType = CaptureVideoType.WGC;
-                        Supports.DesktopDuplication = false;
-
-                        Debug.WriteLine("[Warning] Desktop Duplication Not Supported. Set Capture Video Type to WGC.");
-                        Start();
-
+                        MessageBox.Show("The screen can't be captured when using DXGI Desktop Duplication.\nPlease use another capture method.",
+                        "Better Live Screen : Error", MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
 
@@ -107,14 +96,12 @@ namespace BetterLiveScreen.Recording.Video
                     break;
 
                 case CaptureVideoType.WGC:
-                    if ((!WGCHelper.IsInitialized && !WGCHelper.Initialize()) || !Supports.WGC)
+                    CaptureSupports.SupportsWGC();
+
+                    if (!Supports.WGC)
                     {
-                        Settings.VideoType = CaptureVideoType.DD; //WGC Not Supported
-                        Supports.WGC = false;
-
-                        Debug.WriteLine("[Warning] WGC Not Supported. Set Capture Video Type to Desktop Duplication.");
-                        Start();
-
+                        MessageBox.Show("The screen can't be captured when using Windows.Graphics.Capture.\nPlease use another capture method.",
+                        "Better Live Screen : Error", MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
                     WGCHelper.ScreenRefreshed += ScreenRefreshed;
