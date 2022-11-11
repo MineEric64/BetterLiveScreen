@@ -38,10 +38,6 @@ namespace BetterLiveScreen.Clients
             {
                 MessageBox.Show(e.Message);
             };
-            Client.OnSubscribe += (s, e) =>
-            {
-                MessageBox.Show("Subscribed to " + e.Event.ToString());
-            };
 
             Client.OnJoin += OnJoin;
             Client.OnJoinRequested += OnJoinRequested;
