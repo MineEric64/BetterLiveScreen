@@ -20,8 +20,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: Setup .NET build dependencies
-      uses: timheuer/bootstrap-dotnet@v1
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
@@ -29,6 +27,6 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build
     - name: Test
       run: dotnet test --no-build --verbosity normal
