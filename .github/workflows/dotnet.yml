@@ -20,6 +20,19 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    
+    - uses: nuget/setup-nuget@v1
+      with:
+        nuget-version: '5.x'
+    - uses: actions/cache@v1
+      id: cache
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+    - name: NuGet Restore
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: nuget restore BetterLiveScreen.sln
+      
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
@@ -27,6 +40,6 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build
+      run: dotnet build --no-restore
     - name: Test
       run: dotnet test --no-build --verbosity normal
