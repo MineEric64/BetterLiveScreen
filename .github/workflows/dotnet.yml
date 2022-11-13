@@ -38,7 +38,7 @@ jobs:
       with:
         dotnet-version: ${{ matrix.dotnet }}
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore BetterLiveScreen.sln
     - name: Build
       run: dotnet build --no-restore
     - name: Test
