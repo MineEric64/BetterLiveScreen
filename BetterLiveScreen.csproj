@@ -321,5 +321,7 @@
     <GenerateResourceMSBuildArchitecture>CurrentArchitecture</GenerateResourceMSBuildArchitecture>
     <GenerateResourceMSBuildRuntime>CurrentRuntime</GenerateResourceMSBuildRuntime>
   </PropertyGroup>
+  <PackageReference Include="System.Resources.Extensions" Version="4.6.0" />
+  <GenerateResourceUsePreserializedResources>true</GenerateResourceUsePreserializedResources>
 
 </Project>
