@@ -283,6 +283,7 @@
     <PackageReference Include="System.Runtime.WindowsRuntime">
       <Version>5.0.0-preview.5.20278.1</Version>
     </PackageReference>
+    <PackageReference Include="System.Resources.Extensions" Version="7.0.0" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
