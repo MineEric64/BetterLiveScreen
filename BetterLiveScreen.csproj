@@ -283,7 +283,7 @@
     <PackageReference Include="System.Runtime.WindowsRuntime">
       <Version>5.0.0-preview.5.20278.1</Version>
     </PackageReference>
-    <PackageReference Include="System.Resources.Extensions" Version="4.6.0" />
+    <PackageReference Include="System.Resources.Extensions" Version="5.0.0" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
@@ -321,6 +321,6 @@
   <PropertyGroup> 
     <GenerateResourceMSBuildArchitecture>CurrentArchitecture</GenerateResourceMSBuildArchitecture>
     <GenerateResourceMSBuildRuntime>CurrentRuntime</GenerateResourceMSBuildRuntime>
-    <GenerateResourceUsePreserializedResources>true</GenerateResourceUsePreserializedResources>
+    <GenerateResourceUsePreserializedResources>false</GenerateResourceUsePreserializedResources>
   </PropertyGroup>
 </Project>
