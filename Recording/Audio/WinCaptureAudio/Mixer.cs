@@ -129,6 +129,8 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
 
         public void Start()
         {
+            if (WasapiCapture.DefaultMMDevice == null) return; //Doesn't exists any playing device
+
             _mixThread = new Thread(Mix);
             IsRunning = true;
 
