@@ -7,6 +7,10 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
+using SharpDX.DXGI;
+
+using BetterLiveScreen.Recording.Types;
+
 namespace BetterLiveScreen.Recording.Video.WGC
 {
     public class MonitorInfo
@@ -18,6 +22,8 @@ namespace BetterLiveScreen.Recording.Video.WGC
         public Rectangle WorkArea { get; set; }
         public string DeviceName { get; set; }
         public IntPtr Hmon { get; set; }
+
+        public GPUSelect GPU { get; set; }
     }
 
     public static class MonitorEnumerationHelper
@@ -54,6 +60,7 @@ namespace BetterLiveScreen.Recording.Video.WGC
         public static IEnumerable<MonitorInfo> GetMonitors()
         {
             var result = new List<MonitorInfo>();
+            var _factory = new Factory1();
 
             EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero,
                 delegate (IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData)
@@ -70,13 +77,25 @@ namespace BetterLiveScreen.Recording.Video.WGC
                             WorkArea = new Rectangle(mi.WorkArea.left, mi.WorkArea.top, mi.WorkArea.right - mi.WorkArea.left, mi.WorkArea.bottom - mi.WorkArea.top),
                             IsPrimary = mi.Flags > 0,
                             Hmon = hMonitor,
-                            DeviceName = mi.DeviceName
+                            DeviceName = mi.DeviceName,
+                            GPU = GetGraphics(mi.DeviceName, _factory)
                         };
                         result.Add(info);
                     }
                     return true;
                 }, IntPtr.Zero);
             return result;
+        }
+
+        private static GPUSelect GetGraphics(string monitorDeviceName, Factory1 factory)
+        {
+            string name = FScreen.GetAdapterName(monitorDeviceName, factory).ToUpper();
+
+            if (name.Contains("INTEL")) return GPUSelect.Intel;
+            if (name.Contains("AMD")) return GPUSelect.AMD;
+            if (name.Contains("NVIDIA")) return GPUSelect.Nvidia;
+
+            return GPUSelect.None; //???
         }
     }
 }

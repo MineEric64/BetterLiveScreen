@@ -21,8 +21,11 @@ using System.Windows.Shapes;
 using System.Windows.Threading;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using Windows.UI.Xaml.Documents;
+
+using log4net;
 
 using OpenCvSharp;
 using OpenCvSharp.WpfExtensions;
@@ -65,6 +68,8 @@ namespace BetterLiveScreen
     /// </summary>
     public partial class MainWindow : Window
     {
+        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
         public static UserInfo User { get; set; }
         internal static string UserToken { get; } = Guid.NewGuid().ToString();
         public static List<UserInfo> Users { get; set; } = new List<UserInfo>();
@@ -145,12 +150,12 @@ namespace BetterLiveScreen
                 DiscordHelper.SetPresenceIfLeft();
 
                 if (isForced) MessageBox.Show("Host disconnected the connection.", "Better Live Screen", MessageBoxButton.OK, MessageBoxImage.Information);
-                Debug.WriteLine("[Info] Disconnected");
+                log.Info("Disconnected");
             };
 
             Client.HostConnected += (s, e) =>
             {
-                Debug.WriteLine("[Info] Connected");
+                log.Info("Connected");
             };
             #endregion
             #region User
@@ -162,7 +167,7 @@ namespace BetterLiveScreen
 
                 DiscordHelper.SetPresenceIfUserUpdated();
 
-                Debug.WriteLine($"[Info] {userInfo} Joined");
+                log.Info($"{userInfo} Joined");
             };
             Client.UserDisconnected += (s, userFullName) =>
             {
@@ -175,7 +180,7 @@ namespace BetterLiveScreen
                     DiscordHelper.SetPresenceIfUserUpdated();
                 }
 
-                Debug.WriteLine($"[Info] {userFullName} Left");
+                log.Info($"[Info] {userFullName} Left");
             };
             #endregion
             #region Streaming
@@ -204,7 +209,7 @@ namespace BetterLiveScreen
                 if (!Rescreen.VideoStreams.TryGetValue(e.Item2, out var _)) Rescreen.VideoStreams.Add(e.Item2, new VideoLike(BitmapInfo.Empty));
                 Rescreen.VideoStreams[e.Item2].ScreenQueue.Enqueue((e.Item1, e.Item3));
 
-                Debug.WriteLine($"[{DateTime.Now}] {e.Item2}'s Screen Received! ({e.Item1.Length})");
+                log.Info($"[{DateTime.Now}] {e.Item2}'s Screen Received! ({e.Item1.Length})");
             };
             #endregion
             #region Audio
@@ -213,7 +218,7 @@ namespace BetterLiveScreen
                 if (!Rescreen.VideoStreams.TryGetValue(e.Item2, out var _)) Rescreen.VideoStreams.Add(e.Item2, new VideoLike(BitmapInfo.Empty));
                 Rescreen.VideoStreams[e.Item2].AudioQueue.Enqueue((e.Item1, e.Item3));
 
-                Debug.WriteLine($"[{DateTime.Now}] {e.Item2}'s Audio Received! ({e.Item1.Length})");
+                log.Info($"[{DateTime.Now}] {e.Item2}'s Audio Received! ({e.Item1.Length})");
             };
             #endregion
             #endregion
@@ -551,7 +556,7 @@ namespace BetterLiveScreen
 
                                         if (bitmap == null)
                                         {
-                                            Debug.WriteLine("[Warning] Decoded bitmap returned null. skipping to next frame.");
+                                            log.Warn("Decoded bitmap returned null. skipping to next frame.");
                                             continue;
                                         }
                                         ScreenPreview(bitmap);
@@ -707,11 +712,11 @@ namespace BetterLiveScreen
             {
                 RoomManager.CurrentRoom = room;
 
-                Debug.WriteLine($"Room Name : {room.Name}");
-                Debug.WriteLine($"Room Description : {room.Description}");
-                Debug.WriteLine($"Room Host : {room.HostName}");
-                Debug.WriteLine($"Room Current User Count : {room.CurrentUserCount}");
-                Debug.WriteLine($"Room Password Required : {room.PasswordRequired}");
+                log.Info($"Room Name : {room.Name}");
+                log.Info($"Room Description : {room.Description}");
+                log.Info($"Room Host : {room.HostName}");
+                log.Info($"Room Current User Count : {room.CurrentUserCount}");
+                log.Info($"Room Password Required : {room.PasswordRequired}");
 
                 return true;
             }
@@ -746,7 +751,7 @@ namespace BetterLiveScreen
                         }
                         else
                         {
-                            Debug.WriteLine("[Error] Something went wrong when connecting.");
+                            log.Error("Something went wrong when connecting.");
 
                             var info = connectedInfo.GetFailed(ResponseCodes.Failed);
                             Client.SendBufferToHost(info);

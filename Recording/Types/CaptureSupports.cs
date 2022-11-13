@@ -2,9 +2,14 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+
+using log4net;
 
 using SharpDX.DXGI;
 using SharpDX.Direct3D11;
@@ -16,13 +21,13 @@ using BetterLiveScreen.Recording.Video.WGC;
 using D3D11Device = SharpDX.Direct3D11.Device;
 using NvEncoder = BetterLiveScreen.Recording.Video.NvEncoder.Encoder;
 using NvFormat = BetterLiveScreen.Recording.Video.NvEncoder.Format;
-using System.Runtime.InteropServices;
-using System.Threading;
 
 namespace BetterLiveScreen.Recording.Types
 {
     public class CaptureSupports
     {
+        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
         //Video - Capture
         public bool DesktopDuplication { get; set; }
         public bool WGC { get; set; }
@@ -75,7 +80,7 @@ namespace BetterLiveScreen.Recording.Types
             {
                 Rescreen.Supports.DesktopDuplication = false;
 
-                Debug.WriteLine($"[Error] Desktop Duplication Not Supported. Error Message : {ex}");
+                log.Error("Desktop Duplication Not Supported.", ex);
                 duplicatedOutput = null;
 
                 return false;
@@ -89,7 +94,7 @@ namespace BetterLiveScreen.Recording.Types
             if (!WGCHelper.IsInitialized && !WGCHelper.Initialize())
             {
                 Rescreen.Supports.WGC = false;
-                Debug.WriteLine("[Warning] WGC Not Supported.");
+                log.Warn("WGC Not Supported.");
 
                 return false;
             }
@@ -144,7 +149,7 @@ namespace BetterLiveScreen.Recording.Types
             if (!encoder.isValid)
             {
                 Rescreen.Supports.Nvenc = false;
-                Debug.WriteLine("[Warning] Nvenc Encoding Not Supported.");
+                log.Warn("Nvenc Encoding Not Supported.");
 
                 return false;
             }

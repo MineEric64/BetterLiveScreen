@@ -14,9 +14,12 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 
+using log4net;
+
 using BetterLiveScreen.Recording.Types;
 using BetterLiveScreen.Recording.Video;
 using BetterLiveScreen.Recording.Video.WGC;
+using System.Reflection;
 
 namespace BetterLiveScreen
 {
@@ -25,6 +28,9 @@ namespace BetterLiveScreen
     /// </summary>
     public partial class LiveSelectWindow : Window
     {
+        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        private DispatcherTimer _timer = new DispatcherTimer();
+
         public bool IsAccepted { get; private set; } = false;
         public bool IsClosed { get; private set; } = false;
 
@@ -40,11 +46,9 @@ namespace BetterLiveScreen
 
         private void LiveSelectWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            DispatcherTimer timer = new DispatcherTimer();
-
-            timer.Interval = TimeSpan.FromMilliseconds(100);
-            timer.Tick += timer_Tick;
-            timer.Start();
+            _timer.Interval = TimeSpan.FromMilliseconds(1000);
+            _timer.Tick += timer_Tick;
+            _timer.Start();
 
 
         }
@@ -79,6 +83,7 @@ namespace BetterLiveScreen
 
         private void LiveSelectWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
+            if (_timer.IsEnabled) _timer.Stop();
             IsClosed = true;
         }
 
@@ -92,6 +97,8 @@ namespace BetterLiveScreen
 
         private void goLive_Click(object sender, RoutedEventArgs e)
         {
+            if (_timer.IsEnabled) _timer.Stop();
+
             ComboBoxItem comboItem;
             string itemTag;
 
@@ -120,14 +127,14 @@ namespace BetterLiveScreen
                     {
                         if (!Rescreen.Supports.WGC)
                         {
-                            Debug.WriteLine("[Error] Desktop Duplication & WGC can't be started.");
+                            log.Error("Desktop Duplication & WGC can't be started.");
                             MessageBox.Show("Go Live can't be started because any capture method doesn't supports on this computer.",
                                 "Better Live Screen : Error", MessageBoxButton.OK, MessageBoxImage.Error);
 
                             return;
                         }
                         Rescreen.Settings.VideoType = CaptureVideoType.WGC;
-                        Debug.WriteLine("[Info] Set to WGC instead of DD.");
+                        log.Info("Set to WGC instead of DD.");
                     }
                     else
                     {
@@ -148,12 +155,19 @@ namespace BetterLiveScreen
             switch (itemTag)
             {
                 case "Auto":
-                    CaptureSupports.SupportsNvenc();
+                    if (Rescreen.Settings.SelectedMonitor.GPU == GPUSelect.Nvidia)
+                    {
+                        CaptureSupports.SupportsNvenc();
+                    }
+                    else
+                    {
+                        Rescreen.Supports.Nvenc = false;
+                    }
 
                     if (!Rescreen.Supports.Nvenc)
                     {
                         Rescreen.Settings.Encoding = EncodingType.OpenH264;
-                        Debug.WriteLine("[Info] Set to OpenH264 instead of NVENC.");
+                        log.Info("Set to OpenH264 instead of NVENC.");
                     }
                     break;
 

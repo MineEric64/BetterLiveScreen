@@ -16,6 +16,8 @@ using Windows.Graphics.DirectX;
 using Windows.Graphics.DirectX.Direct3D11;
 using Windows.Media.Effects;
 
+using log4net;
+
 using Composition.WindowsRuntimeHelpers_NETStd;
 
 using SharpDX;
@@ -52,6 +54,8 @@ namespace BetterLiveScreen.Recording.Video.WGC
         private static ShaderResourceView _smallerTextureView;
         private static Encoder _encoder = null;
         private static int _frameCount = 0;
+
+        private static readonly ILog log = LogManager.GetLogger(typeof(App));
 
         public static bool IsInitialized { get; private set; } = false;
         public static bool IsBorderRequired { get; set; } = false;
@@ -247,7 +251,7 @@ namespace BetterLiveScreen.Recording.Video.WGC
                     Rescreen.Settings.Encoding = EncodingType.OpenH264;
                     Rescreen.Supports.Nvenc = false;
 
-                    Debug.WriteLine("[Warning] Nvenc Encoding Not Supported. Set Encoding to OpenH264.");
+                    log.Warn("Nvenc Encoding Not Supported. Set Encoding to OpenH264.");
                 }
             }
 

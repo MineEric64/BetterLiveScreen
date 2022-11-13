@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using log4net;
+
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -23,6 +25,8 @@ namespace BetterLiveScreen.Rooms
 {
     public class RoomManager
     {
+        private static readonly ILog log = LogManager.GetLogger(typeof(App));
+
         public static bool IsConnected { get; set; } = false;
         public static RoomInfo CurrentRoom { get; set; }
         /// <summary>
@@ -80,7 +84,7 @@ namespace BetterLiveScreen.Rooms
 
             if (received.ResponseCode != ResponseCodes.OK)
             {
-                Debug.WriteLine("[Error] Can't connect to host.");
+                log.Error("Can't connect to host.");
                 return null;
             }
 
@@ -96,7 +100,7 @@ namespace BetterLiveScreen.Rooms
             }
             else
             {
-                Debug.WriteLine("[Error] Can't get room information from host.");
+                log.Error("Can't get room information from host.");
             }
 
             return null;

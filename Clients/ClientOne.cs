@@ -32,11 +32,14 @@ using BetterLiveScreen.Rooms;
 using BetterLiveScreen.Users;
 
 using My = BetterLiveScreen.MainWindow;
+using log4net;
 
 namespace BetterLiveScreen.Clients
 {
     public class ClientOne
     {
+        private static readonly ILog log = LogManager.GetLogger(typeof(App));
+
         public const int PORT_NUMBER = 4089;
         public const int MAXIMUM_BUFFER_SIZE = 65000; //1200;
         public const string DEFAULT_KEY = "blss_default_key";
@@ -148,7 +151,7 @@ namespace BetterLiveScreen.Clients
         {
             if (!RoomManager.IsHost)
             {
-                Debug.WriteLine("[Warning] This user is not host. reject the connection.");
+                log.Warn("This user is not host. reject the connection.");
                 request.Reject();
 
                 return;
@@ -157,14 +160,14 @@ namespace BetterLiveScreen.Clients
             if (Client.ConnectedPeersCount < RoomManager.MAX_USER_COUNT /* max connections */)
             {
                 if (request.AcceptIfKey(DEFAULT_KEY) != null)
-                    Debug.WriteLine("[Info] The connection is accepted by host.");
+                    log.Info("The connection is accepted by host.");
                 else
-                    Debug.WriteLine("[Warning] Can't be accepted, the key doesn't equals to default key.");
+                    log.Warn("Can't be accepted, the key doesn't equals to default key.");
             }
             else
             {
                 request.Reject();
-                Debug.WriteLine("[Warning] The number of connected users is exceed to max. reject the connection.");
+                log.Warn("The number of connected users is exceed to max. reject the connection.");
             }
         }
 
@@ -325,7 +328,7 @@ namespace BetterLiveScreen.Clients
 
                         if (string.IsNullOrEmpty(userName))
                         {
-                            Debug.WriteLine("[Error] Can't get user name from packet receiving event.");
+                            log.Error("Can't get user name from packet receiving event.");
                             break;
                         }
 
@@ -402,7 +405,7 @@ namespace BetterLiveScreen.Clients
 
                             if (bufferChecksum != checksum)
                             {
-                                Debug.WriteLine("[Warning] Checksum doesn't equals to original buffer's value. skip this buffer");
+                                log.Warn("Checksum doesn't equals to original buffer's value. skipped this buffer.");
                                 break;
                             }
 
@@ -456,7 +459,7 @@ namespace BetterLiveScreen.Clients
 
                             if (bufferChecksum != checksum)
                             {
-                                Debug.WriteLine("[Warning] Checksum doesn't equals to original buffer's value. skip this buffer");
+                                log.Warn("Checksum doesn't equals to original buffer's value. skipped this buffer.");
                                 break;
                             }
 
@@ -632,9 +635,9 @@ namespace BetterLiveScreen.Clients
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                Debug.WriteLine("[Error] Can't get IP End Point.");
+                log.Error("Can't get IP End Point.", ex);
             }
             return new IPEndPoint(address, PORT_NUMBER);
         }

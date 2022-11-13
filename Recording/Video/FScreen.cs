@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Documents;
 
+using log4net;
+
 using SharpDX;
 using SharpDX.DXGI;
 using SharpDX.Direct3D11;
@@ -33,6 +35,7 @@ namespace BetterLiveScreen.Recording.Video
     internal class FScreen
     {
         private bool _run, _init;
+        private static readonly ILog log = LogManager.GetLogger(typeof(App));
 
         public int Size { get; private set; }
         public FScreen()
@@ -100,31 +103,34 @@ namespace BetterLiveScreen.Recording.Video
 
             if (Rescreen.Settings.Encoding == EncodingType.Nvenc)
             {
-                encoder = new Encoder();
-
-                EncoderDesc setting = new EncoderDesc()
+                if (Rescreen.Settings.SelectedMonitor.GPU == GPUSelect.Nvidia)
                 {
-                    width = aw,
-                    height = ah,
-                    frameRate = Rescreen.FpsIfUnfixed60,
-                    format = NvEncoder.Format.B8G8R8A8_UNORM,
-                    bitRate = Rescreen.Settings.Bitrate
-                };
-                setting.maxFrameSize = setting.bitRate / setting.frameRate;
+                    encoder = new Encoder();
 
-                encoder.Create(setting, device);
-                encoder.onEncoded += (s, e) =>
-                {
-                    byte[] buffer = new byte[e.Item2];
-                    Marshal.Copy(e.Item1, buffer, 0, e.Item2);
+                    EncoderDesc setting = new EncoderDesc()
+                    {
+                        width = aw,
+                        height = ah,
+                        frameRate = Rescreen.FpsIfUnfixed60,
+                        format = NvEncoder.Format.B8G8R8A8_UNORM,
+                        bitRate = Rescreen.Settings.Bitrate
+                    };
+                    setting.maxFrameSize = setting.bitRate / setting.frameRate;
 
-                    ScreenRefreshed?.Invoke(null, buffer);
-                };
+                    encoder.Create(setting, device);
+                    encoder.onEncoded += (s, e) =>
+                    {
+                        byte[] buffer = new byte[e.Item2];
+                        Marshal.Copy(e.Item1, buffer, 0, e.Item2);
 
-                if (!encoder.isValid)
+                        ScreenRefreshed?.Invoke(null, buffer);
+                    };
+                }
+
+                if (Rescreen.Settings.SelectedMonitor.GPU != GPUSelect.Nvidia || !encoder.isValid)
                 {
                     Rescreen.Supports.Nvenc = false;
-                    Debug.WriteLine("[Warning] Nvenc Encoding Not Supported.");
+                    log.Warn("Nvenc Encoding Not Supported.");
 
                     _init = true;
                     return;
@@ -352,7 +358,6 @@ namespace BetterLiveScreen.Recording.Video
             for (int i = 0; i < factory.Adapters1.Length; i++)
             {
                 var adapter = factory.Adapters1[i];
-                string adapterName = adapter.Description.Description; //ex) NVIDIA GeForce GTX 1050 Ti
 
                 for (int j = 0; j < adapter.Outputs.Length; j++)
                 {
@@ -364,6 +369,28 @@ namespace BetterLiveScreen.Recording.Video
             }
 
             return (-1, -1);
+        }
+
+        /// <summary>
+        /// Get the current graphics card name. ex) NVIDIA Geforce GTX 1050 Ti
+        /// </summary>
+        public static string GetAdapterName(string monitorDeviceName, Factory1 factory)
+        {
+            for (int i = 0; i < factory.Adapters1.Length; i++)
+            {
+                var adapter = factory.Adapters1[i];
+                string adapterName = adapter.Description.Description; //ex) NVIDIA GeForce GTX 1050 Ti
+
+                for (int j = 0; j < adapter.Outputs.Length; j++)
+                {
+                    var output = adapter.Outputs[i];
+                    string outputName = output.Description.DeviceName; //ex) \\.\DISPLAY1
+
+                    if (monitorDeviceName == outputName) return adapterName;
+                }
+            }
+
+            return string.Empty;
         }
     }
 }

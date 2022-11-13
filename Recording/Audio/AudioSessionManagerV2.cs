@@ -24,9 +24,9 @@ namespace BetterLiveScreen.Recording.Audio
             string[] excludeTitleList = new string[] { "nvcontainer" };
             var sessionList = new List<int>();
 
-            _sessionManager.RefreshSessions();
+            _sessionManager?.RefreshSessions();
 
-            if (_sessionManager.Sessions == null)
+            if (_sessionManager?.Sessions == null)
             {
                 return new Process[] { };
             }
@@ -39,6 +39,11 @@ namespace BetterLiveScreen.Recording.Audio
                 {
                     sessionList.Add((int)session.GetProcessID);
                 }
+            }
+
+            if (sessionList.Count == 0)
+            {
+                return new Process[] { };
             }
 
             return sessionList.Select(x => Process.GetProcessById(x)).Where(x => !excludeTitleList.Contains(x.ProcessName)).ToArray();
