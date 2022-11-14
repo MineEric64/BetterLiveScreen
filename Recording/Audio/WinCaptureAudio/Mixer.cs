@@ -3,11 +3,14 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.UI.WebUI;
+
+using log4net;
 
 using NAudio;
 using NAudio.CoreAudioApi;
@@ -22,6 +25,8 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
 {
     public class Mixer
     {
+        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
         private Dictionary<string, MixHandler> _sessionMap;
         private Thread _mixThread;
         private MixingSampleProvider _mixer;
@@ -36,10 +41,19 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
         public Mixer()
         {
             _sessionMap = new Dictionary<string, MixHandler>();
-            
+
+            var excludes = new string[] {
+                //Discord
+                "Discord",
+                "DiscordPTB",
+                "DiscordCanary",
+                "DiscordDevelopment",
+
+                //BetterLiveScreen
+                "BetterLiveScreen"
+                };
             ExcludeMixes = new HashSet<string>();
-            ExcludeMixes.Add("Discord");
-            ExcludeMixes.Add("BetterLiveScreen");
+            foreach (string name in excludes) ExcludeMixes.Add(name.ToLower());
         }
 
         public void Add(Process p)
@@ -75,18 +89,27 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
 
         private void AddInternal(Process p)
         {
-            if (ExcludeMixes.Contains(p.ProcessName)) return;
+            if (ExcludeMixes.Contains(p.ProcessName.ToLower())) return;
 
             var helper = new AudioCaptureHelper(p.Id);
             var handler = new MixHandler(helper, p);
 
             helper.HandleMix(handler);
             _sessionMap.Add(p.ProcessName, handler);
-            p.EnableRaisingEvents = true;
-            p.Exited += (s, e) =>
+
+            try
+            {
+                p.EnableRaisingEvents = true;
+                p.Exited += (s, e) =>
+                {
+                    RemoveInternal(p.ProcessName);
+                };
+            }
+            catch (Exception ex)
             {
                 RemoveInternal(p.ProcessName);
-            };
+                log.Error("can't add process in audio because of process' raising events.", ex);
+            }
         }
 
         public void Remove(string processName)

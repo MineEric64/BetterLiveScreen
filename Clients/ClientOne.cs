@@ -43,6 +43,7 @@ namespace BetterLiveScreen.Clients
         public const int PORT_NUMBER = 4089;
         public const int MAXIMUM_BUFFER_SIZE = 65000; //1200;
         public const string DEFAULT_KEY = "blss_default_key";
+        public const DeliveryMethod DELIVERY_METHOD = DeliveryMethod.ReliableUnordered;
 
         /// <summary>
         /// MessagePack을 위한 LZ4 압축 옵션
@@ -56,7 +57,9 @@ namespace BetterLiveScreen.Clients
         private EventBasedNetListener _listener;
         public NetManager Client { get; set; }
         public Queue<ReceiveInfo> ReceivedQueue { get; private set; } = new Queue<ReceiveInfo>();
+
         public Dictionary<IPEndPoint, UserInfo> UserMap { get; private set; } = new Dictionary<IPEndPoint, UserInfo>();
+        public Dictionary<string, List<string>> WatchMap { get; private set; } = new Dictionary<string, List<string>>();
 
         public bool IsStarted { get; private set; } = false;
         public bool IsConnected { get; private set; } = false;
@@ -73,10 +76,8 @@ namespace BetterLiveScreen.Clients
         public event EventHandler HostConnected;
 
         public event EventHandler<(string, BitmapInfo)> StreamStarted;
+        public event EventHandler<(string, BitmapInfo)> StreamChanged;
         public event EventHandler<string> StreamEnded;
-
-        public event EventHandler<string> WatchStarted;
-        public event EventHandler<string> WatchEnded;
 
         //(buffer, userName, timestamp)
         public event EventHandler<(byte[], string, long)> VideoBufferReceived;
@@ -176,302 +177,360 @@ namespace BetterLiveScreen.Clients
             ReadOnlyMemory<byte> receivedBuffer = new ReadOnlyMemory<byte>(reader.RawData, reader.Position, reader.AvailableBytes);
             var receivedInfo = MessagePackSerializer.Deserialize<ReceiveInfo>(receivedBuffer);
 
+            if (RoomManager.IsHost) //For Host
+            {
+                OnReceived4Host(peer, channel, receivedInfo);
+                OnReceived4User(receivedInfo);
+            }
+            else //For User
+            {
+                OnReceived4User(receivedInfo);
+            }
+        }
+
+        public void OnReceived4Host(NetPeer peer, byte channel, ReceiveInfo receivedInfo, string userName = "")
+        {
             byte[] buffer;
+            byte[] extraBuffer;
             ReceiveInfo info;
 
             string jsonRaw;
             JObject json;
 
-            if (RoomManager.IsHost) //For Host
+            switch (receivedInfo.SendType)
             {
-                switch (receivedInfo.SendType)
-                {
-                    #region Room
-                    case SendTypes.RoomInfoRequested:
-                        jsonRaw = JsonConvert.SerializeObject(RoomManager.CurrentRoom);
-                        buffer = Encode(jsonRaw);
+                #region Room
+                case SendTypes.RoomInfoRequested:
+                    jsonRaw = JsonConvert.SerializeObject(RoomManager.CurrentRoom);
+                    buffer = Encode(jsonRaw);
 
-                        info = new ReceiveInfo(SendTypes.RoomInfoRequested, ResponseCodes.OK, buffer, BufferTypes.JsonString);
-                        SendBuffer(info, peer);
+                    info = new ReceiveInfo(SendTypes.RoomInfoRequested, ResponseCodes.OK, buffer, BufferTypes.JsonString);
+                    SendBuffer(info, peer);
 
-                        break;
+                    break;
 
-                    case SendTypes.RoomConnectRequested:
-                        json = JObject.Parse(Decode(receivedInfo.Buffer));
-                        string password = json["password"]?.ToString() ?? string.Empty;
-                        string userName = json["user"]?.ToString();
-                        string userAvatarUrl = json["user_avatar_url"]?.ToString() ?? string.Empty;
+                case SendTypes.RoomConnectRequested:
+                    json = JObject.Parse(Decode(receivedInfo.Buffer));
+                    string password = json["password"]?.ToString() ?? string.Empty;
+                    userName = json["user"]?.ToString();
+                    string userAvatarUrl = json["user_avatar_url"]?.ToString() ?? string.Empty;
 
-                        if (!RoomManager.CurrentRoom.PasswordRequired || password == RoomManager.Password)
+                    if (!RoomManager.CurrentRoom.PasswordRequired || password == RoomManager.Password)
+                    {
+                        if (RoomManager.CurrentRoom.CurrentUserCount >= RoomManager.MAX_USER_COUNT)
                         {
-                            if (RoomManager.CurrentRoom.CurrentUserCount >= RoomManager.MAX_USER_COUNT)
-                            {
-                                info = receivedInfo.GetFailed(ResponseCodes.TooManyUsers);
-                                SendBuffer(info, peer);
+                            info = receivedInfo.GetFailed(ResponseCodes.TooManyUsers);
+                            SendBuffer(info, peer);
 
-                                break;
-                            }
-                            if (userName == null)
-                            {
-                                info = receivedInfo.GetFailed(ResponseCodes.Failed);
-                                SendBuffer(info, peer);
+                            break;
+                        }
+                        if (userName == null)
+                        {
+                            info = receivedInfo.GetFailed(ResponseCodes.Failed);
+                            SendBuffer(info, peer);
 
-                                break;
-                            }
-                            var jsonUsers = new JArray();
+                            break;
+                        }
+                        var jsonUsers = new JArray();
 
-                            foreach (var user in My.Users)
-                            {
-                                jsonUsers.Add(new JObject()
+                        foreach (var user in My.Users)
+                        {
+                            jsonUsers.Add(new JObject()
                                 {
                                     { "full_name", user.ToString() },
                                     { "avatar_url", user.AvatarURL },
                                     { "is_lived", user.IsLived }
                                 });
-                            }
-                            json = new JObject
+                        }
+                        json = new JObject
                             {
                                 { "users", jsonUsers },
                                 { "room_id", RoomManager.CurrentRoomId.ToString() }
                             };
 
-                            buffer = Encode(json.ToString());
-                            info = new ReceiveInfo(SendTypes.RoomConnectRequested, ResponseCodes.OK, buffer, BufferTypes.JsonString);
-                            SendBuffer(info, peer);
+                        buffer = Encode(json.ToString());
+                        info = new ReceiveInfo(SendTypes.RoomConnectRequested, ResponseCodes.OK, buffer, BufferTypes.JsonString);
+                        SendBuffer(info, peer);
 
-                            json = new JObject
+                        json = new JObject
                             {
                                 { "user", userName },
                                 { "user_avatar_url", userAvatarUrl }
                             };
-                            buffer = Encode(json.ToString());
+                        buffer = Encode(json.ToString());
 
-                            info = new ReceiveInfo(SendTypes.UserConnected, buffer, BufferTypes.JsonString);
-                            SendBufferToAllExcept(info, peer);
+                        info = new ReceiveInfo(SendTypes.UserConnected, buffer, BufferTypes.JsonString);
+                        SendBufferToAllExcept(info, peer);
 
-                            UserMap.Add(peer.EndPoint, new UserInfo(userName, userAvatarUrl));
-                            UserConnected?.Invoke(null, UserMap[peer.EndPoint]);
+                        UserMap.Add(peer.EndPoint, new UserInfo(userName, userAvatarUrl));
+                        UserConnected?.Invoke(null, UserMap[peer.EndPoint]);
+                    }
+                    else
+                    {
+                        info = receivedInfo.GetFailed(ResponseCodes.AccessDenied);
+                        SendBuffer(info, peer);
+                    }
+
+                    break;
+                #endregion
+                #region User
+                case SendTypes.UserDisconnected:
+                    SendBufferToAllExcept(receivedInfo, peer);
+                    break;
+                #endregion
+                #region Streaming
+                case SendTypes.StreamStarted:
+                    SendBufferToAllExcept(receivedInfo, peer);
+                    break;
+
+                case SendTypes.StreamChanged:
+                    SendBufferToAllExcept(receivedInfo, peer);
+                    break;
+
+                case SendTypes.StreamEnded:
+                    SendBufferToAllExcept(receivedInfo, peer);
+                    break;
+
+                #region Watch
+                case SendTypes.WatchStarted:
+                    if (string.IsNullOrEmpty(userName)) userName = UserMap[peer.EndPoint].ToString();
+                    string userName12 = Decode(receivedInfo.Buffer); //the user that the sent user wants to watch
+
+                    if (!WatchMap.TryGetValue(userName12, out var watches)) {
+                        WatchMap.Add(userName12, new List<string>());
+                        watches = WatchMap[userName12];
+                    }
+                    if (!watches.Contains(userName))
+                    {
+                        watches.Add(userName);
+                        log.Info($"{userName} started to watch {userName12}'s Stream");
+                    }
+                    else
+                    {
+                        log.Warn($"{userName} is already watching {userName12}'s Stream");
+                    }
+                    break;
+
+                case SendTypes.WatchEnded:
+                    if (string.IsNullOrEmpty(userName)) userName = UserMap[peer.EndPoint].ToString();
+                    string userName22 = Decode(receivedInfo.Buffer); //the user that the sent user wants to watch
+
+                    if (WatchMap.TryGetValue(userName22, out var watches2))
+                    {
+                        watches2.Remove(userName);
+                        log.Info($"{userName} stopped to watch {userName22}'s Stream");
+                    }
+                    break;
+                #endregion
+                #region Video & Audio
+                case SendTypes.Video:
+                case SendTypes.Audio:
+                    if (string.IsNullOrEmpty(userName)) userName = UserMap[peer.EndPoint].ToString();
+
+                    if (WatchMap.TryGetValue(userName, out var watches3))
+                    {
+                        foreach (var user in watches3)
+                        {
+                            var ep = UserMap.GetKeyByValue(My.GetUserByName(user));
+                            NetPeer peer2 = null;
+
+                            for (int i = 0; i < Client.ConnectedPeersCount; i++)
+                            {
+                                if (Client.ConnectedPeerList.Count > i)
+                                {
+                                    var connectedPeer = Client.ConnectedPeerList[i];
+                                    if (connectedPeer?.EndPoint == ep) peer2 = connectedPeer;
+                                }
+                            }
+                            SendBuffer(receivedInfo, peer2);
+                        }
+                    }
+                    break;
+                #endregion
+                #endregion
+            }
+        }
+
+        public void OnReceived4User(ReceiveInfo receivedInfo)
+        {
+            string userName = string.Empty;
+            byte[] buffer;
+            byte[] extraBuffer;
+            ReceiveInfo info;
+
+            string jsonRaw;
+            JObject json;
+
+            byte checksum = 0;
+            long timestamp = 0;
+            int bufferLength = 0;
+
+            switch (receivedInfo.SendType)
+            {
+                #region Peer
+                case SendTypes.PeerConnected:
+                    ReceivedQueue.Enqueue(receivedInfo);
+                    break;
+                #endregion
+                #region Room
+                case SendTypes.RoomInfoRequested:
+                    ReceivedQueue.Enqueue(receivedInfo);
+                    break;
+
+                case SendTypes.RoomConnectRequested:
+                    ReceivedQueue.Enqueue(receivedInfo);
+                    break;
+                #endregion
+                #region User
+                case SendTypes.UserConnected:
+                    jsonRaw = Decode(receivedInfo.Buffer);
+                    json = JObject.Parse(jsonRaw);
+                    userName = json["user"]?.ToString();
+                    string userAvatarUrl = json["user_avatar_url"]?.ToString() ?? string.Empty;
+
+                    if (string.IsNullOrEmpty(userName))
+                    {
+                        log.Error("Can't get user name from packet receiving event.");
+                        break;
+                    }
+
+                    UserConnected?.Invoke(null, new UserInfo(userName, userAvatarUrl));
+                    break;
+
+                case SendTypes.UserDisconnected:
+                    userName = Decode(receivedInfo.Buffer);
+                    UserDisconnected?.Invoke(null, userName);
+
+                    break;
+                #endregion
+                #region Streaming
+                case SendTypes.StreamStarted:
+                    var videoInfo = MessagePackSerializer.Deserialize<BitmapInfo>(receivedInfo.ExtraBuffer);
+                    userName = Decode(receivedInfo.Buffer);
+
+                    StreamStarted?.Invoke(null, (userName, videoInfo));
+                    break;
+
+                case SendTypes.StreamChanged:
+                    var videoInfo2 = MessagePackSerializer.Deserialize<BitmapInfo>(receivedInfo.ExtraBuffer);
+                    userName = Decode(receivedInfo.Buffer);
+
+                    StreamChanged?.Invoke(null, (userName, videoInfo2));
+                    break;
+
+                case SendTypes.StreamEnded:
+                    userName = Decode(receivedInfo.Buffer);
+
+                    StreamEnded?.Invoke(null, userName);
+                    break;
+                #region Video
+                case SendTypes.Video:
+                    json = JObject.Parse(Decode(receivedInfo.ExtraBuffer));
+                    userName = json["user"]?.ToString();
+                    checksum = json["checksum"]?.ToObject<byte>() ?? 0;
+                    bufferLength = json["buffer_length"]?.ToObject<int>() ?? 0;
+                    timestamp = json["timestamp"]?.ToObject<long>() ?? DateTimeOffset.Now.ToUnixTimeMilliseconds();
+
+                    if (_bufferMap.TryGetValue(userName, out var bufferMap2))
+                    {
+                        if (bufferMap2.TryGetValue(SendTypes.Video, out var prevBuffer))
+                        {
+                            if (prevBuffer == null || prevBuffer.Length != bufferLength)
+                            {
+                                byte[] videoBuffer = new byte[bufferLength];
+                                bufferMap2[SendTypes.Video] = videoBuffer;
+                            }
                         }
                         else
                         {
-                            info = receivedInfo.GetFailed(ResponseCodes.AccessDenied);
-                            SendBuffer(info, peer);
+                            byte[] videoBuffer = new byte[bufferLength];
+                            bufferMap2.Add(SendTypes.Video, videoBuffer);
                         }
+                    }
+                    else
+                    {
+                        byte[] videoBuffer = new byte[bufferLength];
+                        _bufferMap.Add(userName, new Dictionary<SendTypes, byte[]>());
+                        _bufferMap[userName].Add(SendTypes.Video, videoBuffer);
+                    }
 
-                        break;
-                    #endregion
-                    #region User
-                    case SendTypes.UserDisconnected:
-                        SendBufferToAllExcept(receivedInfo, peer);
-                        break;
-                    #endregion
-                    #region Streaming
-                    case SendTypes.StreamStarted:
-                        SendBufferToAllExcept(receivedInfo, peer);
-                        break;
+                    byte[] bufferInfo = _bufferMap[userName][SendTypes.Video];
+                    int offset = receivedInfo.Step * MAXIMUM_BUFFER_SIZE;
 
-                    case SendTypes.StreamEnded:
-                        SendBufferToAllExcept(receivedInfo, peer);
-                        break;
+                    Buffer.BlockCopy(receivedInfo.Buffer, 0, bufferInfo, offset, receivedInfo.Buffer.Length);
 
-                    #region Watch
-                    case SendTypes.WatchStarted:
+                    if (receivedInfo.Step == receivedInfo.MaxStep)
+                    {
+                        byte bufferChecksum = Checksum.ComputeAddition(bufferInfo);
 
-                        break;
-
-                    case SendTypes.WatchEnded:
-
-                        break;
-                    #endregion
-                    #region Video
-                    case SendTypes.Video:
-                        SendBufferToAllExcept(receivedInfo, peer); //test (need to add watch feature)
-                        break;
-                    #endregion
-                    #region Audio
-                    case SendTypes.Audio:
-                        SendBufferToAllExcept(receivedInfo, peer); //test (need to add watch feature)
-                        break;
-                    #endregion
-                    #endregion
-                }
-            }
-            else //For User
-            {
-                string userName = string.Empty;
-                byte checksum = 0;
-                long timestamp = 0;
-                int bufferLength = 0;
-
-                switch (receivedInfo.SendType)
-                {
-                    #region Peer
-                    case SendTypes.PeerConnected:
-                        ReceivedQueue.Enqueue(receivedInfo);
-                        break;
-                    #endregion
-                    #region Room
-                    case SendTypes.RoomInfoRequested:
-                        ReceivedQueue.Enqueue(receivedInfo);
-                        break;
-
-                    case SendTypes.RoomConnectRequested:
-                        ReceivedQueue.Enqueue(receivedInfo);
-                        break;
-                    #endregion
-                    #region User
-                    case SendTypes.UserConnected:
-                        jsonRaw = Decode(receivedInfo.Buffer);
-                        json = JObject.Parse(jsonRaw);
-                        userName = json["user"].ToString();
-                        string userAvatarUrl = json["user_avatar_url"]?.ToString() ?? string.Empty;
-
-                        if (string.IsNullOrEmpty(userName))
+                        if (bufferChecksum != checksum)
                         {
-                            log.Error("Can't get user name from packet receiving event.");
+                            log.Warn("Checksum doesn't equals to original buffer's value. skipped this buffer.");
                             break;
                         }
 
-                        UserConnected?.Invoke(null, new UserInfo(userName, userAvatarUrl));
-                        break;
+                        VideoBufferReceived?.Invoke(null, (bufferInfo, userName, timestamp));
+                        _bufferMap[userName][SendTypes.Video] = null;
+                    }
 
-                    case SendTypes.UserDisconnected:
-                        userName = Decode(receivedInfo.Buffer);
-                        UserDisconnected?.Invoke(null, userName);
+                    break;
+                #endregion
+                #region Audio
+                case SendTypes.Audio:
+                    json = JObject.Parse(Decode(receivedInfo.ExtraBuffer));
+                    userName = json["user"]?.ToString();
+                    checksum = json["checksum"]?.ToObject<byte>() ?? 0;
+                    bufferLength = json["buffer_length"]?.ToObject<int>() ?? 0;
+                    int audioSampleRate = json["audio_sample_rate"]?.ToObject<int>() ?? 44100;
+                    int audioChannel = json["audio_channel"]?.ToObject<int>() ?? 2;
+                    timestamp = json["timestamp"]?.ToObject<long>() ?? DateTimeOffset.Now.ToUnixTimeMilliseconds();
 
-                        break;
-                    #endregion
-                    #region Streaming
-                    case SendTypes.StreamStarted:
-                        var videoInfo = MessagePackSerializer.Deserialize<BitmapInfo>(receivedInfo.ExtraBuffer);
-                        userName = Decode(receivedInfo.Buffer);
-
-                        StreamStarted?.Invoke(null, (userName, videoInfo));
-                        break;
-
-                    case SendTypes.StreamEnded:
-                        userName = Decode(receivedInfo.Buffer);
-                        StreamEnded?.Invoke(null, userName);
-
-                        break;
-                    #region Watch
-                    case SendTypes.WatchStarted:
-
-                        break;
-
-                    case SendTypes.WatchEnded:
-
-                        break;
-                    #endregion
-                    #region Video
-                    case SendTypes.Video:
-                        json = JObject.Parse(Decode(receivedInfo.ExtraBuffer));
-                        userName = json["user"]?.ToString() ?? string.Empty;
-                        checksum = json["checksum"]?.ToObject<byte>() ?? 0;
-                        bufferLength = json["buffer_length"]?.ToObject<int>() ?? 0;
-                        timestamp = json["timestamp"]?.ToObject<long>() ?? DateTimeOffset.Now.ToUnixTimeMilliseconds();
-
-                        if (_bufferMap.TryGetValue(userName, out var bufferMap2))
+                    if (_bufferMap.TryGetValue(userName, out var bufferMap3))
+                    {
+                        if (bufferMap3.TryGetValue(SendTypes.Audio, out var prevBuffer))
                         {
-                            if (bufferMap2.TryGetValue(SendTypes.Video, out var prevBuffer))
-                            {
-                                if (prevBuffer == null || prevBuffer.Length != bufferLength)
-                                {
-                                    byte[] videoBuffer = new byte[bufferLength];
-                                    bufferMap2[SendTypes.Video] = videoBuffer;
-                                }
-                            }
-                            else
+                            if (prevBuffer == null || prevBuffer.Length != bufferLength)
                             {
                                 byte[] videoBuffer = new byte[bufferLength];
-                                bufferMap2.Add(SendTypes.Video, videoBuffer);
+                                bufferMap3[SendTypes.Audio] = videoBuffer;
                             }
                         }
                         else
                         {
                             byte[] videoBuffer = new byte[bufferLength];
-                            _bufferMap.Add(userName, new Dictionary<SendTypes, byte[]>());
-                            _bufferMap[userName].Add(SendTypes.Video, videoBuffer);
+                            bufferMap3.Add(SendTypes.Audio, videoBuffer);
                         }
+                    }
+                    else
+                    {
+                        byte[] videoBuffer = new byte[bufferLength];
+                        _bufferMap.Add(userName, new Dictionary<SendTypes, byte[]>());
+                        _bufferMap[userName].Add(SendTypes.Audio, videoBuffer);
+                    }
 
-                        byte[] bufferInfo = _bufferMap[userName][SendTypes.Video];
-                        int offset = receivedInfo.Step * MAXIMUM_BUFFER_SIZE;
+                    var bufferInfo2 = _bufferMap[userName][SendTypes.Audio];
+                    int offset2 = receivedInfo.Step * MAXIMUM_BUFFER_SIZE;
 
-                        Buffer.BlockCopy(receivedInfo.Buffer, 0, bufferInfo, offset, receivedInfo.Buffer.Length);
+                    Buffer.BlockCopy(receivedInfo.Buffer, 0, bufferInfo2, offset2, receivedInfo.Buffer.Length);
 
-                        if (receivedInfo.Step == receivedInfo.MaxStep)
+                    if (receivedInfo.Step == receivedInfo.MaxStep)
+                    {
+                        byte bufferChecksum = Checksum.ComputeAddition(bufferInfo2);
+
+                        if (bufferChecksum != checksum)
                         {
-                            byte bufferChecksum = Checksum.ComputeAddition(bufferInfo);
-
-                            if (bufferChecksum != checksum)
-                            {
-                                log.Warn("Checksum doesn't equals to original buffer's value. skipped this buffer.");
-                                break;
-                            }
-
-                            VideoBufferReceived?.Invoke(null, (bufferInfo, userName, timestamp));
-                            _bufferMap[userName][SendTypes.Video] = null;
+                            log.Warn("Checksum doesn't equals to original buffer's value. skipped this buffer.");
+                            break;
                         }
 
-                        break;
+                        Rescreen.VideoStreams[userName].ChangeFormat(WaveFormat.CreateIeeeFloatWaveFormat(audioSampleRate, audioChannel));
+                        AudioBufferReceived?.Invoke(null, (bufferInfo2, userName, timestamp));
+                        _bufferMap[userName][SendTypes.Audio] = null;
+                    }
+
+                    break;
                     #endregion
-                    #region Audio
-                    case SendTypes.Audio:
-                        json = JObject.Parse(Decode(receivedInfo.ExtraBuffer));
-                        userName = json["user"]?.ToString() ?? string.Empty;
-                        checksum = json["checksum"]?.ToObject<byte>() ?? 0;
-                        bufferLength = json["buffer_length"]?.ToObject<int>() ?? 0;
-                        int audioSampleRate = json["audio_sample_rate"]?.ToObject<int>() ?? 44100;
-                        int audioChannel = json["audio_channel"]?.ToObject<int>() ?? 2;
-                        timestamp = json["timestamp"]?.ToObject<long>() ?? DateTimeOffset.Now.ToUnixTimeMilliseconds();
-
-                        if (_bufferMap.TryGetValue(userName, out var bufferMap3))
-                        {
-                            if (bufferMap3.TryGetValue(SendTypes.Audio, out var prevBuffer))
-                            {
-                                if (prevBuffer == null || prevBuffer.Length != bufferLength)
-                                {
-                                    byte[] videoBuffer = new byte[bufferLength];
-                                    bufferMap3[SendTypes.Audio] = videoBuffer;
-                                }
-                            }
-                            else
-                            {
-                                byte[] videoBuffer = new byte[bufferLength];
-                                bufferMap3.Add(SendTypes.Audio, videoBuffer);
-                            }
-                        }
-                        else
-                        {
-                            byte[] videoBuffer = new byte[bufferLength];
-                            _bufferMap.Add(userName, new Dictionary<SendTypes, byte[]>());
-                            _bufferMap[userName].Add(SendTypes.Audio, videoBuffer);
-                        }
-
-                        var bufferInfo2 = _bufferMap[userName][SendTypes.Audio];
-                        int offset2 = receivedInfo.Step * MAXIMUM_BUFFER_SIZE;
-
-                        Buffer.BlockCopy(receivedInfo.Buffer, 0, bufferInfo2, offset2, receivedInfo.Buffer.Length);
-
-                        if (receivedInfo.Step == receivedInfo.MaxStep)
-                        {
-                            byte bufferChecksum = Checksum.ComputeAddition(bufferInfo2);
-
-                            if (bufferChecksum != checksum)
-                            {
-                                log.Warn("Checksum doesn't equals to original buffer's value. skipped this buffer.");
-                                break;
-                            }
-
-                            Rescreen.VideoStreams[userName].ChangeFormat(WaveFormat.CreateIeeeFloatWaveFormat(audioSampleRate, audioChannel));
-                            AudioBufferReceived?.Invoke(null, (bufferInfo2, userName, timestamp));
-                            _bufferMap[userName][SendTypes.Audio] = null;
-                        }
-
-                        break;
-                        #endregion
                     #endregion
-                }
             }
         }
 
@@ -527,7 +586,7 @@ namespace BetterLiveScreen.Clients
         public void SendBuffer(ReceiveInfo info, NetPeer peer)
         {
             byte[] buffer = MessagePackSerializer.Serialize(info);
-            peer?.Send(buffer, DeliveryMethod.ReliableUnordered);
+            peer?.Send(buffer, DELIVERY_METHOD);
         }
 
         public void SendBufferToHost(ReceiveInfo info)
@@ -538,13 +597,23 @@ namespace BetterLiveScreen.Clients
         public void SendBufferToAll(ReceiveInfo info)
         {
             byte[] buffer = MessagePackSerializer.Serialize(info);
-            Client.SendToAll(buffer, DeliveryMethod.ReliableUnordered);
+
+            foreach (NetPeer peer in Client.ConnectedPeerList)
+            {
+                if (!UserMap.ContainsKey(peer.EndPoint)) return;
+                peer.Send(buffer, DELIVERY_METHOD);
+            }
         }
 
         public void SendBufferToAllExcept(ReceiveInfo info, NetPeer exceptPeer)
         {
             byte[] buffer = MessagePackSerializer.Serialize(info);
-            Client.SendToAll(buffer, DeliveryMethod.ReliableUnordered, exceptPeer);
+
+            foreach (NetPeer peer in Client.ConnectedPeerList)
+            {
+                if (exceptPeer != null && (!UserMap.ContainsKey(peer.EndPoint) || exceptPeer.EndPoint == peer.EndPoint)) return;
+                peer.Send(buffer, DELIVERY_METHOD);
+            }
         }
 
         /// <summary>

@@ -103,6 +103,7 @@
     <Compile Include="Clients\ClientOne.cs" />
     <Compile Include="Clients\DiscordHelper.cs" />
     <Compile Include="Extensions\BitmapConverter.cs" />
+    <Compile Include="Extensions\DictionaryHelper.cs" />
     <Compile Include="Extensions\DLLInjector.cs" />
     <Compile Include="Extensions\HRESULT.cs" />
     <Compile Include="Extensions\Kernel32.cs" />

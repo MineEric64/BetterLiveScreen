@@ -98,6 +98,9 @@ namespace BetterLiveScreen
         private void goLive_Click(object sender, RoutedEventArgs e)
         {
             if (_timer.IsEnabled) _timer.Stop();
+            if (Monitors.Count == 0) timer_Tick(null, null);
+
+            if (Rescreen.IsRecording) Rescreen.Stop();
 
             ComboBoxItem comboItem;
             string itemTag;
@@ -139,6 +142,7 @@ namespace BetterLiveScreen
                     else
                     {
                         Rescreen.Settings.VideoType = CaptureVideoType.DD;
+                        log.Info("Set to DD.");
                     }
                     break;
 
@@ -168,6 +172,11 @@ namespace BetterLiveScreen
                     {
                         Rescreen.Settings.Encoding = EncodingType.OpenH264;
                         log.Info("Set to OpenH264 instead of NVENC.");
+                    }
+                    else
+                    {
+                        Rescreen.Settings.Encoding = EncodingType.Nvenc;
+                        log.Info("Set to NVENC.");
                     }
                     break;
 

@@ -196,6 +196,7 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
         public void ForwardToMixer(ulong timestamp, byte[] buffer)
         {
             if (_mixHandler == null) return;
+
             _mixHandler.Buffer.Enqueue(buffer);
         }
 

@@ -15,6 +15,7 @@ namespace BetterLiveScreen.Users
     {
         public UserNameInfo NameInfo { get; set; }
         public string AvatarURL { get; set; }
+
         public bool IsLived { get; set; } //Go Live
 
         public static UserInfo GuestUser => new UserInfo(UserNameInfo.GuestUser, string.Empty);
@@ -43,7 +44,12 @@ namespace BetterLiveScreen.Users
 
         public ImageSource GetAvatarImage()
         {
-            if (string.IsNullOrWhiteSpace(AvatarURL))
+            return GetAvatarImage(AvatarURL);
+        }
+
+        public static ImageSource GetAvatarImage(string avatarUrl)
+        {
+            if (string.IsNullOrWhiteSpace(avatarUrl))
             {
                 return BitmapConverter.BLACK_IMAGE;
             }
@@ -51,7 +57,7 @@ namespace BetterLiveScreen.Users
             var bitmapImage = new BitmapImage();
 
             bitmapImage.BeginInit();
-            bitmapImage.UriSource = new Uri(AvatarURL);
+            bitmapImage.UriSource = new Uri(avatarUrl);
             bitmapImage.EndInit();
 
             return bitmapImage;

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.Remoting.Messaging;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -56,7 +57,7 @@ namespace BetterLiveScreen.Recording.Audio.Wasapi
         {
             if (!IsInitialized || !IsPlaying) return;
 
-            _wasapiOut.Stop();
+            if (_wasapiOut.PlaybackState != PlaybackState.Paused) _wasapiOut.Pause();
 
             IsInitialized = false;
             IsPlaying = false;
@@ -66,11 +67,7 @@ namespace BetterLiveScreen.Recording.Audio.Wasapi
         {
             if (BufferMap.ContainsKey(userName)) BufferMap.Remove(userName);
 
-            var buffered = new BufferedWaveProvider(format)
-            {
-                BufferDuration = TimeSpan.FromSeconds(1),
-                DiscardOnBufferOverflow = true
-            };
+            var buffered = new BufferedWaveProvider(format);
             var converted = new WdlResamplingSampleProvider(buffered.ToSampleProvider(), 44100);
             //var converted = new WaveFormatConversionProvider(StandardFormat, buffered);
 
