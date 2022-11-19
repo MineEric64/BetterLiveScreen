@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
@@ -105,10 +106,15 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
                     RemoveInternal(p.ProcessName);
                 };
             }
+            catch (Win32Exception) //Access Denied (when Enable Raising Events)
+            {
+                RemoveInternal(p.ProcessName);
+                log.Warn($"can't add process in audio because of access denied. Process Name : {p.ProcessName}");
+            }
             catch (Exception ex)
             {
                 RemoveInternal(p.ProcessName);
-                log.Error("can't add process in audio because of process' raising events.", ex);
+                log.Error($"can't add process in audio. Process Name : {p.ProcessName}", ex);
             }
         }
 

@@ -1,13 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
+using System.Windows.Forms;
+using System.Windows.Interop;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -16,10 +20,12 @@ using System.Windows.Threading;
 
 using log4net;
 
+using BetterLiveScreen.Extensions;
 using BetterLiveScreen.Recording.Types;
 using BetterLiveScreen.Recording.Video;
 using BetterLiveScreen.Recording.Video.WGC;
-using System.Reflection;
+
+using MessageBox = System.Windows.MessageBox;
 
 namespace BetterLiveScreen
 {
@@ -67,18 +73,42 @@ namespace BetterLiveScreen
                 if (monitor.DeviceName == primary.DeviceName) continue;
                 if (!Monitors.Contains(monitor)) Monitors.Add(monitor);
             }
-
-            if (Monitors.Count > 1)
-            {
-                monitor2Group.IsEnabled = true;
-            }
-            else if (Monitors.Count == 1)
-            {
-                monitor2Group.IsEnabled = false;
-            }
+            monitor2Group.IsEnabled = Monitors.Count > 1;
 
             //Screen Refresh
+            BitmapSource CopyScreenFromMonitor(MonitorInfo monitor)
+            {
+                Debug.WriteLine(monitor.WorkArea);
+                return CopyScreen(monitor.WorkArea.Left, monitor.WorkArea.Top, monitor.WorkArea.Right, monitor.WorkArea.Bottom);
+            }
+            if (Monitors.Count > 1)
+            {
+                monitor2Thumbnail.Source = CopyScreenFromMonitor(Monitors[1]);
+            }
+            monitor1Thumbnail.Source = CopyScreenFromMonitor(Monitors[0]);
+        }
 
+        /// <summary>
+        /// Capture the screen with bound using Graphics.CopyFromScreen() (BitBlt). It is not recommended if you want to use it with high performance.
+        /// </summary>
+        /// <param name="left">screen bound X</param>
+        /// <param name="top">screen bound Y</param>
+        /// <param name="right">screen bound X + Width</param>
+        /// <param name="bottom">screen bound Y + Height</param>
+        /// <returns></returns>
+        private static BitmapSource CopyScreen(int left, int top, int right, int bottom)
+        {
+            int width = right - left;
+            int height = bottom - top;
+
+            using (var screenBmp = new Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format24bppRgb))
+            {
+                using (var bmpGraphics = Graphics.FromImage(screenBmp))
+                {
+                    bmpGraphics.CopyFromScreen(left, top, 0, 0, screenBmp.Size);
+                    return screenBmp.ToImage();
+                }
+            }
         }
 
         private void LiveSelectWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)

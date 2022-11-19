@@ -27,6 +27,8 @@ using Windows.UI.Xaml.Documents;
 
 using log4net;
 
+using AutoUpdaterDotNET;
+
 using OpenCvSharp;
 using OpenCvSharp.WpfExtensions;
 
@@ -107,6 +109,13 @@ namespace BetterLiveScreen
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
+            AutoUpdater.Synchronous = true;
+            AutoUpdater.ShowSkipButton = false;
+            AutoUpdater.ShowRemindLaterButton = false;
+            AutoUpdater.Mandatory = true;
+            AutoUpdater.UpdateMode = Mode.Forced;
+            AutoUpdater.Start("https://raw.githubusercontent.com/Luigi38/ProjectData/master/BetterLiveScreen/info.xml");
+
             StartWindow.Closing += (s, ee) =>
             {
                 if (StartWindow.IsAccepted)

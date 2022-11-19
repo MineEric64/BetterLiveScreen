@@ -13,6 +13,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 
+using log4net;
+
 using LiteNetLib;
 using LiteNetLib.Utils;
 
@@ -32,7 +34,6 @@ using BetterLiveScreen.Rooms;
 using BetterLiveScreen.Users;
 
 using My = BetterLiveScreen.MainWindow;
-using log4net;
 
 namespace BetterLiveScreen.Clients
 {
@@ -231,6 +232,9 @@ namespace BetterLiveScreen.Clients
 
                             break;
                         }
+
+                        //Successful
+                        //Send User Infos to joined user
                         var jsonUsers = new JArray();
 
                         foreach (var user in My.Users)
@@ -250,18 +254,21 @@ namespace BetterLiveScreen.Clients
 
                         buffer = Encode(json.ToString());
                         info = new ReceiveInfo(SendTypes.RoomConnectRequested, ResponseCodes.OK, buffer, BufferTypes.JsonString);
+
                         SendBuffer(info, peer);
 
+                        //Send Joined user info to all users except joined user
                         json = new JObject
                             {
                                 { "user", userName },
                                 { "user_avatar_url", userAvatarUrl }
                             };
                         buffer = Encode(json.ToString());
-
                         info = new ReceiveInfo(SendTypes.UserConnected, buffer, BufferTypes.JsonString);
+
                         SendBufferToAllExcept(info, peer);
 
+                        //Add User Info (Host Only)
                         UserMap.Add(peer.EndPoint, new UserInfo(userName, userAvatarUrl));
                         UserConnected?.Invoke(null, UserMap[peer.EndPoint]);
                     }
