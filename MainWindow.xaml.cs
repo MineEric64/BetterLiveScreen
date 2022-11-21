@@ -63,6 +63,7 @@ using NvDecoder = BetterLiveScreen.Recording.Video.NvPipe.Decoder;
 using H264Encoder = OpenH264Lib.Encoder;
 using H264Decoder = OpenH264Lib.Decoder;
 using System.Collections.Concurrent;
+using SharpDX.Text;
 
 namespace BetterLiveScreen
 {
@@ -599,6 +600,30 @@ namespace BetterLiveScreen
             H264Decoder h264Decoder = null;
             Dictionary<string, (bool, DateTime)> wasNullMap = new Dictionary<string, (bool, DateTime)>();
 
+            void ClearBuffer(VideoLike stream, EncodingType encoding)
+            {
+                int MAX_COUNT = 90;
+
+                if (stream.ScreenQueue.Count > MAX_COUNT)
+                {
+                    while (stream.ScreenQueue.Count > 0)
+                    {
+                        if (stream.ScreenQueue.TryDequeue(out var screen2))
+                        {
+                            switch (encoding)
+                            {
+                                case EncodingType.OpenH264:
+                                    byte[] preview = screen2.Item1.Decompress();
+
+                                    if (h264Decoder == null) h264Decoder = new H264Decoder("openh264-2.3.1-win64.dll");
+                                    h264Decoder.Decode(preview, preview.Length);
+                                    break;
+                            }
+                        }
+                    }
+                }
+            }
+
             while (Watches.Count > 0)
             {
                 foreach (var livedUserName in Watches.Values)
@@ -610,30 +635,11 @@ namespace BetterLiveScreen
                         var videoStream = Rescreen.VideoStreams[livedUser.ToString()];
                         Enum.TryParse(videoStream.Info.Encoding, out EncodingType encoding);
 
+                        //ClearBuffer(videoStream, encoding);
                         try
                         {
                             while (videoStream.ScreenQueue.Count > 0)
                             {
-                                //if (videoStream.ScreenQueue.Count > 90)
-                                //{
-                                //    while (videoStream.ScreenQueue.Count > 0)
-                                //    {
-                                //        if (videoStream.ScreenQueue.TryDequeue(out var screen2))
-                                //        {
-                                //            switch (encoding)
-                                //            {
-                                //                case EncodingType.OpenH264:
-                                //                    byte[] preview = screen2.Item1.Decompress();
-
-                                //                    if (h264Decoder == null) h264Decoder = new H264Decoder("openh264-2.3.1-win64.dll");
-                                //                    h264Decoder.Decode(preview, preview.Length);
-                                //                    break;
-                                //            }
-                                //        }
-                                //    }
-                                //    break;
-                                //}
-
                                 if (videoStream.ScreenQueue.TryDequeue(out var screen)) //compressed
                                 {
                                     byte[] preview = screen.Item1.Decompress();
@@ -740,6 +746,19 @@ namespace BetterLiveScreen
 
         private void ClientBufferRefreshedAudio()
         {
+            void ClearBuffer(VideoLike stream)
+            {
+                int MAX_COUNT = 90;
+
+                if (stream.AudioQueue.Count > MAX_COUNT)
+                {
+                    while (stream.AudioQueue.Count > 0)
+                    {
+                        stream.AudioQueue.TryDequeue(out _);
+                    }
+                }
+            }
+
             while (Watches.Count > 0)
             {
                 foreach (var livedUserName in Watches.Values)
@@ -750,19 +769,11 @@ namespace BetterLiveScreen
                     {
                         var videoStream = Rescreen.VideoStreams[livedUser.ToString()];
 
+                        //ClearBuffer(videoStream);
                         try
                         {
                             while (videoStream.AudioQueue.Count > 0)
                             {
-                                if (videoStream.AudioQueue.Count > 90)
-                                {
-                                    while (videoStream.AudioQueue.Count > 0)
-                                    {
-                                        videoStream.AudioQueue.TryDequeue(out _);
-                                    }
-                                    break;
-                                }
-
                                 if (videoStream.AudioQueue.TryDequeue(out var audio)) //compressed
                                 {
                                     byte[] decompressed = audio.Item1.Decompress();

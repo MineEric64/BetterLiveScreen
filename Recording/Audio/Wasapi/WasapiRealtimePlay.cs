@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Remoting.Messaging;
 using System.Text;
 using System.Threading.Tasks;
+
+using log4net;
 
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
@@ -14,6 +17,8 @@ namespace BetterLiveScreen.Recording.Audio.Wasapi
 {
     public class WasapiRealtimePlay
     {
+        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
         private static WasapiOut _wasapiOut = null;
         private static string _prevDeviceId = string.Empty;
         private static MixingSampleProvider _mixer;
@@ -66,6 +71,11 @@ namespace BetterLiveScreen.Recording.Audio.Wasapi
         public static void AddToBufferMap(string userName, WaveFormat format)
         {
             if (BufferMap.ContainsKey(userName)) BufferMap.Remove(userName);
+            if (format == null)
+            {
+                log.Error("Audio Format is null. can't add to buffer map.");
+                return;
+            }
 
             var buffered = new BufferedWaveProvider(format);
             var converted = new WdlResamplingSampleProvider(buffered.ToSampleProvider(), 44100);
