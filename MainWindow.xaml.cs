@@ -315,6 +315,8 @@ namespace BetterLiveScreen
 
         private async void goLive_Click(object sender, RoutedEventArgs e)
         {
+            if (Rescreen.IsRecording) Rescreen.Stop();
+
             //TODO: Change Settings by User
             var liveSelect = new LiveSelectWindow();
 
@@ -1093,78 +1095,38 @@ namespace BetterLiveScreen
 
         private void thumbnail1_MouseUp(object sender, MouseButtonEventArgs e)
         {
-            string key1 = PreviewMap.GetKeyByValue(0);
-            string key2 = PreviewMap.GetKeyByValue(1);
-
-            if (!User.Equals(key2) && !Watches.ContainsValue(key2)) //The user wants to watch
-            {
-                Watch(key2);
-            }
-            else if (!User.Equals(key2) && e.ChangedButton == MouseButton.Right)
-            {
-                Unwatch(key2);
-            }
-            else
-            {
-                PreviewMap.Swap(key1, key2);
-                UpdateUserUI();
-            }
+            thumbnail_Internal(0, 1, e);
         }
 
         private void thumbnail2_MouseUp(object sender, MouseButtonEventArgs e)
         {
-            string key1 = PreviewMap.GetKeyByValue(0);
-            string key2 = PreviewMap.GetKeyByValue(2);
-
-            if (!Watches.ContainsValue(key2)) //The user wants to watch
-            {
-                Watch(key2);
-            }
-            else if (e.ChangedButton == MouseButton.Right)
-            {
-                Unwatch(key2);
-            }
-            else
-            {
-                PreviewMap.Swap(key1, key2);
-                UpdateUserUI();
-            }
+            thumbnail_Internal(0, 2, e);
         }
 
         private void thumbnail3_MouseUp(object sender, MouseButtonEventArgs e)
         {
-            string key1 = PreviewMap.GetKeyByValue(0);
-            string key2 = PreviewMap.GetKeyByValue(3);
-
-            if (!Watches.ContainsValue(key2)) //The user wants to watch
-            {
-                Watch(key2);
-            }
-            else if (e.ChangedButton == MouseButton.Right)
-            {
-                Unwatch(key2);
-            }
-            else
-            {
-                PreviewMap.Swap(key1, key2);
-                UpdateUserUI();
-            }
+            thumbnail_Internal(0, 3, e);
         }
 
         private void thumbnail4_MouseUp(object sender, MouseButtonEventArgs e)
         {
-            string key1 = PreviewMap.GetKeyByValue(0);
-            string key2 = PreviewMap.GetKeyByValue(4);
+            thumbnail_Internal(0, 4, e);
+        }
+
+        private void thumbnail_Internal(int index1, int index2, MouseButtonEventArgs e)
+        {
+            string key1 = PreviewMap.GetKeyByValue(index1);
+            string key2 = PreviewMap.GetKeyByValue(index2);
 
             if (!Watches.ContainsValue(key2)) //The user wants to watch
             {
                 Watch(key2);
             }
-            else if (e.ChangedButton == MouseButton.Right)
+            else if (e.ChangedButton == MouseButton.Right) //The user doesn't want to watch
             {
                 Unwatch(key2);
             }
-            else
+            else if (key1 != null && key2 != null) //Swap
             {
                 PreviewMap.Swap(key1, key2);
                 UpdateUserUI();

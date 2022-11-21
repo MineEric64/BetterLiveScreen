@@ -192,7 +192,6 @@ namespace BetterLiveScreen.Clients
         public void OnReceived4Host(NetPeer peer, byte channel, ReceiveInfo receivedInfo, string userName = "")
         {
             byte[] buffer;
-            byte[] extraBuffer;
             ReceiveInfo info;
 
             string jsonRaw;
@@ -332,6 +331,11 @@ namespace BetterLiveScreen.Clients
                 #region Video & Audio
                 case SendTypes.Video:
                 case SendTypes.Audio:
+                    //Others : Channel 0
+                    //Video : Channel 1
+                    //Audio : Channel 2
+                    byte channelToSend = (byte)(receivedInfo.SendType == SendTypes.Video ? 1 : 2);
+
                     if (string.IsNullOrEmpty(userName)) userName = UserMap[peer.EndPoint].ToString();
 
                     if (WatchMap.TryGetValue(userName, out var watches3))
@@ -340,16 +344,16 @@ namespace BetterLiveScreen.Clients
                         {
                             var ep = UserMap.GetKeyByValue(My.GetUserByName(user));
                             NetPeer peer2 = null;
+                            var peers = Client.ConnectedPeerList.ToList();
 
-                            for (int i = 0; i < Client.ConnectedPeersCount; i++)
+                            foreach (var connected in peers)
                             {
-                                if (Client.ConnectedPeerList.Count > i)
+                                if (connected?.EndPoint == ep)
                                 {
-                                    var connectedPeer = Client.ConnectedPeerList[i];
-                                    if (connectedPeer?.EndPoint == ep) peer2 = connectedPeer;
+                                    peer2 = connected;
                                 }
                             }
-                            SendBuffer(receivedInfo, peer2);
+                            SendBuffer(receivedInfo, peer2, channelToSend);
                         }
                     }
                     break;
@@ -361,10 +365,6 @@ namespace BetterLiveScreen.Clients
         public void OnReceived4User(ReceiveInfo receivedInfo)
         {
             string userName = string.Empty;
-            byte[] buffer;
-            byte[] extraBuffer;
-            ReceiveInfo info;
-
             string jsonRaw;
             JObject json;
 
@@ -590,10 +590,10 @@ namespace BetterLiveScreen.Clients
             }
         }
 
-        public void SendBuffer(ReceiveInfo info, NetPeer peer)
+        public void SendBuffer(ReceiveInfo info, NetPeer peer, byte channel = 0)
         {
             byte[] buffer = MessagePackSerializer.Serialize(info);
-            peer?.Send(buffer, DELIVERY_METHOD);
+            peer?.Send(buffer, 0, DELIVERY_METHOD);
         }
 
         public void SendBufferToHost(ReceiveInfo info)

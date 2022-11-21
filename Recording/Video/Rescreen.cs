@@ -21,6 +21,7 @@ using BetterLiveScreen.Recording.Audio;
 using BetterLiveScreen.Recording.Audio.Wasapi;
 using BetterLiveScreen.Recording.Audio.WinCaptureAudio;
 using BetterLiveScreen.Recording.Types;
+using BetterLiveScreen.Recording.Video;
 using BetterLiveScreen.Recording.Video.WGC;
 
 using Size = System.Drawing.Size;

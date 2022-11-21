@@ -14,15 +14,15 @@ using log4net;
 using SharpDX.DXGI;
 using SharpDX.Direct3D11;
 
-using BetterLiveScreen.Recording.Video;
+using BetterLiveScreen.Recording.Types;
 using BetterLiveScreen.Recording.Video.NvEncoder;
 using BetterLiveScreen.Recording.Video.WGC;
 
 using D3D11Device = SharpDX.Direct3D11.Device;
-using NvEncoder = BetterLiveScreen.Recording.Video.NvEncoder.Encoder;
 using NvFormat = BetterLiveScreen.Recording.Video.NvEncoder.Format;
+using Encoder = BetterLiveScreen.Recording.Video.NvEncoder.Encoder;
 
-namespace BetterLiveScreen.Recording.Types
+namespace BetterLiveScreen.Recording.Video
 {
     public class CaptureSupports
     {
@@ -129,9 +129,9 @@ namespace BetterLiveScreen.Recording.Types
             return supported;
         }
 
-        public static bool SupportsNvenc(int width, int height, int fps, int bitrate, D3D11Device device, EventHandler<(IntPtr, int)> onEncoded, out NvEncoder encoder)
+        public static bool SupportsNvenc(int width, int height, int fps, int bitrate, D3D11Device device, EventHandler<(IntPtr, int)> onEncoded, out Encoder encoder)
         {
-            encoder = new NvEncoder();
+            encoder = new Encoder();
 
             EncoderDesc setting = new EncoderDesc()
             {

@@ -154,7 +154,7 @@
     <Compile Include="Recording\Audio\WinCaptureAudio\PropVariant.cs" />
     <Compile Include="Recording\Types\BitrateInfo.cs" />
     <Compile Include="Recording\Types\CaptureAudioType.cs" />
-    <Compile Include="Recording\Types\CaptureSupports.cs" />
+    <Compile Include="Recording\Video\CaptureSupports.cs" />
     <Compile Include="Recording\Types\CaptureVideoType.cs" />
     <Compile Include="Recording\Types\EncodingType.cs" />
     <Compile Include="Recording\Types\GPUSelect.cs" />

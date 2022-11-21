@@ -78,7 +78,6 @@ namespace BetterLiveScreen
             //Screen Refresh
             BitmapSource CopyScreenFromMonitor(MonitorInfo monitor)
             {
-                Debug.WriteLine(monitor.WorkArea);
                 return CopyScreen(monitor.WorkArea.Left, monitor.WorkArea.Top, monitor.WorkArea.Right, monitor.WorkArea.Bottom);
             }
             if (Monitors.Count > 1)

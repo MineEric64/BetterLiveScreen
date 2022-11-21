@@ -51,7 +51,10 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
                 "DiscordDevelopment",
 
                 //BetterLiveScreen
-                "BetterLiveScreen"
+                "BetterLiveScreen",
+
+                //System
+                "Idle"
                 };
             ExcludeMixes = new HashSet<string>();
             foreach (string name in excludes) ExcludeMixes.Add(name.ToLower());
