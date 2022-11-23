@@ -106,6 +106,7 @@
     <Compile Include="Extensions\BitmapConverter.cs" />
     <Compile Include="Extensions\DictionaryHelper.cs" />
     <Compile Include="Extensions\DLLInjector.cs" />
+    <Compile Include="Extensions\ExceptionManager.cs" />
     <Compile Include="Extensions\HRESULT.cs" />
     <Compile Include="Extensions\Kernel32.cs" />
     <Compile Include="Extensions\NetworkManager.cs" />

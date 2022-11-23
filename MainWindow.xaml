@@ -44,6 +44,10 @@
         <Ellipse x:Name="icon2" HorizontalAlignment="Left" Height="52" Margin="890,192,0,0" VerticalAlignment="Top" Width="52" Fill="Black" Stretch="UniformToFill"/>
         <Ellipse x:Name="icon3" HorizontalAlignment="Left" Height="52" Margin="890,299,0,0" VerticalAlignment="Top" Width="52" Fill="Black" Stretch="UniformToFill"/>
         <Ellipse x:Name="icon4" HorizontalAlignment="Left" Height="52" Margin="891,402,0,0" VerticalAlignment="Top" Width="52" Fill="Black" Stretch="UniformToFill"/>
+        <Button x:Name="watch1" Content="Watch" HorizontalAlignment="Left" Margin="966,141,0,0" VerticalAlignment="Top" Width="51" Click="watch1_Click"/>
+        <Button x:Name="watch2" Content="Watch" HorizontalAlignment="Left" Margin="966,252,0,0" VerticalAlignment="Top" Width="51" Click="watch2_Click"/>
+        <Button x:Name="watch3" Content="Watch" HorizontalAlignment="Left" Margin="966,359,0,0" VerticalAlignment="Top" Width="51" Click="watch3_Click"/>
+        <Button x:Name="watch4" Content="Watch" HorizontalAlignment="Left" Margin="966,462,0,0" VerticalAlignment="Top" Width="51" Click="watch4_Click"/>
 
     </Grid>
 </Window>

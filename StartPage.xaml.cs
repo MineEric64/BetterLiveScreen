@@ -86,6 +86,10 @@ namespace BetterLiveScreen
             {
                 MainWindow.User = UserInfo.GetGuestFromName(username.Text);
             }
+            else if (!MainWindow.User.IsGuest && username.Text != MainWindow.User.NameInfo.Name)
+            {
+                MainWindow.User.NameInfo.Name = username.Text;
+            }
 
             IsAccepted = true;
             this.Close();

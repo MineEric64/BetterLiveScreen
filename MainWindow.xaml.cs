@@ -1,6 +1,7 @@
 ﻿using System;
-using System.ComponentModel;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
@@ -62,8 +63,6 @@ using Window = System.Windows.Window;
 using NvDecoder = BetterLiveScreen.Recording.Video.NvPipe.Decoder;
 using H264Encoder = OpenH264Lib.Encoder;
 using H264Decoder = OpenH264Lib.Decoder;
-using System.Collections.Concurrent;
-using SharpDX.Text;
 
 namespace BetterLiveScreen
 {
@@ -114,7 +113,9 @@ namespace BetterLiveScreen
             AutoUpdater.ShowSkipButton = false;
             AutoUpdater.ShowRemindLaterButton = false;
             AutoUpdater.Mandatory = true;
-            AutoUpdater.UpdateMode = Mode.Forced;
+            AutoUpdater.UpdateMode = Mode.Forced | Mode.ForcedDownload;
+            AutoUpdater.RunUpdateAsAdmin = false;
+
             AutoUpdater.Start("https://raw.githubusercontent.com/Luigi38/ProjectData/master/BetterLiveScreen/info.xml");
 
             StartWindow.Closing += (s, ee) =>
@@ -212,7 +213,9 @@ namespace BetterLiveScreen
                 if (userInfo == null) return;
                 if (Rescreen.VideoStreams.TryGetValue(e.Item1, out var videoStream)) videoStream.Info = e.Item2;
                 else Rescreen.VideoStreams.Add(e.Item1, new VideoLike(e.Item2));
+
                 userInfo.IsLived = true;
+                Dispatcher.Invoke(UpdateUserUI);
 
                 log.Info($"{e.Item1} Stream Started");
             };
@@ -230,7 +233,9 @@ namespace BetterLiveScreen
                 var userInfo = GetUserByName(userName);
 
                 if (userInfo == null) return;
+
                 userInfo.IsLived = false;
+                Dispatcher.Invoke(UpdateUserUI);
 
                 log.Info($"{userName} Stream Ended");
             };
@@ -284,6 +289,11 @@ namespace BetterLiveScreen
             thumbnail3.Visibility = Visibility.Hidden;
             thumbnail4.Visibility = Visibility.Hidden;
 
+            watch1.Visibility = Visibility.Hidden;
+            watch2.Visibility = Visibility.Hidden;
+            watch3.Visibility = Visibility.Hidden;
+            watch4.Visibility = Visibility.Hidden;
+
             userConnected.Content = $"0 / {RoomManager.MAX_USER_COUNT} Users Connected";
         }
 
@@ -311,7 +321,7 @@ namespace BetterLiveScreen
         private void MainWindow_UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
             var ex = (Exception)e.ExceptionObject;
-            MessageBox.Show(ex.ToString(), "BetterLiveScreen: Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(ex.ToCleanString(), "BetterLiveScreen: Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
 
         private async void goLive_Click(object sender, RoutedEventArgs e)
@@ -335,12 +345,66 @@ namespace BetterLiveScreen
             SendBufferFinal(info);
         }
 
+        private void UpdateScreen(ref System.Windows.Controls.Image thumbnail, BitmapSource bitmap)
+        {
+            thumbnail.Source = bitmap;
+        }
+        private void UpdateScreenToBlack(ref System.Windows.Controls.Image thumbnail)
+        {
+            UpdateScreen(ref thumbnail, BitmapConverter.BLACK_IMAGE);
+        }
+
         public void UpdateUserUI()
         {
+            void ScreenBlacked(string userFullName, bool isLived, ref System.Windows.Controls.Image thumbnail)
+            {
+                if ((isLived && !Watches.ContainsValue(userFullName)) || (User.Equals(userFullName) && !isLived)) //Go Lived but unwatching or the user is not go lived
+                {
+                    //the screen should be black
+                    UpdateScreenToBlack(ref thumbnail);
+                }
+            }
+
+            void UpdateInternal(
+                ref System.Windows.Controls.Image thumbnail, ref Button watch,
+                ref Label name, ref Ellipse icon,
+                string userFullName, string userName, string avatarUrl, bool isLived
+                )
+            {
+                if (!string.IsNullOrEmpty(userFullName))
+                {
+                    icon.Visibility = Visibility.Visible;
+                    thumbnail.Visibility = Visibility.Visible;
+
+                    name.Content = userName;
+                    icon.Fill = BitmapConverter.CreateImageBrush(UserInfo.GetAvatarImage(avatarUrl));
+
+                    ScreenBlacked(userFullName, isLived, ref thumbnail);
+
+                    if (User.Equals(userFullName))
+                    {
+                        watch.Visibility = Visibility.Hidden;
+                    }
+                    else if (!isLived)
+                    {
+                        UpdateScreenToBlack(ref thumbnail);
+
+                        watch.Content = "Watch";
+                        watch.Visibility = Visibility.Hidden;
+                    }
+                    else
+                    {
+                        watch.Visibility = Visibility.Visible;
+                    }
+                }
+            }
+
             InitializeUserUI(); //Reset
 
+            string[] fullNames = new string[5] { string.Empty, string.Empty, string.Empty, string.Empty, string.Empty };
             string[] names = new string[5] { string.Empty, string.Empty, string.Empty, string.Empty, string.Empty };
             string[] urls = new string[5] { string.Empty, string.Empty, string.Empty, string.Empty, string.Empty };
+            bool[] lives = new bool[5] { false, false, false, false, false };
 
             for (int i = 0; i < Users.Count; i++)
             {
@@ -352,42 +416,17 @@ namespace BetterLiveScreen
                     PreviewMap.Add(userName, index);
                 }
 
+                fullNames[index] = userName;
                 names[index] = Users[i].NameInfo.Name;
                 urls[index] = Users[i].AvatarURL;
+                lives[index] = Users[i].IsLived;
             }
 
-            if (!string.IsNullOrEmpty(names[1]))
-            {
-                icon1.Visibility = Visibility.Visible;
-                thumbnail1.Visibility = Visibility.Visible;
-
-                name1.Content = names[1];
-                icon1.Fill = BitmapConverter.CreateImageBrush(UserInfo.GetAvatarImage(urls[1]));
-            }
-            if (!string.IsNullOrEmpty(names[2]))
-            {
-                icon2.Visibility = Visibility.Visible;
-                thumbnail2.Visibility = Visibility.Visible;
-
-                name2.Content = names[2];
-                icon2.Fill = BitmapConverter.CreateImageBrush(UserInfo.GetAvatarImage(urls[2]));
-            }
-            if (!string.IsNullOrEmpty(names[3]))
-            {
-                icon3.Visibility = Visibility.Visible;
-                thumbnail3.Visibility = Visibility.Visible;
-
-                name3.Content = names[3];
-                icon3.Fill = BitmapConverter.CreateImageBrush(UserInfo.GetAvatarImage(urls[3]));
-            }
-            if (!string.IsNullOrEmpty(names[4]))
-            {
-                icon4.Visibility = Visibility.Visible;
-                thumbnail4.Visibility = Visibility.Visible;
-
-                name4.Content = names[4];
-                icon4.Fill = BitmapConverter.CreateImageBrush(UserInfo.GetAvatarImage(urls[4]));
-            }
+            ScreenBlacked(User.ToString(), User.IsLived, ref screen_main);
+            UpdateInternal(ref thumbnail1, ref watch1, ref name1, ref icon1, fullNames[1], names[1], urls[1], lives[1]);
+            UpdateInternal(ref thumbnail2, ref watch2, ref name2, ref icon2, fullNames[2], names[2], urls[2], lives[2]);
+            UpdateInternal(ref thumbnail3, ref watch3, ref name3, ref icon3, fullNames[3], names[3], urls[3], lives[3]);
+            UpdateInternal(ref thumbnail4, ref watch4, ref name4, ref icon4, fullNames[4], names[4], urls[4], lives[4]);
 
             userConnected.Content = $"{Users.Count} / {RoomManager.MAX_USER_COUNT} Users Connected";
         }
@@ -799,76 +838,47 @@ namespace BetterLiveScreen
         }
         #endregion
 
-        private void ScreenPreview(Mat mat, int index)
+        private void ScreenPreview(BitmapSource source, int index)
         {
+            System.Windows.Controls.Image[] thumbnails = new System.Windows.Controls.Image[5] { screen_main, thumbnail1, thumbnail2, thumbnail3, thumbnail4 };
+
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                var source = mat.ToWriteableBitmap();
-
-                switch (index)
-                {
-                    case 0:
-                        screen_main.Source = source;
-                        break;
-                    case 1:
-                        thumbnail1.Source = source;
-                        break;
-                    case 2:
-                        thumbnail2.Source = source;
-                        break;
-                    case 3:
-                        thumbnail3.Source = source;
-                        break;
-                    case 4:
-                        thumbnail4.Source = source;
-                        break;
-                }
-
-                mat.Dispose();
+                thumbnails[index].Source = source;
             }), DispatcherPriority.Render);
+        }
+
+        private void ScreenPreview(Mat mat, int index)
+        {
+            var source = mat.ToWriteableBitmap();
+
+            ScreenPreview(source, index);
+            mat.Dispose();
         }
 
         private void ScreenPreview(Bitmap bitmap, int index)
         {
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                var source = bitmap.ToImage();
+            var source = bitmap.ToImage();
 
-                switch (index)
-                {
-                    case 0:
-                        screen_main.Source = source;
-                        break;
-                    case 1:
-                        thumbnail1.Source = source;
-                        break;
-                    case 2:
-                        thumbnail2.Source = source;
-                        break;
-                    case 3:
-                        thumbnail3.Source = source;
-                        break;
-                    case 4:
-                        thumbnail4.Source = source;
-                        break;
-                }
-
-                bitmap.Dispose();
-            }), DispatcherPriority.Render);
+            ScreenPreview(source, index);
+            bitmap.Dispose();
         }
 
         private async void serverIpConnect_Click(object sender, RoutedEventArgs e)
         {
-            //await RecordingTest.RecordTestAsync(
+            //if (IsDevMode)
+            //{
+            //    await RecordingTest.RecordTestAsync(
             //    videoType: CaptureVideoType.DD,
             //    audioType: CaptureAudioType.WinCaptureAudio,
             //    milliseconds: 10000,
             //    monitor: RescreenSettings.PrimaryMonitor,
             //    fps: 60,
             //    isHalf: false,
-            //    nvencEncoding: true
+            //    encoding: EncodingType.Nvenc
             //    );
-            //return;
+            //    return;
+            //}
 
             if (RoomManager.IsConnected) //need to Disconnect
             {
@@ -907,6 +917,8 @@ namespace BetterLiveScreen
 
         public async Task<bool> ShowRoomInfo(string address)
         {
+            if (Rescreen.IsRecording) Rescreen.Stop();
+
             var room = await RoomManager.GetRoomInfoAsync(address);
 
             if (room != null)
@@ -1050,6 +1062,8 @@ namespace BetterLiveScreen
 
         public void Watch(string user)
         {
+            if (User.Equals(user)) return; //can't watch my own streaming
+
             int prevWatchesCount = Watches.Count;
             byte[] buffer = ClientOne.Encode(user);
             var info = new ReceiveInfo(SendTypes.WatchStarted, buffer, BufferTypes.String);
@@ -1129,18 +1143,48 @@ namespace BetterLiveScreen
             string key1 = PreviewMap.GetKeyByValue(index1);
             string key2 = PreviewMap.GetKeyByValue(index2);
 
-            if (!Watches.ContainsValue(key2)) //The user wants to watch
-            {
-                Watch(key2);
-            }
-            else if (e.ChangedButton == MouseButton.Right) //The user doesn't want to watch
-            {
-                Unwatch(key2);
-            }
-            else if (key1 != null && key2 != null) //Swap
+            if (key1 != null && key2 != null) //Swap
             {
                 PreviewMap.Swap(key1, key2);
                 UpdateUserUI();
+            }
+        }
+
+        private void watch1_Click(object sender, RoutedEventArgs e)
+        {
+            watch_Internal(1, ref watch1);
+        }
+
+        private void watch2_Click(object sender, RoutedEventArgs e)
+        {
+            watch_Internal(2, ref watch2);
+        }
+
+        private void watch3_Click(object sender, RoutedEventArgs e)
+        {
+            watch_Internal(3, ref watch3);
+        }
+
+        private void watch4_Click(object sender, RoutedEventArgs e)
+        {
+            watch_Internal(4, ref watch4);
+        }
+
+        private void watch_Internal(int index, ref Button watch)
+        {
+            System.Windows.Controls.Image[] thumbnails = new System.Windows.Controls.Image[4] { thumbnail1, thumbnail2, thumbnail3, thumbnail4 };
+            string key = PreviewMap.GetKeyByValue(index);
+
+            if (!Watches.ContainsValue(key)) //The user wants to watch
+            {
+                Watch(key);
+                watch.Content = "Unwatch";
+            }
+            else //The user doesn't want to watch
+            {
+                Unwatch(key);
+                UpdateScreenToBlack(ref thumbnails[index - 1]);
+                watch.Content = "Watch";
             }
         }
     }

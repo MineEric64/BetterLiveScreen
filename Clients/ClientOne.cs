@@ -34,6 +34,7 @@ using BetterLiveScreen.Rooms;
 using BetterLiveScreen.Users;
 
 using My = BetterLiveScreen.MainWindow;
+using System.Collections.Immutable;
 
 namespace BetterLiveScreen.Clients
 {
@@ -344,7 +345,7 @@ namespace BetterLiveScreen.Clients
                         {
                             var ep = UserMap.GetKeyByValue(My.GetUserByName(user));
                             NetPeer peer2 = null;
-                            var peers = Client.ConnectedPeerList.ToList();
+                            var peers = Client.ConnectedPeerList.ToImmutableList();
 
                             foreach (var connected in peers)
                             {
