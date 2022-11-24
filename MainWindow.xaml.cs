@@ -63,6 +63,7 @@ using Window = System.Windows.Window;
 using NvDecoder = BetterLiveScreen.Recording.Video.NvPipe.Decoder;
 using H264Encoder = OpenH264Lib.Encoder;
 using H264Decoder = OpenH264Lib.Decoder;
+using System.Web;
 
 namespace BetterLiveScreen
 {
@@ -160,6 +161,8 @@ namespace BetterLiveScreen
             Client.Disconnected += (s, isForced) =>
             {
                 Users.Clear();
+                Users.Add(User);
+
                 Rescreen.Stop();
 
                 Dispatcher.Invoke(InitializeUI);
@@ -178,8 +181,9 @@ namespace BetterLiveScreen
             Client.UserConnected += (s, userInfo) =>
             {
                 Users.Add(userInfo);
-                Dispatcher.Invoke(UpdateUserUI);
                 RoomManager.CurrentRoom.CurrentUserCount = Users.Count;
+
+                Dispatcher.Invoke(UpdateUserUI);
 
                 DiscordHelper.SetPresenceIfUserUpdated();
 
@@ -195,9 +199,9 @@ namespace BetterLiveScreen
 
                     Users.Remove(userInfo);
                     PreviewMap.Remove(userFullName);
+                    RoomManager.CurrentRoom.CurrentUserCount = Users.Count;
 
                     Dispatcher.Invoke(UpdateUserUI);
-                    RoomManager.CurrentRoom.CurrentUserCount = Users.Count;
 
                     DiscordHelper.SetPresenceIfUserUpdated();
                 }
@@ -412,7 +416,7 @@ namespace BetterLiveScreen
 
                 if (!PreviewMap.TryGetValue(userName, out var index))
                 {
-                    index = Users.Count - 1;
+                    index = i;
                     PreviewMap.Add(userName, index);
                 }
 
@@ -841,27 +845,31 @@ namespace BetterLiveScreen
         private void ScreenPreview(BitmapSource source, int index)
         {
             System.Windows.Controls.Image[] thumbnails = new System.Windows.Controls.Image[5] { screen_main, thumbnail1, thumbnail2, thumbnail3, thumbnail4 };
+            var thumbnail = thumbnails[index];
 
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                thumbnails[index].Source = source;
-            }), DispatcherPriority.Render);
+            thumbnail.Source = source;
         }
 
         private void ScreenPreview(Mat mat, int index)
         {
-            var source = mat.ToWriteableBitmap();
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                var source = mat.ToWriteableBitmap();
 
-            ScreenPreview(source, index);
-            mat.Dispose();
+                ScreenPreview(source, index);
+                mat.Dispose();
+            }), DispatcherPriority.Render);
         }
 
         private void ScreenPreview(Bitmap bitmap, int index)
         {
-            var source = bitmap.ToImage();
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                var source = bitmap.ToImage();
 
-            ScreenPreview(source, index);
-            bitmap.Dispose();
+                ScreenPreview(source, index);
+                bitmap.Dispose();
+            }), DispatcherPriority.Render);
         }
 
         private async void serverIpConnect_Click(object sender, RoutedEventArgs e)
