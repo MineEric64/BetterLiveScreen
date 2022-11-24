@@ -26,8 +26,7 @@
 ## Clients
 |Name|Description|Reference|
 |:---:|:---:|:---:|
-|[BLSI](../../../tree/main/BetterLiveScreenInterface)|Better Live Screen Interface|[ClientOne.cs](../Clients/ClientOne.cs), [RoomManager.cs](../Rooms/RoomManager.cs)|
 |[LiteNetLib](https://github.com/RevenantX/LiteNetLib)|Peer to Peer Communication ([#4](../../../issues/4))|[ClientOne.cs](../Clients/ClientOne.cs)|
 |[MessagePack-CSharp](https://github.com/neuecc/MessagePack-CSharp)|Data Serializing|[ClientOne.cs](../Clients/ClientOne.cs), [Rescreen.cs](../Recording/Video/Rescreen.cs)|
-|[Json.Net](https://www.newtonsoft.com/json)|Json Framework|[ClientOne.cs](../Clients//ClientOne.cs), [RoomManager.cs](../Rooms/RoomManager.cs), [UserInfo.cs](../Users/UserInfo.cs)|
+|[Json.Net](https://www.newtonsoft.com/json)|Json Framework|[ClientOne.cs](../Clients//ClientOne.cs), [RoomManager.cs](../Rooms/RoomManager.cs)|
 |[Discord Rich Presence](https://github.com/Lachee/discord-rpc-csharp)|Discord RPC|[DiscordHelper.cs](../Clients/DiscordHelper.cs)|
