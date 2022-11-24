@@ -107,5 +107,13 @@ namespace BetterLiveScreen
                 Thread.Sleep(100);
             }
         }
+
+        private void StartPage_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                ok_Click(null, null);
+            }
+        }
     }
 }

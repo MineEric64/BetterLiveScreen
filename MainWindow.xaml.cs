@@ -144,7 +144,10 @@ namespace BetterLiveScreen
             this.IsEnabled = false;
 
             RenderOptions.SetBitmapScalingMode(screen_main, BitmapScalingMode.LowQuality);
-
+            RenderOptions.SetBitmapScalingMode(thumbnail1, BitmapScalingMode.LowQuality);
+            RenderOptions.SetBitmapScalingMode(thumbnail2, BitmapScalingMode.LowQuality);
+            RenderOptions.SetBitmapScalingMode(thumbnail3, BitmapScalingMode.LowQuality);
+            RenderOptions.SetBitmapScalingMode(thumbnail4, BitmapScalingMode.LowQuality);
         }
 
         private void InitializeClient()
@@ -1193,6 +1196,23 @@ namespace BetterLiveScreen
                 Unwatch(key);
                 UpdateScreenToBlack(ref thumbnails[index - 1]);
                 watch.Content = "Watch";
+            }
+        }
+
+        private void usericon_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(User.AvatarURL)) return;
+
+            using (WebClient wc = new WebClient())
+            {
+                using (Stream s = wc.OpenRead(User.AvatarURL))
+                {
+                    using (Bitmap bmp = new Bitmap(s))
+                    {
+                        var source = bmp.ToImage();
+                        usericon.Fill = BitmapConverter.CreateImageBrush(source);
+                    }
+                }
             }
         }
     }

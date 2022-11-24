@@ -47,7 +47,12 @@ namespace BetterLiveScreen.Recording.Audio
 
             for (int i = 0; i < sessionCount; i++)
             {
-                var session = _sessionManager.Sessions[i];
+                var session = _sessionManager.Sessions?[i];
+
+                if (session == null)
+                {
+                    break;
+                }
                 
                 if (session.AudioMeterInformation.MasterPeakValue > 0)
                 {

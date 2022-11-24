@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:BetterLiveScreen"
         mc:Ignorable="d"
-        Title="Login" Height="275" Width="346">
+        Title="Login" Height="275" Width="346" PreviewKeyDown="StartPage_PreviewKeyDown">
     <Grid>
         <TextBox x:Name="username" HorizontalAlignment="Left" Margin="18,165,0,0" TextWrapping="Wrap" Text="Guest" VerticalAlignment="Top" Width="235" FontSize="20"/>
         <Label x:Name="userauth" Content="#Guest" HorizontalAlignment="Left" Margin="18,195,0,0" VerticalAlignment="Top"/>

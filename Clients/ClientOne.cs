@@ -345,16 +345,26 @@ namespace BetterLiveScreen.Clients
                         {
                             var ep = UserMap.GetKeyByValue(My.GetUserByName(user));
                             NetPeer peer2 = null;
-                            var peers = Client.ConnectedPeerList.ToImmutableList();
+                            List<NetPeer> peers;
 
-                            foreach (var connected in peers)
+                            try
                             {
-                                if (connected?.EndPoint == ep)
+                                peers = Client.ConnectedPeerList.ToList();
+
+                                foreach (var connected in peers)
                                 {
-                                    peer2 = connected;
+                                    if (connected?.EndPoint == ep)
+                                    {
+                                        peer2 = connected;
+                                    }
                                 }
+                                SendBuffer(receivedInfo, peer2, channelToSend);
                             }
-                            SendBuffer(receivedInfo, peer2, channelToSend);
+                            catch
+                            {
+                                //freaking index out of range
+                                break;
+                            }
                         }
                     }
                     break;
@@ -594,7 +604,7 @@ namespace BetterLiveScreen.Clients
         public void SendBuffer(ReceiveInfo info, NetPeer peer, byte channel = 0)
         {
             byte[] buffer = MessagePackSerializer.Serialize(info);
-            peer?.Send(buffer, 0, DELIVERY_METHOD);
+            peer?.Send(buffer, channel, DELIVERY_METHOD);
         }
 
         public void SendBufferToHost(ReceiveInfo info)
@@ -608,7 +618,7 @@ namespace BetterLiveScreen.Clients
 
             foreach (NetPeer peer in Client.ConnectedPeerList)
             {
-                if (!UserMap.ContainsKey(peer.EndPoint)) return;
+                if (!UserMap.ContainsKey(peer.EndPoint)) continue;
                 peer.Send(buffer, DELIVERY_METHOD);
             }
         }
@@ -619,7 +629,7 @@ namespace BetterLiveScreen.Clients
 
             foreach (NetPeer peer in Client.ConnectedPeerList)
             {
-                if (exceptPeer != null && (!UserMap.ContainsKey(peer.EndPoint) || exceptPeer.EndPoint == peer.EndPoint)) return;
+                if (exceptPeer != null && (!UserMap.ContainsKey(peer.EndPoint) || exceptPeer.EndPoint == peer.EndPoint)) continue;
                 peer.Send(buffer, DELIVERY_METHOD);
             }
         }
