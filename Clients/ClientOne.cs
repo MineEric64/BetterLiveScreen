@@ -303,6 +303,9 @@ namespace BetterLiveScreen.Clients
                         var info2 = new ReceiveInfo(SendTypes.StreamInfoRequested, ResponseCodes.OK, receivedInfo.Buffer, BufferTypes.String, buffer2);
 
                         SendBuffer(info2, peer);
+
+                        //this means the host required this information, so we have to send the info directly
+                        if (peer == null) ReceivedQueue.Enqueue(info2);
                     }
                     else
                     {
@@ -448,18 +451,7 @@ namespace BetterLiveScreen.Clients
                     break;
 
                 case SendTypes.StreamInfoRequested:
-                    if (receivedInfo.ResponseCode == ResponseCodes.OK)
-                    {
-                        userName = Decode(receivedInfo.Buffer);
-                        var streamInfo = MessagePackSerializer.Deserialize<BitmapInfo>(receivedInfo.ExtraBuffer);
-
-                        StreamInfoReceived?.Invoke(null, (userName, streamInfo));
-                    }
-                    else
-                    {
-                        log.Error("can't watch stream because the stream's info can't be received.");
-                        MessageBox.Show("You can't watch the stream because the stream's info can't be received.", "Better Live Screen : Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
+                    ReceivedQueue.Enqueue(receivedInfo);
                     break;
 
                 #region Video

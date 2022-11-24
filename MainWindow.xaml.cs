@@ -64,6 +64,7 @@ using NvDecoder = BetterLiveScreen.Recording.Video.NvPipe.Decoder;
 using H264Encoder = OpenH264Lib.Encoder;
 using H264Decoder = OpenH264Lib.Decoder;
 using System.Web;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
 namespace BetterLiveScreen
 {
@@ -234,13 +235,6 @@ namespace BetterLiveScreen
                 Dispatcher.Invoke(UpdateUserUI);
 
                 log.Info($"{userName} Stream Ended");
-            };
-            Client.StreamInfoReceived += (s, e) =>
-            {
-                if (Rescreen.VideoStreams.TryGetValue(e.Item1, out var videoStream)) videoStream.Info = e.Item2;
-                else Rescreen.VideoStreams.Add(e.Item1, new VideoLike(e.Item2));
-
-                log.Info($"{e.Item1} Stream Info Received : {e.Item2}");
             };
             #region Video
             Client.VideoBufferReceived += (s, e) =>
@@ -672,9 +666,8 @@ namespace BetterLiveScreen
                 {
                     var livedUser = Users.Where(x => x.Equals(livedUserName)).FirstOrDefault();
 
-                    if (livedUser != null)
+                    if (livedUser != null && Rescreen.VideoStreams.TryGetValue(livedUserName, out var videoStream))
                     {
-                        var videoStream = Rescreen.VideoStreams[livedUser.ToString()];
                         Enum.TryParse(videoStream.Info.Encoding, out EncodingType encoding);
 
                         //ClearBuffer(videoStream, encoding);
@@ -810,10 +803,8 @@ namespace BetterLiveScreen
                 {
                     var livedUser = Users.Where(x => x.Equals(livedUserName)).FirstOrDefault();
 
-                    if (livedUser != null)
+                    if (livedUser != null && Rescreen.VideoStreams.TryGetValue(livedUserName, out var videoStream))
                     {
-                        var videoStream = Rescreen.VideoStreams[livedUser.ToString()];
-
                         //ClearBuffer(videoStream);
                         try
                         {
@@ -1070,22 +1061,52 @@ namespace BetterLiveScreen
             return Users.Where(x => x.Equals(userFullName)).FirstOrDefault();
         }
 
-        public void Watch(string user)
+        public async Task WatchAsync(string user)
         {
             if (User.Equals(user)) return; //can't watch my own streaming
 
             int prevWatchesCount = Watches.Count;
-            byte[] buffer = ClientOne.Encode(user);
-            var info = new ReceiveInfo(SendTypes.WatchStarted, buffer, BufferTypes.String);
+            byte[] buffer;
+            ReceiveInfo info;
 
-            SendBufferFinal(info, User.ToString());
-            Watches.TryAdd(Watches.Count, user);
+            #region Requesting Stream Info
+            buffer = ClientOne.Encode(user);
+            info = new ReceiveInfo(SendTypes.StreamInfoRequested, buffer, BufferTypes.String);
 
-            if (prevWatchesCount == 0 && Watches.Count > 0)
+            SendBufferFinal(info);
+
+            info = await Client.ReceiveBufferAsync(info);
+
+            if (info.ResponseCode == ResponseCodes.OK)
             {
-                Task.Run(ClientBufferRefreshedVideo);
-                Task.Run(ClientBufferRefreshedAudio);
+                string userName = ClientOne.Decode(info.Buffer);
+                var streamInfo = MessagePackSerializer.Deserialize<BitmapInfo>(info.ExtraBuffer);
+
+                if (Rescreen.VideoStreams.TryGetValue(userName, out var videoStream)) videoStream.Info = streamInfo;
+                else Rescreen.VideoStreams.Add(userName, new VideoLike(streamInfo));
+
+                log.Info($"{userName} Stream Info Received : {streamInfo}");
+
+                #region Watching Started
+                buffer = ClientOne.Encode(user);
+                info = new ReceiveInfo(SendTypes.WatchStarted, buffer, BufferTypes.String);
+
+                SendBufferFinal(info, User.ToString());
+                Watches.TryAdd(Watches.Count, user);
+
+                if (prevWatchesCount == 0 && Watches.Count > 0)
+                {
+                    _ = Task.Run(ClientBufferRefreshedVideo);
+                    _ = Task.Run(ClientBufferRefreshedAudio);
+                }
+                #endregion
             }
+            else
+            {
+                log.Error("can't watch stream because the stream's info can't be received.");
+                MessageBox.Show("You can't watch the stream because the stream's info can't be received.", "Better Live Screen : Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            #endregion
         }
 
         public void Unwatch(string user)
@@ -1160,34 +1181,34 @@ namespace BetterLiveScreen
             }
         }
 
-        private void watch1_Click(object sender, RoutedEventArgs e)
+        private async void watch1_Click(object sender, RoutedEventArgs e)
         {
-            watch_Internal(1, ref watch1);
+            await watch_Internal(1, watch1);
         }
 
-        private void watch2_Click(object sender, RoutedEventArgs e)
+        private async void watch2_Click(object sender, RoutedEventArgs e)
         {
-            watch_Internal(2, ref watch2);
+            await watch_Internal(2, watch2);
         }
 
-        private void watch3_Click(object sender, RoutedEventArgs e)
+        private async void watch3_Click(object sender, RoutedEventArgs e)
         {
-            watch_Internal(3, ref watch3);
+            await watch_Internal(3, watch3);
         }
 
-        private void watch4_Click(object sender, RoutedEventArgs e)
+        private async void watch4_Click(object sender, RoutedEventArgs e)
         {
-            watch_Internal(4, ref watch4);
+            await watch_Internal(4, watch4);
         }
 
-        private void watch_Internal(int index, ref Button watch)
+        private async Task watch_Internal(int index, Button watch)
         {
             System.Windows.Controls.Image[] thumbnails = new System.Windows.Controls.Image[4] { thumbnail1, thumbnail2, thumbnail3, thumbnail4 };
             string key = PreviewMap.GetKeyByValue(index);
 
             if (!Watches.ContainsValue(key)) //The user wants to watch
             {
-                Watch(key);
+                await WatchAsync(key);
                 watch.Content = "Unwatch";
             }
             else //The user doesn't want to watch
