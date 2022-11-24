@@ -61,9 +61,9 @@ namespace BetterLiveScreen.Interfaces
             ExtraBuffer = extraBuffer;
         }
 
-        public ReceiveInfo(SendTypes sendType, ResponseCodes responseCodes, byte[] buffer, BufferTypes bufferType, byte[] extraBuffer) : this(sendType, buffer, bufferType, extraBuffer)
+        public ReceiveInfo(SendTypes sendType, ResponseCodes responseCode, byte[] buffer, BufferTypes bufferType, byte[] extraBuffer) : this(sendType, buffer, bufferType, extraBuffer)
         {
-            ResponseCode = ResponseCode;
+            ResponseCode = responseCode;
         }
 
         public ReceiveInfo(SendTypes sendType, int step, int maxStep, byte[] buffer, BufferTypes bufferType) : this(sendType, buffer, bufferType)

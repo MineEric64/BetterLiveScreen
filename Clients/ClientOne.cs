@@ -34,6 +34,8 @@ using BetterLiveScreen.Rooms;
 using BetterLiveScreen.Users;
 
 using My = BetterLiveScreen.MainWindow;
+using BetterLiveScreen.Recording.Types;
+using System.IO.Packaging;
 
 namespace BetterLiveScreen.Clients
 {
@@ -79,8 +81,6 @@ namespace BetterLiveScreen.Clients
         public event EventHandler<string> StreamStarted;
         public event EventHandler<string> StreamEnded;
 
-        public event EventHandler<(string, BitmapInfo)> StreamInfoReceived;
-
         //(buffer, userName, timestamp)
         public event EventHandler<(byte[], string, long)> VideoBufferReceived;
         public event EventHandler<(byte[], string, long)> AudioBufferReceived;
@@ -98,6 +98,7 @@ namespace BetterLiveScreen.Clients
             _listener.ConnectionRequestEvent += OnConnectionRequested;
 
             Client = new NetManager(_listener);
+            Client.ChannelsCount = 3;
         }
 
         private void OnPeerConnected(NetPeer peer)
@@ -287,6 +288,11 @@ namespace BetterLiveScreen.Clients
                 #endregion
                 #region Streaming
                 case SendTypes.StreamStarted:
+                    var streamInfo = MessagePackSerializer.Deserialize<BitmapInfo>(receivedInfo.ExtraBuffer);
+
+                    if (Rescreen.VideoStreams.TryGetValue(userName, out var videoStream)) videoStream.Info = streamInfo;
+                    else Rescreen.VideoStreams.Add(userName, new VideoLike(streamInfo));
+
                     SendBufferToAllExcept(receivedInfo, peer);
                     break;
 
@@ -627,6 +633,7 @@ namespace BetterLiveScreen.Clients
 
         public void SendBufferToAll(ReceiveInfo info)
         {
+            
             byte[] buffer = MessagePackSerializer.Serialize(info);
 
             foreach (NetPeer peer in Client.ConnectedPeerList)
