@@ -213,27 +213,16 @@ namespace BetterLiveScreen
             };
             #endregion
             #region Streaming
-            Client.StreamStarted += (s, e) =>
+            Client.StreamStarted += (s, userName) =>
             {
-                var userInfo = GetUserByName(e.Item1);
+                var userInfo = GetUserByName(userName);
 
                 if (userInfo == null) return;
-                if (Rescreen.VideoStreams.TryGetValue(e.Item1, out var videoStream)) videoStream.Info = e.Item2;
-                else Rescreen.VideoStreams.Add(e.Item1, new VideoLike(e.Item2));
 
                 userInfo.IsLived = true;
                 Dispatcher.Invoke(UpdateUserUI);
 
-                log.Info($"{e.Item1} Stream Started");
-            };
-            Client.StreamChanged += (s, e) =>
-            {
-                var userInfo = GetUserByName(e.Item1);
-
-                if (userInfo == null) return;
-                if (Rescreen.VideoStreams.TryGetValue(e.Item1, out var videoStream)) videoStream.Info = e.Item2;
-
-                log.Info($"{e.Item1} Stream Changed");
+                log.Info($"{userName} Stream Started");
             };
             Client.StreamEnded += (s, userName) =>
             {
@@ -245,6 +234,13 @@ namespace BetterLiveScreen
                 Dispatcher.Invoke(UpdateUserUI);
 
                 log.Info($"{userName} Stream Ended");
+            };
+            Client.StreamInfoReceived += (s, e) =>
+            {
+                if (Rescreen.VideoStreams.TryGetValue(e.Item1, out var videoStream)) videoStream.Info = e.Item2;
+                else Rescreen.VideoStreams.Add(e.Item1, new VideoLike(e.Item2));
+
+                log.Info($"{e.Item1} Stream Info Received : {e.Item2}");
             };
             #region Video
             Client.VideoBufferReceived += (s, e) =>
@@ -756,8 +752,11 @@ namespace BetterLiveScreen
                                                 }
                                                 else wasNullMap.Add(livedUserName, (false, DateTime.Now));
                                             }
-                                            ScreenPreview(bitmap, PreviewMap[livedUserName]);
 
+                                            if (PreviewMap.TryGetValue(livedUserName, out int index))
+                                            {
+                                                ScreenPreview(bitmap, index);
+                                            }
                                             break;
                                         #endregion
                                         #region CompressOnly

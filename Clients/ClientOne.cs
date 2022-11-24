@@ -34,7 +34,6 @@ using BetterLiveScreen.Rooms;
 using BetterLiveScreen.Users;
 
 using My = BetterLiveScreen.MainWindow;
-using System.Collections.Immutable;
 
 namespace BetterLiveScreen.Clients
 {
@@ -77,9 +76,10 @@ namespace BetterLiveScreen.Clients
         //if the user joined, it will be invoked to host only.
         public event EventHandler HostConnected;
 
-        public event EventHandler<(string, BitmapInfo)> StreamStarted;
-        public event EventHandler<(string, BitmapInfo)> StreamChanged;
+        public event EventHandler<string> StreamStarted;
         public event EventHandler<string> StreamEnded;
+
+        public event EventHandler<(string, BitmapInfo)> StreamInfoReceived;
 
         //(buffer, userName, timestamp)
         public event EventHandler<(byte[], string, long)> VideoBufferReceived;
@@ -290,12 +290,25 @@ namespace BetterLiveScreen.Clients
                     SendBufferToAllExcept(receivedInfo, peer);
                     break;
 
-                case SendTypes.StreamChanged:
+                case SendTypes.StreamEnded:
                     SendBufferToAllExcept(receivedInfo, peer);
                     break;
 
-                case SendTypes.StreamEnded:
-                    SendBufferToAllExcept(receivedInfo, peer);
+                case SendTypes.StreamInfoRequested:
+                    string userName2 = Decode(receivedInfo.Buffer);
+
+                    if (Rescreen.VideoStreams.TryGetValue(userName2, out var video))
+                    {
+                        byte[] buffer2 = MessagePackSerializer.Serialize(video.Info);
+                        var info2 = new ReceiveInfo(SendTypes.StreamInfoRequested, ResponseCodes.OK, receivedInfo.Buffer, BufferTypes.String, buffer2);
+
+                        SendBuffer(info2, peer);
+                    }
+                    else
+                    {
+                        SendBuffer(receivedInfo.GetFailed(ResponseCodes.Failed), peer);
+                    }
+
                     break;
 
                 #region Watch
@@ -423,17 +436,9 @@ namespace BetterLiveScreen.Clients
                 #endregion
                 #region Streaming
                 case SendTypes.StreamStarted:
-                    var videoInfo = MessagePackSerializer.Deserialize<BitmapInfo>(receivedInfo.ExtraBuffer);
                     userName = Decode(receivedInfo.Buffer);
 
-                    StreamStarted?.Invoke(null, (userName, videoInfo));
-                    break;
-
-                case SendTypes.StreamChanged:
-                    var videoInfo2 = MessagePackSerializer.Deserialize<BitmapInfo>(receivedInfo.ExtraBuffer);
-                    userName = Decode(receivedInfo.Buffer);
-
-                    StreamChanged?.Invoke(null, (userName, videoInfo2));
+                    StreamStarted?.Invoke(null, userName);
                     break;
 
                 case SendTypes.StreamEnded:
@@ -441,6 +446,22 @@ namespace BetterLiveScreen.Clients
 
                     StreamEnded?.Invoke(null, userName);
                     break;
+
+                case SendTypes.StreamInfoRequested:
+                    if (receivedInfo.ResponseCode == ResponseCodes.OK)
+                    {
+                        userName = Decode(receivedInfo.Buffer);
+                        var streamInfo = MessagePackSerializer.Deserialize<BitmapInfo>(receivedInfo.ExtraBuffer);
+
+                        StreamInfoReceived?.Invoke(null, (userName, streamInfo));
+                    }
+                    else
+                    {
+                        log.Error("can't watch stream because the stream's info can't be received.");
+                        MessageBox.Show("You can't watch the stream because the stream's info can't be received.", "Better Live Screen : Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                    break;
+
                 #region Video
                 case SendTypes.Video:
                     json = JObject.Parse(Decode(receivedInfo.ExtraBuffer));

@@ -5,8 +5,6 @@ VisualStudioVersion = 17.0.31521.260
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BetterLiveScreen", "BetterLiveScreen.csproj", "{C7E65E64-AE4C-4598-9033-9348083D5472}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BLSI", "BetterLiveScreenInterface\BLSI.csproj", "{70E0B235-CF65-4C23-A17B-C719F375F487}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -23,14 +21,6 @@ Global
 		{C7E65E64-AE4C-4598-9033-9348083D5472}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C7E65E64-AE4C-4598-9033-9348083D5472}.Release|x64.ActiveCfg = Release|x64
 		{C7E65E64-AE4C-4598-9033-9348083D5472}.Release|x64.Build.0 = Release|x64
-		{70E0B235-CF65-4C23-A17B-C719F375F487}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{70E0B235-CF65-4C23-A17B-C719F375F487}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{70E0B235-CF65-4C23-A17B-C719F375F487}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{70E0B235-CF65-4C23-A17B-C719F375F487}.Debug|x64.Build.0 = Debug|Any CPU
-		{70E0B235-CF65-4C23-A17B-C719F375F487}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{70E0B235-CF65-4C23-A17B-C719F375F487}.Release|Any CPU.Build.0 = Release|Any CPU
-		{70E0B235-CF65-4C23-A17B-C719F375F487}.Release|x64.ActiveCfg = Release|Any CPU
-		{70E0B235-CF65-4C23-A17B-C719F375F487}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

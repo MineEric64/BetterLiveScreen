@@ -23,8 +23,9 @@ namespace BetterLiveScreen.Interfaces
 
         //Streaming
         StreamStarted,
-        StreamChanged,
         StreamEnded,
+
+        StreamInfoRequested,
 
         WatchStarted,
         WatchEnded,

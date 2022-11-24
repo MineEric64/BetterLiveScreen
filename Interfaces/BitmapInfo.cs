@@ -30,5 +30,10 @@ namespace BetterLiveScreen.Interfaces
             Height = height;
             Encoding = encoding;
         }
+
+        public override string ToString()
+        {
+            return $"[{Width}x{Height}:{Encoding}]";
+        }
     }
 }

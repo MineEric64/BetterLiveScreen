@@ -61,10 +61,6 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="BLSI, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>DLLs\BLSI.dll</HintPath>
-    </Reference>
     <Reference Include="Composition.WindowsRuntimeHelpers_NETStd">
       <HintPath>DLLs\Composition.WindowsRuntimeHelpers_NETStd.dll</HintPath>
     </Reference>
@@ -113,6 +109,14 @@
     <Compile Include="Extensions\Ole32.cs" />
     <Compile Include="Extensions\ProcessHelper.cs" />
     <Compile Include="Extensions\User32.cs" />
+    <Compile Include="Interfaces\BitmapInfo.cs" />
+    <Compile Include="Interfaces\BufferTypes.cs" />
+    <Compile Include="Interfaces\ReceiveInfo.cs" />
+    <Compile Include="Interfaces\ResponseCodes.cs" />
+    <Compile Include="Interfaces\Security\Checksum.cs" />
+    <Compile Include="Interfaces\Security\SHA512.cs" />
+    <Compile Include="Interfaces\SendType.cs" />
+    <Compile Include="Interfaces\Users\UserNameInfo.cs" />
     <Compile Include="LiveSelectWindow.xaml.cs">
       <DependentUpon>LiveSelectWindow.xaml</DependentUpon>
     </Compile>
