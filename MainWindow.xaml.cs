@@ -318,6 +318,8 @@ namespace BetterLiveScreen
         private void MainWindow_UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
             var ex = (Exception)e.ExceptionObject;
+
+            log.Error("Error occured", ex);
             MessageBox.Show(ex.ToCleanString(), "BetterLiveScreen: Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
 
@@ -1061,9 +1063,9 @@ namespace BetterLiveScreen
             return Users.Where(x => x.Equals(userFullName)).FirstOrDefault();
         }
 
-        public async Task WatchAsync(string user)
+        public async Task<bool> WatchAsync(string user)
         {
-            if (User.Equals(user)) return; //can't watch my own streaming
+            if (User.Equals(user)) return false; //can't watch my own streaming
 
             int prevWatchesCount = Watches.Count;
             byte[] buffer;
@@ -1100,11 +1102,15 @@ namespace BetterLiveScreen
                     _ = Task.Run(ClientBufferRefreshedAudio);
                 }
                 #endregion
+
+                return true;
             }
             else
             {
                 log.Error("can't watch stream because the stream's info can't be received.");
                 MessageBox.Show("You can't watch the stream because the stream's info can't be received.", "Better Live Screen : Error", MessageBoxButton.OK, MessageBoxImage.Error);
+
+                return false;
             }
             #endregion
         }
@@ -1208,8 +1214,10 @@ namespace BetterLiveScreen
 
             if (!Watches.ContainsValue(key)) //The user wants to watch
             {
-                await WatchAsync(key);
-                watch.Content = "Unwatch";
+                if (await WatchAsync(key))
+                {
+                    watch.Content = "Unwatch";
+                }
             }
             else //The user doesn't want to watch
             {

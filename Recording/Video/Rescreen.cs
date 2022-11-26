@@ -199,7 +199,18 @@ namespace BetterLiveScreen.Recording.Video
 
         public static BitrateInfo GetBitrateInfoBySize(int height, int fps)
         {
-            return BitrateInfos[string.Join("@", height, fps)];
+            string GetKey(int height2, int fps2) => string.Join("@", height2, fps2);
+            BitrateInfo info = null;
+
+            if (fps != 30 || fps != 60) fps = 60; //fixed size
+            if (BitrateInfos.TryGetValue(GetKey(height, fps), out info)) return info;
+            
+            //Custom Resolution (Not Permanent)
+            if (height > 1440) info = BitrateInfos[GetKey(1440, fps)];
+            else if (height > 1080 && height < 1440) info = BitrateInfos[GetKey(1080, fps)];
+            else info = BitrateInfos[GetKey(720, fps)];
+
+            return info;
         }
 
         //For Debugging Methods for Rescreen!!!
@@ -211,10 +222,18 @@ namespace BetterLiveScreen.Recording.Video
             return frameCount / elapsedSeconds;
         }
 
-        public static string GetAverageAsString(List<int> list)
+        public static double GetAverage(List<int> list)
         {
             var cloned = list.ToList();
-            return cloned.Count > 0 ? cloned.Average().ToString("0.##") : "0";
+            return cloned.Count > 0 ? cloned.Average() : 0;
+        }
+
+        public static double GetAverageMbps(double lengthPerSecond)
+        {
+            const double MB_PER_BYTE = 9.537 * 0.0000001;
+            double averageMb = lengthPerSecond * MB_PER_BYTE;
+
+            return averageMb * 8;
         }
 
         public static double GetAverageMbps(ConcurrentQueue<(byte[], long)> screenQueue, double fps)
@@ -236,19 +255,19 @@ namespace BetterLiveScreen.Recording.Video
             }
 
             if (lengthList.Count == 0) return 0.0;
-
-            double mbPerByte = 9.537 * 0.0000001;
-            double averageMb = lengthList.Average() * mbPerByte;
-            return averageMb * 8;
+            return GetAverageMbps(lengthList.Average());
         }
 
         public static string GetRecordedInfo()
         {
             double fps = GetFps(MyVideoStream.ScreenQueue.Count, Elapsed.TotalSeconds);
+            double rpf = GetAverage(_deltaRess);
+            double dpf = GetAverage(_delayPerFrame);
             string info =
-                "Resolution Per Frame : " + GetAverageAsString(_deltaRess) + "ms\n" +
-                "Delay Per Frame : " + GetAverageAsString(_delayPerFrame) + "ms\n" +
+                "Resolution Per Frame : " + rpf.ToString("0.##") + "ms\n" +
+                "Delay Per Frame : " + dpf.ToString("0.##") + "ms\n" +
                 "Fps : " + fps.ToString("0.##") + "\n" +
+                "Fps (DPF) : " + (1000 / dpf).ToString("0.##") + "\n" +
                 "Mbps : " + GetAverageMbps(MyVideoStream.ScreenQueue, fps).ToString("0.##");
 
             return info;

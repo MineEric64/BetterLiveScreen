@@ -54,7 +54,10 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
                 "BetterLiveScreen",
 
                 //System
-                "Idle"
+                "Idle",
+
+                //Virtual Machine
+                "VirtualBoxVM"
                 };
             ExcludeMixes = new HashSet<string>();
             foreach (string name in excludes) ExcludeMixes.Add(name.ToLower());
@@ -112,6 +115,8 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
             catch (Win32Exception) //Access Denied (when Enable Raising Events)
             {
                 RemoveInternal(p.ProcessName);
+                ExcludeMixes.Add(p.ProcessName.ToLower()); //Add Exclude Mix Process
+
                 log.Warn($"can't add process in audio because of access denied. Process Name : {p.ProcessName}");
             }
             catch (Exception ex)
