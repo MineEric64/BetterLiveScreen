@@ -15,7 +15,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        dotnet: [ '2.1.x', '3.0', '3.1.x' ]
+        dotnet: [ '2.1.x' ]
     name: Dotnet ${{ matrix.dotnet }} sample
 
     steps:
