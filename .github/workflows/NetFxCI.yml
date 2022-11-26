@@ -29,3 +29,5 @@ jobs:
   
     - name: Github Release
       uses: elgohr/Github-Release-Action@v4
+      with:
+        title: Hi
