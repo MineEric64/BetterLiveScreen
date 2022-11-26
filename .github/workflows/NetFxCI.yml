@@ -23,4 +23,4 @@ jobs:
       run: nuget restore BetterLiveScreen.sln
       
     - name: Build the solution
-      run: msbuild BetterLiveScreen.sln
+      run: msbuild BetterLiveScreen.sln /unsafe
