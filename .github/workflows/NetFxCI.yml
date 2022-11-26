@@ -3,6 +3,8 @@ name: CI
 on:
   push:
     branches: [ "main" ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ "main" ]
 
@@ -24,3 +26,6 @@ jobs:
       
     - name: Build the solution
       run: msbuild BetterLiveScreen.sln /p:AllowUnsafeBlocks=true
+  
+    - name: Github Release
+      uses: elgohr/Github-Release-Action@v4
