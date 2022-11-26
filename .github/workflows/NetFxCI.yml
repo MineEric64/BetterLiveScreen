@@ -29,5 +29,7 @@ jobs:
   
     - name: Github Release
       uses: elgohr/Github-Release-Action@v4
+      env:
+        GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
       with:
         title: Hi
