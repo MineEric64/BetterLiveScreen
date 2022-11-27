@@ -63,8 +63,6 @@ using Window = System.Windows.Window;
 using NvDecoder = BetterLiveScreen.Recording.Video.NvPipe.Decoder;
 using H264Encoder = OpenH264Lib.Encoder;
 using H264Decoder = OpenH264Lib.Decoder;
-using System.Web;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
 namespace BetterLiveScreen
 {
@@ -1076,7 +1074,6 @@ namespace BetterLiveScreen
             info = new ReceiveInfo(SendTypes.StreamInfoRequested, buffer, BufferTypes.String);
 
             SendBufferFinal(info);
-
             info = await Client.ReceiveBufferAsync(info);
 
             if (info.ResponseCode == ResponseCodes.OK)

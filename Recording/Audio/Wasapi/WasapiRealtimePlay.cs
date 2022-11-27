@@ -77,7 +77,11 @@ namespace BetterLiveScreen.Recording.Audio.Wasapi
                 return;
             }
 
-            var buffered = new BufferedWaveProvider(format);
+            var buffered = new BufferedWaveProvider(format)
+            {
+                DiscardOnBufferOverflow = true,
+                ReadFully = true
+            };
             var converted = new WdlResamplingSampleProvider(buffered.ToSampleProvider(), 44100);
             //var converted = new WaveFormatConversionProvider(StandardFormat, buffered);
 

@@ -29,13 +29,12 @@ using NAudio.Wave;
 using BetterLiveScreen.Extensions;
 using BetterLiveScreen.Interfaces;
 using BetterLiveScreen.Interfaces.Security;
+using BetterLiveScreen.Recording.Types;
 using BetterLiveScreen.Recording.Video;
 using BetterLiveScreen.Rooms;
 using BetterLiveScreen.Users;
 
 using My = BetterLiveScreen.MainWindow;
-using BetterLiveScreen.Recording.Types;
-using System.IO.Packaging;
 
 namespace BetterLiveScreen.Clients
 {
@@ -199,6 +198,8 @@ namespace BetterLiveScreen.Clients
             string jsonRaw;
             JObject json;
 
+            if (string.IsNullOrEmpty(userName) && peer != null && UserMap.TryGetValue(peer.EndPoint, out var user_)) userName = user_.ToString();
+
             switch (receivedInfo.SendType)
             {
                 #region Room
@@ -288,6 +289,8 @@ namespace BetterLiveScreen.Clients
                 #endregion
                 #region Streaming
                 case SendTypes.StreamStarted:
+                    if (string.IsNullOrEmpty(userName)) return;
+
                     var streamInfo = MessagePackSerializer.Deserialize<BitmapInfo>(receivedInfo.ExtraBuffer);
 
                     if (Rescreen.VideoStreams.TryGetValue(userName, out var videoStream)) videoStream.Info = streamInfo;
@@ -308,10 +311,8 @@ namespace BetterLiveScreen.Clients
                         byte[] buffer2 = MessagePackSerializer.Serialize(video.Info);
                         var info2 = new ReceiveInfo(SendTypes.StreamInfoRequested, ResponseCodes.OK, receivedInfo.Buffer, BufferTypes.String, buffer2);
 
-                        SendBuffer(info2, peer);
-
-                        //this means the host required this information, so we have to send the info directly
-                        if (peer == null) ReceivedQueue.Enqueue(info2);
+                        //if the host required this information, we have to send the info directly
+                        SendBufferIfUserElseReceive(info2, peer);
                     }
                     else
                     {
@@ -359,8 +360,7 @@ namespace BetterLiveScreen.Clients
                     //Audio : Channel 2
                     byte channelToSend = (byte)(receivedInfo.SendType == SendTypes.Video ? 1 : 2);
 
-                    if (string.IsNullOrEmpty(userName)) userName = UserMap[peer.EndPoint].ToString();
-
+                    if (string.IsNullOrEmpty(userName)) return;
                     if (WatchMap.TryGetValue(userName, out var watches3))
                     {
                         foreach (var user in watches3)
@@ -369,24 +369,34 @@ namespace BetterLiveScreen.Clients
                             NetPeer peer2 = null;
                             List<NetPeer> peers;
 
-                            try
+                            peers = Client.ToList();
+                            foreach (var connected in peers)
                             {
-                                peers = Client.ConnectedPeerList.ToList();
-
-                                foreach (var connected in peers)
+                                if (connected?.EndPoint == ep)
                                 {
-                                    if (connected?.EndPoint == ep)
-                                    {
-                                        peer2 = connected;
-                                    }
+                                    peer2 = connected;
                                 }
-                                SendBuffer(receivedInfo, peer2, channelToSend);
                             }
-                            catch
-                            {
-                                //freaking index out of range
-                                break;
-                            }
+                            SendBuffer(receivedInfo, peer2, channelToSend);
+
+                            //try
+                            //{
+                            //    peers = Client.ConnectedPeerList.ToList();
+
+                            //    foreach (var connected in peers)
+                            //    {
+                            //        if (connected?.EndPoint == ep)
+                            //        {
+                            //            peer2 = connected;
+                            //        }
+                            //    }
+                            //    SendBuffer(receivedInfo, peer2, channelToSend);
+                            //}
+                            //catch
+                            //{
+                            //    //freaking index out of range
+                            //    break;
+                            //}
                         }
                     }
                     break;
@@ -414,10 +424,12 @@ namespace BetterLiveScreen.Clients
                 #endregion
                 #region Room
                 case SendTypes.RoomInfoRequested:
+                    if (RoomManager.IsHost) return; //the host must not receive this info, because it processed already on OnReceived4Host().
                     ReceivedQueue.Enqueue(receivedInfo);
                     break;
 
                 case SendTypes.RoomConnectRequested:
+                    if (RoomManager.IsHost) return; //the host must not receive this info, because it processed already on OnReceived4Host().
                     ReceivedQueue.Enqueue(receivedInfo);
                     break;
                 #endregion
@@ -626,6 +638,18 @@ namespace BetterLiveScreen.Clients
             peer?.Send(buffer, channel, DELIVERY_METHOD);
         }
 
+        /// <summary>
+        /// Sends the info directly if the host required this information.
+        /// </summary>
+        /// <param name="info"></param>
+        /// <param name="peer"></param>
+        /// <param name="channel"></param>
+        public void SendBufferIfUserElseReceive(ReceiveInfo info, NetPeer peer, byte channel = 0)
+        {
+            if (RoomManager.IsHost) OnReceived4User(info);
+            else SendBuffer(info, peer, channel);
+        }
+
         public void SendBufferToHost(ReceiveInfo info)
         {
             SendBuffer(info, Client.FirstPeer);
@@ -669,11 +693,11 @@ namespace BetterLiveScreen.Clients
         /// Receive the buffer that is sent by user. This method must not be used when the buffer has to process with low latency.
         /// </summary>
         /// <param name="sentInfo">Info</param>
-        /// <param name="timeOut_">if this param is null, set to default value (10 seconds)</param>
+        /// <param name="timeOut_">if this param is null, set to default value (5 seconds)</param>
         /// <returns></returns>
         public async Task<ReceiveInfo> ReceiveBufferAsync(ReceiveInfo sentInfo, TimeSpan? timeOut_ = null)
         {
-            TimeSpan timeOut = timeOut_ ?? TimeSpan.FromSeconds(10);
+            TimeSpan timeout = timeOut_ ?? TimeSpan.FromSeconds(5);
             Stopwatch sw = Stopwatch.StartNew();
 
             while (true)
@@ -692,7 +716,7 @@ namespace BetterLiveScreen.Clients
                 }
                 await Task.Delay(10);
 
-                if (sw.Elapsed >= timeOut) break;
+                if (sw.Elapsed >= timeout) break;
             }
             sw.Stop();
 

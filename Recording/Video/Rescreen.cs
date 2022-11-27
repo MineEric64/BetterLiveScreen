@@ -16,6 +16,7 @@ using OpenCvSharp;
 using TurboJpegWrapper;
 
 using BetterLiveScreen.Extensions;
+using BetterLiveScreen.Interfaces;
 using BetterLiveScreen.Recording;
 using BetterLiveScreen.Recording.Audio;
 using BetterLiveScreen.Recording.Audio.Wasapi;
@@ -73,10 +74,7 @@ namespace BetterLiveScreen.Recording.Video
 
         public static void Start()
         {
-            if (!VideoStreams.ContainsKey(MainWindow.User.ToString()))
-            {
-                VideoStreams.Add(MainWindow.User.ToString(), new VideoLike(VideoLike.FromRescreenSettings()));
-            }
+            VideoStreams[MainWindow.User.ToString()] = new VideoLike(VideoLike.FromRescreenSettings());
             _flow.Reset();
 
             switch (Settings.VideoType)
@@ -186,9 +184,9 @@ namespace BetterLiveScreen.Recording.Video
 
         private static void AudioRefreshed(object sender, byte[] buffer)
         {
-            bool discardIfEmpty = true;
+            const bool DISCARD_IF_EMPTY = true;
 
-            if (!discardIfEmpty || buffer.Any(x => x != 0))
+            if (!DISCARD_IF_EMPTY || buffer.Any(x => x != 0))
             {
                 byte[] compressed = buffer.Compress(); //byte[] -> compressed byte[]
                 long timestamp = DateTimeOffset.Now.ToUnixTimeMilliseconds();
