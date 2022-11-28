@@ -106,7 +106,7 @@ namespace BetterLiveScreen.Rooms
             return null;
         }
         #endregion
-        #region Admin Methods
+        #region Host Methods
         public static void Create(string name, string description = "", string password = "")
         {
             CurrentRoom = new RoomInfo(name, description, My.User, !string.IsNullOrWhiteSpace(password), 1);

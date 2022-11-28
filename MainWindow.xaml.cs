@@ -26,6 +26,8 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using Windows.UI.Xaml.Documents;
 
+using ConcurrentCollections;
+
 using log4net;
 
 using AutoUpdaterDotNET;
@@ -92,7 +94,7 @@ namespace BetterLiveScreen
         public static bool IsEnabledLivePreview { get; set; } = true;
 
         public static Dictionary<string, int> PreviewMap { get; set; } = new Dictionary<string, int>(); //(userName, preview index)
-        public static ConcurrentDictionary<int, string> Watches { get; private set; } = new ConcurrentDictionary<int, string>();
+        public static ConcurrentHashSet<string> Watches { get; private set; } = new ConcurrentHashSet<string>();
 
         public MainWindow()
         {
@@ -201,6 +203,8 @@ namespace BetterLiveScreen
 
                     Users.Remove(userInfo);
                     PreviewMap.Remove(userFullName);
+                    Unwatch(userFullName);
+
                     RoomManager.CurrentRoom.CurrentUserCount = Users.Count;
 
                     Dispatcher.Invoke(UpdateUserUI);
@@ -355,7 +359,7 @@ namespace BetterLiveScreen
         {
             void ScreenBlacked(string userFullName, bool isLived, ref System.Windows.Controls.Image thumbnail)
             {
-                if ((isLived && !Watches.ContainsValue(userFullName)) || (User.Equals(userFullName) && !isLived)) //Go Lived but unwatching or the user is not go lived
+                if ((isLived && !Watches.Contains(userFullName)) || (User.Equals(userFullName) && !isLived)) //Go Lived but unwatching or the user is not go lived
                 {
                     //the screen should be black
                     UpdateScreenToBlack(ref thumbnail);
@@ -402,6 +406,11 @@ namespace BetterLiveScreen
             string[] names = new string[5] { string.Empty, string.Empty, string.Empty, string.Empty, string.Empty };
             string[] urls = new string[5] { string.Empty, string.Empty, string.Empty, string.Empty, string.Empty };
             bool[] lives = new bool[5] { false, false, false, false, false };
+
+            if (!PreviewMap.ContainsValue(0)) //Reset, because some user is left
+            {
+                PreviewMap.Clear();
+            }
 
             for (int i = 0; i < Users.Count; i++)
             {
@@ -662,7 +671,7 @@ namespace BetterLiveScreen
 
             while (Watches.Count > 0)
             {
-                foreach (var livedUserName in Watches.Values)
+                foreach (var livedUserName in Watches)
                 {
                     var livedUser = Users.Where(x => x.Equals(livedUserName)).FirstOrDefault();
 
@@ -799,9 +808,9 @@ namespace BetterLiveScreen
 
             while (Watches.Count > 0)
             {
-                foreach (var livedUserName in Watches.Values)
+                foreach (var livedUserName in Watches)
                 {
-                    var livedUser = Users.Where(x => x.Equals(livedUserName)).FirstOrDefault();
+                    var livedUser = GetUserByName(livedUserName);
 
                     if (livedUser != null && Rescreen.VideoStreams.TryGetValue(livedUserName, out var videoStream))
                     {
@@ -883,7 +892,8 @@ namespace BetterLiveScreen
 
             if (RoomManager.IsConnected) //need to Disconnect
             {
-                RoomManager.Disconnect();
+                //RoomManager.Disconnect();
+                RoomManager.Delete();
                 serverIpConnect.Content = "Connect";
 
                 return;
@@ -1091,7 +1101,7 @@ namespace BetterLiveScreen
                 info = new ReceiveInfo(SendTypes.WatchStarted, buffer, BufferTypes.String);
 
                 SendBufferFinal(info, User.ToString());
-                Watches.TryAdd(Watches.Count, user);
+                Watches.Add(user);
 
                 if (prevWatchesCount == 0 && Watches.Count > 0)
                 {
@@ -1114,18 +1124,19 @@ namespace BetterLiveScreen
 
         public void Unwatch(string user)
         {
+            if (!Watches.Contains(user)) return;
+
             byte[] buffer = ClientOne.Encode(user);
             var info = new ReceiveInfo(SendTypes.WatchEnded, buffer, BufferTypes.String);
 
             SendBufferFinal(info, User.ToString());
-            if (Watches.ContainsValue(user)) Watches.TryRemove(Watches.GetKeyByValue(user), out _);
+            Watches.TryRemove(user);
         }
 
         public void UnwatchAll()
         {
-            for (int i = 0; i < Watches.Count; i++)
+            foreach (string user in Watches)
             {
-                string user = Watches[i];
                 Unwatch(user);
             }
         }
@@ -1136,6 +1147,8 @@ namespace BetterLiveScreen
         /// <param name="info"></param>
         public static void SendBufferFinal(ReceiveInfo info, string userName = "")
         {
+            if (string.IsNullOrEmpty(userName)) userName = User.ToString();
+
             if (!RoomManager.IsHost)
             {
                 Client.SendBufferToHost(info);
@@ -1209,7 +1222,7 @@ namespace BetterLiveScreen
             System.Windows.Controls.Image[] thumbnails = new System.Windows.Controls.Image[4] { thumbnail1, thumbnail2, thumbnail3, thumbnail4 };
             string key = PreviewMap.GetKeyByValue(index);
 
-            if (!Watches.ContainsValue(key)) //The user wants to watch
+            if (!Watches.Contains(key)) //The user wants to watch
             {
                 if (await WatchAsync(key))
                 {

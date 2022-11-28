@@ -312,7 +312,8 @@ namespace BetterLiveScreen.Clients
                         var info2 = new ReceiveInfo(SendTypes.StreamInfoRequested, ResponseCodes.OK, receivedInfo.Buffer, BufferTypes.String, buffer2);
 
                         //if the host required this information, we have to send the info directly
-                        SendBufferIfUserElseReceive(info2, peer);
+                        if (peer == null) ReceivedQueue.Enqueue(info2);
+                        else SendBuffer(info2, peer, channel);
                     }
                     else
                     {
@@ -378,25 +379,6 @@ namespace BetterLiveScreen.Clients
                                 }
                             }
                             SendBuffer(receivedInfo, peer2, channelToSend);
-
-                            //try
-                            //{
-                            //    peers = Client.ConnectedPeerList.ToList();
-
-                            //    foreach (var connected in peers)
-                            //    {
-                            //        if (connected?.EndPoint == ep)
-                            //        {
-                            //            peer2 = connected;
-                            //        }
-                            //    }
-                            //    SendBuffer(receivedInfo, peer2, channelToSend);
-                            //}
-                            //catch
-                            //{
-                            //    //freaking index out of range
-                            //    break;
-                            //}
                         }
                     }
                     break;
@@ -469,6 +451,7 @@ namespace BetterLiveScreen.Clients
                     break;
 
                 case SendTypes.StreamInfoRequested:
+                    if (RoomManager.IsHost) return; //the host must not receive this info, because it processed already on OnReceived4Host().
                     ReceivedQueue.Enqueue(receivedInfo);
                     break;
 
@@ -636,18 +619,6 @@ namespace BetterLiveScreen.Clients
         {
             byte[] buffer = MessagePackSerializer.Serialize(info);
             peer?.Send(buffer, channel, DELIVERY_METHOD);
-        }
-
-        /// <summary>
-        /// Sends the info directly if the host required this information.
-        /// </summary>
-        /// <param name="info"></param>
-        /// <param name="peer"></param>
-        /// <param name="channel"></param>
-        public void SendBufferIfUserElseReceive(ReceiveInfo info, NetPeer peer, byte channel = 0)
-        {
-            if (RoomManager.IsHost) OnReceived4User(info);
-            else SendBuffer(info, peer, channel);
         }
 
         public void SendBufferToHost(ReceiveInfo info)

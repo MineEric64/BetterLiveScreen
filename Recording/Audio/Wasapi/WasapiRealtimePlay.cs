@@ -79,8 +79,7 @@ namespace BetterLiveScreen.Recording.Audio.Wasapi
 
             var buffered = new BufferedWaveProvider(format)
             {
-                DiscardOnBufferOverflow = true,
-                ReadFully = true
+                DiscardOnBufferOverflow = true
             };
             var converted = new WdlResamplingSampleProvider(buffered.ToSampleProvider(), 44100);
             //var converted = new WaveFormatConversionProvider(StandardFormat, buffered);
