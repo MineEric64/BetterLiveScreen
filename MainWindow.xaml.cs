@@ -28,6 +28,9 @@ using Windows.UI.Xaml.Documents;
 
 using ConcurrentCollections;
 
+using Config;
+using Config.Net;
+
 using log4net;
 
 using AutoUpdaterDotNET;
@@ -74,6 +77,9 @@ namespace BetterLiveScreen
     public partial class MainWindow : Window
     {
         private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        public static ISettings Settings { get; private set; } = new ConfigurationBuilder<ISettings>()
+            .UseJsonFile("settings.json")
+            .Build();
 
         public static UserInfo User { get; set; }
         internal static string UserToken { get; } = Guid.NewGuid().ToString();
@@ -458,7 +464,7 @@ namespace BetterLiveScreen
                             { "buffer_length", buffer.Length },
                             { "user", User.ToString() },
                             { "checksum", Checksum.ComputeAddition(buffer) },
-                            { "timestamp", DateTimeOffset.Now.ToUnixTimeMilliseconds()}
+                            { "timestamp", Timestamp.Now }
                         };
 
                 foreach (var info in infos)
@@ -620,7 +626,7 @@ namespace BetterLiveScreen
                             { "checksum", Checksum.ComputeAddition(audio.Item1) },
                             { "audio_sample_rate", WasapiCapture.DeviceWaveFormat.SampleRate },
                             { "audio_channel", WasapiCapture.DeviceWaveFormat.Channels },
-                            { "timestamp", DateTimeOffset.Now.ToUnixTimeMilliseconds() }
+                            { "timestamp", Timestamp.Now }
                         };
 
                         foreach (var info in infos)
@@ -636,6 +642,7 @@ namespace BetterLiveScreen
         }
         #endregion
         #region Receive Screen & Audio
+        #region Screen
         private void ClientBufferRefreshedVideo()
         {
             //Nvenc
@@ -645,26 +652,33 @@ namespace BetterLiveScreen
             H264Decoder h264Decoder = null;
             Dictionary<string, (bool, DateTime)> wasNullMap = new Dictionary<string, (bool, DateTime)>();
 
+            const double CLEAR_BUFFER_INTERVAL = 5.0; //unit: seconds
+            const bool CLEAR_BUFFER_DECODING = true;
+            var startCleared = DateTime.Now;
+
             void ClearBuffer(VideoLike stream, EncodingType encoding)
             {
-                int MAX_COUNT = 90;
+                long timestamp = Timestamp.Now;
 
-                if (stream.ScreenQueue.Count > MAX_COUNT)
+                while (stream.ScreenQueue.Count > 0)
                 {
-                    while (stream.ScreenQueue.Count > 0)
+                    if (stream.ScreenQueue.TryPeek(out var video))
                     {
-                        if (stream.ScreenQueue.TryDequeue(out var screen2))
+                        if (video.Item2 >= timestamp) break;
+
+                        if (CLEAR_BUFFER_DECODING)
                         {
                             switch (encoding)
                             {
                                 case EncodingType.OpenH264:
-                                    byte[] preview = screen2.Item1.Decompress();
+                                    byte[] preview = video.Item1.Decompress();
 
                                     if (h264Decoder == null) h264Decoder = new H264Decoder("openh264-2.3.1-win64.dll");
                                     h264Decoder.Decode(preview, preview.Length);
                                     break;
                             }
                         }
+                        stream.ScreenQueue.TryDequeue(out _);
                     }
                 }
             }
@@ -679,7 +693,12 @@ namespace BetterLiveScreen
                     {
                         Enum.TryParse(videoStream.Info.Encoding, out EncodingType encoding);
 
-                        //ClearBuffer(videoStream, encoding);
+                        if (Settings.ClearVideoBufferEnabled && (DateTime.Now - startCleared).TotalSeconds >= CLEAR_BUFFER_INTERVAL)
+                        {
+                            ClearBuffer(videoStream, encoding);
+                            startCleared = DateTime.Now;
+                        }
+
                         try
                         {
                             while (videoStream.ScreenQueue.Count > 0)
@@ -790,17 +809,22 @@ namespace BetterLiveScreen
             foreach (var decoder in decoderMap.Values) decoder.Close();
             h264Decoder?.Dispose();
         }
-
+        #endregion
+        #region Audio
         private void ClientBufferRefreshedAudio()
         {
+            const double CLEAR_BUFFER_INTERVAL = 5.0; //unit: seconds
+            var startCleared = DateTime.Now;
+
             void ClearBuffer(VideoLike stream)
             {
-                int MAX_COUNT = 90;
+                long timestamp = Timestamp.Now;
 
-                if (stream.AudioQueue.Count > MAX_COUNT)
+                while (stream.AudioQueue.Count > 0)
                 {
-                    while (stream.AudioQueue.Count > 0)
+                    if (stream.AudioQueue.TryPeek(out var audio))
                     {
+                        if (audio.Item2 >= timestamp) break;
                         stream.AudioQueue.TryDequeue(out _);
                     }
                 }
@@ -814,7 +838,12 @@ namespace BetterLiveScreen
 
                     if (livedUser != null && Rescreen.VideoStreams.TryGetValue(livedUserName, out var videoStream))
                     {
-                        //ClearBuffer(videoStream);
+                        if (Settings.ClearAudioBufferEnabled && (DateTime.Now - startCleared).TotalSeconds >= CLEAR_BUFFER_INTERVAL)
+                        {
+                            ClearBuffer(videoStream);
+                            startCleared = DateTime.Now;
+                        }
+
                         try
                         {
                             while (videoStream.AudioQueue.Count > 0)
@@ -842,6 +871,7 @@ namespace BetterLiveScreen
             }
             WasapiRealtimePlay.Stop();
         }
+        #endregion
         #endregion
 
         private void ScreenPreview(BitmapSource source, int index)

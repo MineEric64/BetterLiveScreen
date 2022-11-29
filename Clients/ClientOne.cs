@@ -461,7 +461,7 @@ namespace BetterLiveScreen.Clients
                     userName = json["user"]?.ToString();
                     checksum = json["checksum"]?.ToObject<byte>() ?? 0;
                     bufferLength = json["buffer_length"]?.ToObject<int>() ?? 0;
-                    timestamp = json["timestamp"]?.ToObject<long>() ?? DateTimeOffset.Now.ToUnixTimeMilliseconds();
+                    timestamp = json["timestamp"]?.ToObject<long>() ?? Timestamp.Now;
 
                     if (_bufferMap.TryGetValue(userName, out var bufferMap2))
                     {
@@ -515,7 +515,7 @@ namespace BetterLiveScreen.Clients
                     bufferLength = json["buffer_length"]?.ToObject<int>() ?? 0;
                     int audioSampleRate = json["audio_sample_rate"]?.ToObject<int>() ?? 44100;
                     int audioChannel = json["audio_channel"]?.ToObject<int>() ?? 2;
-                    timestamp = json["timestamp"]?.ToObject<long>() ?? DateTimeOffset.Now.ToUnixTimeMilliseconds();
+                    timestamp = json["timestamp"]?.ToObject<long>() ?? Timestamp.Now;
 
                     if (_bufferMap.TryGetValue(userName, out var bufferMap3))
                     {

@@ -177,7 +177,7 @@ namespace BetterLiveScreen.Recording.Video
         private static void ScreenRefreshed(object sender, byte[] buffer)
         {
             byte[] compressed = buffer.Compress(); //byte[] -> compressed byte[]
-            long timestamp = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+            long timestamp = Timestamp.Now;
 
             MyVideoStream.ScreenQueue.Enqueue((compressed, timestamp));
         }
@@ -189,7 +189,7 @@ namespace BetterLiveScreen.Recording.Video
             if (!DISCARD_IF_EMPTY || buffer.Any(x => x != 0))
             {
                 byte[] compressed = buffer.Compress(); //byte[] -> compressed byte[]
-                long timestamp = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+                long timestamp = Timestamp.Now;
 
                 MyVideoStream.AudioQueue.Enqueue((compressed, timestamp));
             }
