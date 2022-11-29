@@ -30,7 +30,7 @@ using BetterLiveScreen.Recording.Video.NvEncoder;
 using Device = SharpDX.Direct3D11.Device;
 using MapFlags = SharpDX.Direct3D11.MapFlags;
 using Encoder = BetterLiveScreen.Recording.Video.NvEncoder.Encoder;
-using static System.Collections.Specialized.BitVector32;
+using System.Reflection;
 
 namespace BetterLiveScreen.Recording.Video.WGC
 {
@@ -55,7 +55,7 @@ namespace BetterLiveScreen.Recording.Video.WGC
         private static Encoder _encoder = null;
         private static int _frameCount = 0;
 
-        private static readonly ILog log = LogManager.GetLogger(typeof(App));
+        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         public static bool IsInitialized { get; private set; } = false;
         public static bool IsBorderRequired { get; set; } = false;
@@ -163,10 +163,17 @@ namespace BetterLiveScreen.Recording.Video.WGC
                     Thread.Sleep(needElapsed - deltaRes - (int)delta.TotalMilliseconds);
                 }
 
-                Rescreen._deltaResSw.Reset();
-                Rescreen._deltaResSw.Start();
+                Rescreen._deltaResSw.Restart();
 
                 needElapsed += Rescreen.DelayPerFrame;
+
+                if (_framePool == null)
+                {
+                    log.Error("FramePool is null. Can't process the frame, returned");
+                    MessageBox.Show("Can't process the frame with Windows.Graphics.Capture. Try again later.", "Better Live Screen", MessageBoxButton.OK, MessageBoxImage.Error);
+
+                    return;
+                }
 
                 using (var frame = _framePool.TryGetNextFrame())
                 {
@@ -176,8 +183,7 @@ namespace BetterLiveScreen.Recording.Video.WGC
                 Rescreen._delayPerFrameSw.Stop();
                 Rescreen._delayPerFrame.Add((int)Rescreen._delayPerFrameSw.ElapsedMilliseconds);
 
-                Rescreen._delayPerFrameSw.Reset();
-                Rescreen._delayPerFrameSw.Start();
+                Rescreen._delayPerFrameSw.Restart();
             };
 
             _item.Closed += (s, a) =>

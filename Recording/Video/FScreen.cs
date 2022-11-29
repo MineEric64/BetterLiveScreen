@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,6 +25,7 @@ using BetterLiveScreen.Recording.Video.NvEncoder;
 using BetterLiveScreen.Recording.Video.NvPipe;
 using BetterLiveScreen.Recording.Video.WGC;
 
+using D3D11Device = SharpDX.Direct3D11.Device;
 using Encoder = BetterLiveScreen.Recording.Video.NvEncoder.Encoder;
 
 namespace BetterLiveScreen.Recording.Video
@@ -35,7 +37,7 @@ namespace BetterLiveScreen.Recording.Video
     internal class FScreen
     {
         private bool _run, _init;
-        private static readonly ILog log = LogManager.GetLogger(typeof(App));
+        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         public int Size { get; private set; }
         public FScreen()
@@ -52,14 +54,14 @@ namespace BetterLiveScreen.Recording.Video
             //Get first adapter
             var adapter = factory.GetAdapter1(deviceFromMonitor.Item1);
             //Get device from adapter
-            var device = new SharpDX.Direct3D11.Device(adapter);
+            var device = new D3D11Device(adapter);
             //Get front buffer of the adapter
             var output = adapter.GetOutput(deviceFromMonitor.Item2);
             var output1 = output.QueryInterface<Output1>();
 
             // Width/Height of desktop to capture
-            int width = output.Description.DesktopBounds.Right;
-            int height = output.Description.DesktopBounds.Bottom;
+            int width = output.Description.DesktopBounds.Right - output.Description.DesktopBounds.Left;
+            int height = output.Description.DesktopBounds.Bottom - output.Description.DesktopBounds.Top;
 
             int aw = Rescreen.Settings.IsHalf ? width / 2 : width;
             int ah = Rescreen.Settings.IsHalf ? height / 2 : height;
@@ -239,35 +241,6 @@ namespace BetterLiveScreen.Recording.Video
 
                                 device.ImmediateContext.UnmapSubresource(stagingTexture, 0);
                                 ScreenRefreshed?.Invoke(this, destRaw);
-
-                                // Create Drawing.Bitmap
-                                //using (var bitmap = new Bitmap(width / 2, height / 2, PixelFormat.Format32bppArgb))
-                                //{
-                                //    var boundsRect = new Rectangle(0, 0, width / 2, height / 2);
-
-                                //    // Copy pixels from screen capture Texture to GDI bitmap
-                                //    var mapDest = bitmap.LockBits(boundsRect, ImageLockMode.WriteOnly, bitmap.PixelFormat);
-                                //    var sourcePtr = mapSource.DataPointer;
-                                //    var destPtr = mapDest.Scan0;
-                                //    for (int y = 0; y < height / 2; y++)
-                                //    {
-                                //        // Copy a single line 
-                                //        Utilities.CopyMemory(destPtr, sourcePtr, width * 4 / 2);
-
-                                //        // Advance pointers
-                                //        sourcePtr = IntPtr.Add(sourcePtr, mapSource.RowPitch);
-                                //        destPtr = IntPtr.Add(destPtr, mapDest.Stride);
-                                //    }
-
-                                //    // Release source and dest locks
-                                //    bitmap.UnlockBits(mapDest);
-                                //    device.ImmediateContext.UnmapSubresource(stagingTexture, 0);
-
-                                //    bitmap.Save(@"C:\Users\erics\Downloads\fsc.jpg");
-
-                                //    //ScreenRefreshed?.Invoke(this, bitmap);
-                                //    _init = true;
-                                //}
                             }
 
                             _init = true;
@@ -355,15 +328,18 @@ namespace BetterLiveScreen.Recording.Video
 
         public static (int, int) GetAdapterOutput(MonitorInfo monitor, Factory1 factory)
         {
-            for (int i = 0; i < factory.Adapters1.Length; i++)
-            {
-                var adapter = factory.Adapters1[i];
+            int adapterCount = factory.GetAdapterCount1();
 
-                for (int j = 0; j < adapter.Outputs.Length; j++)
+            for (int i = 0; i < adapterCount; i++)
+            {
+                var adapter = factory.GetAdapter1(i);
+                int outputCount = adapter.GetOutputCount();
+
+                for (int j = 0; j < outputCount; j++)
                 {
-                    var output = adapter.Outputs[i];
-                    string outputName = output.Description.DeviceName; //ex) \\.\DISPLAY1
-                    
+                    var output = adapter.GetOutput(j);
+                    string outputName = output.Description.DeviceName; //ex) \\.\DISPLAY
+
                     if (monitor.DeviceName == outputName) return (i, j);
                 }
             }
@@ -376,14 +352,17 @@ namespace BetterLiveScreen.Recording.Video
         /// </summary>
         public static string GetAdapterName(string monitorDeviceName, Factory1 factory)
         {
-            for (int i = 0; i < factory.Adapters1.Length; i++)
+            int adapterCount = factory.GetAdapterCount1();
+
+            for (int i = 0; i < adapterCount; i++)
             {
-                var adapter = factory.Adapters1[i];
+                var adapter = factory.GetAdapter1(i);
+                int outputCount = adapter.GetOutputCount();
                 string adapterName = adapter.Description.Description; //ex) NVIDIA GeForce GTX 1050 Ti
 
-                for (int j = 0; j < adapter.Outputs.Length; j++)
+                for (int j = 0; j < outputCount; j++)
                 {
-                    var output = adapter.Outputs[i];
+                    var output = adapter.GetOutput(j);
                     string outputName = output.Description.DeviceName; //ex) \\.\DISPLAY1
 
                     if (monitorDeviceName == outputName) return adapterName;

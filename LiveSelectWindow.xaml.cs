@@ -56,7 +56,7 @@ namespace BetterLiveScreen
             _timer.Tick += timer_Tick;
             _timer.Start();
 
-
+            timer_Tick(null, null);
         }
 
         private void timer_Tick(object sender, EventArgs e)
