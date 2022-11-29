@@ -51,6 +51,12 @@ namespace BetterLiveScreen.Recording.Video
             var factory = new Factory1();
             var deviceFromMonitor = GetAdapterOutput(Rescreen.Settings.SelectedMonitor, factory);
 
+            if (deviceFromMonitor.Item1 == -1 || deviceFromMonitor.Item2 == -1)
+            {
+                log.Error("Can't identify the device from current monitor. [GetAdapterOutput]");
+                MessageBox.Show("Can't identify the device from current monitor.\nPlease select another monitor and try again.", "Better Live Screen", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+
             //Get first adapter
             var adapter = factory.GetAdapter1(deviceFromMonitor.Item1);
             //Get device from adapter
