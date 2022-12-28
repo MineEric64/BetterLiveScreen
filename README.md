@@ -9,6 +9,8 @@
 Screen Share that is better than discord
 
 ## Introduction
+- [Korean](./README-ko.md)
+
 you can share screen with original source and max to 60fps.
 
 also you can share the screen including audio!
