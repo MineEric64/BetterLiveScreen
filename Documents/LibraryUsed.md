@@ -12,7 +12,7 @@
 |[uNvPipe](https://github.com/hecomi/uNvPipe)|NvPipe for .NET|[Lib.cs](../Recording/Video/NvPipe/Lib.cs), [Encoder.cs](../Recording/Video/NvPipe/Encoder.cs), [Decoder.cs (Not Used)](../Recording/Video/NvPipe/Decoder.cs)|
 |[OpenH264Lib.NET](https://github.com/secile/OpenH264Lib.NET)|OpenH264 for .NET|[MainWindow.xaml.cs](../MainWindow.xaml.cs)|
 |[OpenCvSharp](https://github.com/shimat/opencvsharp)|Color Converting ([#7](../../../issues/7))|.|
-|[NvColorSpace](https://github.com/MineEric64/NvColorSpace)|Color Converting [#7](../../../issues/7))|.|
+|[NvColorSpace](https://github.com/MineEric64/NvColorSpace)|Color Converting [#7](../../../issues/7)) using CUDA|.|
 |[ProjectReinforced](https://github.com/Luigi38/ProjectReinforced)|Implementing Screen Capture|[FScreen.cs](../Recording/Video/FScreen.cs), [Rescreen.cs](../Recording/Video/Rescreen.cs)|
 
 ### Audio
