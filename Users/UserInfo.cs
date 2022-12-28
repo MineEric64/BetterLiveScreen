@@ -20,6 +20,7 @@ namespace BetterLiveScreen.Users
 
         public static UserInfo GuestUser => new UserInfo(UserNameInfo.GuestUser, string.Empty);
         public bool IsGuest => NameInfo.Discriminator == "Guest" && string.IsNullOrEmpty(AvatarURL);
+        public string FullName => ToString();
 
         public UserInfo(string user, string avatarUrl, bool isLived = false)
         {

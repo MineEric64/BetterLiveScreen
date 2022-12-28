@@ -13,8 +13,6 @@ using System.Windows.Media.Imaging;
 
 using OpenCvSharp;
 
-using TurboJpegWrapper;
-
 using BetterLiveScreen.Extensions;
 using BetterLiveScreen.Interfaces;
 using BetterLiveScreen.Recording;
@@ -43,7 +41,7 @@ namespace BetterLiveScreen.Recording.Video
         internal static Stopwatch _delayPerFrameSw = new Stopwatch(); //Delay Per Frame Time
 
         public static Dictionary<string, VideoLike> VideoStreams { get; set; } = new Dictionary<string, VideoLike>();
-        public static VideoLike MyVideoStream => VideoStreams[MainWindow.User.ToString()];
+        public static VideoLike MyVideoStream => VideoStreams[MainWindow.User.FullName];
         public static Dictionary<string, BitrateInfo> BitrateInfos { get; } = new Dictionary<string, BitrateInfo>();
 
         public static RescreenSettings Settings { get; private set; } = RescreenSettings.Default;
@@ -74,7 +72,7 @@ namespace BetterLiveScreen.Recording.Video
 
         public static void Start()
         {
-            VideoStreams[MainWindow.User.ToString()] = new VideoLike(VideoLike.FromRescreenSettings());
+            VideoStreams[MainWindow.User.FullName] = new VideoLike(VideoLike.FromRescreenSettings());
             _flow.Reset();
 
             switch (Settings.VideoType)

@@ -62,7 +62,7 @@ namespace BetterLiveScreen.Rooms
         {
             if (!roomDeleted)
             {
-                var info = new ReceiveInfo(SendTypes.UserDisconnected, ClientOne.Encode(My.User.ToString()), BufferTypes.String);
+                var info = new ReceiveInfo(SendTypes.UserDisconnected, ClientOne.Encode(My.User.FullName), BufferTypes.String);
 
                 My.Client.SendBufferToHost(info);
                 My.Client.Disconnect();

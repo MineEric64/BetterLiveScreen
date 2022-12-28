@@ -43,8 +43,6 @@ using Newtonsoft.Json.Linq;
 
 using MessagePack;
 
-using TurboJpegWrapper;
-
 using OpenH264Lib;
 
 using BetterLiveScreen.Clients;
@@ -55,6 +53,7 @@ using BetterLiveScreen.Recording;
 using BetterLiveScreen.Recording.Audio.Wasapi;
 using BetterLiveScreen.Recording.Types;
 using BetterLiveScreen.Recording.Video;
+using BetterLiveScreen.Recording.Video.NvColorSpace;
 using BetterLiveScreen.Recording.Video.NvPipe;
 using BetterLiveScreen.Rooms;
 using BetterLiveScreen.Users;
@@ -77,6 +76,8 @@ namespace BetterLiveScreen
     public partial class MainWindow : Window
     {
         private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        private static H264Decoder _h264Decoder = null;
+
         public static ISettings Settings { get; private set; } = new ConfigurationBuilder<ISettings>()
             .UseJsonFile("settings.json")
             .Build();
@@ -135,7 +136,7 @@ namespace BetterLiveScreen
                     username.ToolTip = $"#{User.NameInfo.Discriminator}";
 
                     Users.Add(User);
-                    PreviewMap.Add(User.ToString(), 0);
+                    PreviewMap.Add(User.FullName, 0);
 
                     this.IsEnabled = true;
                 }
@@ -164,7 +165,8 @@ namespace BetterLiveScreen
             #region Peer
             Client.Connected += (s, e) =>
             {
-                MessageBox.Show("Connected!", "Better Live Screen", MessageBoxButton.OK, MessageBoxImage.Information);
+                log.Info($"Connected to {RoomManager.CurrentRoom.Name}");
+                //MessageBox.Show("Connected!", "Better Live Screen", MessageBoxButton.OK, MessageBoxImage.Information);
             };
             #endregion
             #region Room
@@ -304,6 +306,8 @@ namespace BetterLiveScreen
 
         private void MainWindow_Closing(object sender, CancelEventArgs e)
         {
+            _h264Decoder?.Dispose();
+
             UnwatchAll();
 
             Client?.Disconnect();
@@ -315,6 +319,15 @@ namespace BetterLiveScreen
 
         private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
         {
+            if (!RoomManager.IsConnected && !string.IsNullOrWhiteSpace(serverIp.Text) && Keyboard.IsKeyDown(Key.Enter)) //Connect
+            {
+                serverIpConnect_Click(null, null);
+            }
+            if (Keyboard.IsKeyDown(Key.LeftCtrl) && Keyboard.IsKeyDown(Key.Enter)) //Popup Window
+            {
+                Popup();
+            }
+
             //Developer Mode
             if (Keyboard.IsKeyDown(Key.LeftCtrl) && Keyboard.IsKeyDown(Key.LeftShift) && Keyboard.IsKeyDown(Key.LeftAlt) && Keyboard.IsKeyDown(Key.Y))
             {
@@ -348,7 +361,7 @@ namespace BetterLiveScreen
 
             User.IsLived = true;
 
-            var info = new ReceiveInfo(SendTypes.StreamStarted, ClientOne.Encode(User.ToString()), BufferTypes.String, MessagePackSerializer.Serialize(Rescreen.MyVideoStream.Info));
+            var info = new ReceiveInfo(SendTypes.StreamStarted, ClientOne.Encode(User.FullName), BufferTypes.String, MessagePackSerializer.Serialize(Rescreen.MyVideoStream.Info));
             SendBufferFinal(info);
         }
 
@@ -434,7 +447,7 @@ namespace BetterLiveScreen
                 lives[index] = Users[i].IsLived;
             }
 
-            ScreenBlacked(User.ToString(), User.IsLived, ref screen_main);
+            ScreenBlacked(User.FullName, User.IsLived, ref screen_main);
             UpdateInternal(ref thumbnail1, ref watch1, ref name1, ref icon1, fullNames[1], names[1], urls[1], lives[1]);
             UpdateInternal(ref thumbnail2, ref watch2, ref name2, ref icon2, fullNames[2], names[2], urls[2], lives[2]);
             UpdateInternal(ref thumbnail3, ref watch3, ref name3, ref icon3, fullNames[3], names[3], urls[3], lives[3]);
@@ -449,7 +462,7 @@ namespace BetterLiveScreen
 
             User.IsLived = false;
 
-            var info = new ReceiveInfo(SendTypes.StreamEnded, ClientOne.Encode(User.ToString()), BufferTypes.String);
+            var info = new ReceiveInfo(SendTypes.StreamEnded, ClientOne.Encode(User.FullName), BufferTypes.String);
             SendBufferFinal(info);
         }
 
@@ -462,7 +475,7 @@ namespace BetterLiveScreen
                 var json = new JObject()
                         {
                             { "buffer_length", buffer.Length },
-                            { "user", User.ToString() },
+                            { "user", User.FullName },
                             { "checksum", Checksum.ComputeAddition(buffer) },
                             { "timestamp", Timestamp.Now }
                         };
@@ -470,7 +483,7 @@ namespace BetterLiveScreen
                 foreach (var info in infos)
                 {
                     info.ExtraBuffer = ClientOne.Encode(json.ToString());
-                    SendBufferFinal(info, User.ToString());
+                    SendBufferFinal(info, User.FullName);
                 }
             }
 
@@ -482,6 +495,56 @@ namespace BetterLiveScreen
             var sw = new Stopwatch();
 
             //initialize encoder & decoder
+            Mat ConvertLegacy(int width, int height, IntPtr ptr, int length)
+            {
+                Mat mat = new Mat(decoder.height, decoder.width, MatType.CV_8UC4);
+                Kernel32.CopyMemory(mat.Data, ptr, (uint)length);
+
+                Mat mat2 = mat.CvtColor(ColorConversionCodes.RGBA2BGR);
+                //Mat mat3 = mat2.Resize(new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest); //for preview
+
+                mat.Dispose();
+                //mat2.Dispose();
+
+                return mat2;
+            }
+            (byte[], int, int, PixelFormat, int) ConvertNew(int width, int height, IntPtr ptr, int length)
+            {
+                int stride = length / height;
+                byte[] buffer = new byte[length];
+
+                int outStride = 3 * width;
+                byte[] outBuffer = new byte[outStride * height];
+
+                Marshal.Copy(ptr, buffer, 0, length);
+
+                //TODO: RGBA -> BGR
+                void ConvertColor(int i)
+                {
+                    int std = i * 4;
+                    int stdout = i * 3;
+
+                    outBuffer[stdout] = buffer[std + 2];
+                    outBuffer[stdout + 1] = buffer[std + 1];
+                    outBuffer[stdout + 2] = buffer[std];
+                }
+                Parallel.For(0, width * height, ConvertColor);
+
+                return (outBuffer, width, height, PixelFormats.Bgr24, outStride);
+            }
+            (byte[], int, int, PixelFormat, int) ConvertNvColorSpace(int width, int height, IntPtr ptr, int length)
+            {
+                int size = width * height * 3;
+                IntPtr bgr = Marshal.AllocHGlobal(size);
+                int status = NvColorSpace.RGBA32ToBGR24(ptr, bgr, width, height);
+                byte[] buffer = new byte[size];
+
+                Marshal.Copy(bgr, buffer, 0, size);
+                Marshal.FreeHGlobal(bgr);
+
+                return (buffer, width, height, PixelFormats.Bgr24, width * 3);
+            }
+
             switch (Rescreen.Settings.Encoding)
             {
                 case EncodingType.Nvenc:
@@ -491,19 +554,11 @@ namespace BetterLiveScreen
                     {
                         if (sw.ElapsedMilliseconds > PREVIEW_DPF)
                         {
-                            Mat mat = new Mat(decoder.height, decoder.width, MatType.CV_8UC4);
-                            Kernel32.CopyMemory(mat.Data, e.Item1, (uint)e.Item2);
-
-                            Mat mat2 = new Mat();
-                            Mat mat3 = new Mat();
-
-                            Cv2.CvtColor(mat, mat2, ColorConversionCodes.RGBA2BGR);
-                            Cv2.Resize(mat2, mat3, new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest); //for preview
-
-                            ScreenPreview(mat3, PreviewMap[User.ToString()]);
-
-                            mat.Dispose();
-                            mat2.Dispose();
+                            if (PreviewMap.TryGetValue(User.FullName, out int index))
+                            {
+                                var converted = ConvertNvColorSpace(decoder.width, decoder.height, e.Item1, e.Item2);
+                                ScreenPreview(converted, index);
+                            }
 
                             sw.Restart();
                         }
@@ -588,7 +643,10 @@ namespace BetterLiveScreen
                                         Marshal.Copy(preview, 0, mat.Data, length);
                                         var mat2 = mat.Resize(new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest);
 
-                                        ScreenPreview(mat2, PreviewMap[User.ToString()]);
+                                        if (PreviewMap.TryGetValue(User.FullName, out int index))
+                                        {
+                                            ScreenPreview(mat2, index);
+                                        }
                                         mat.Dispose();
 
                                         sw.Restart();
@@ -622,7 +680,7 @@ namespace BetterLiveScreen
                         var json = new JObject()
                         {
                             { "buffer_length", audio.Item1.Length },
-                            { "user", User.ToString() },
+                            { "user", User.FullName },
                             { "checksum", Checksum.ComputeAddition(audio.Item1) },
                             { "audio_sample_rate", WasapiCapture.DeviceWaveFormat.SampleRate },
                             { "audio_channel", WasapiCapture.DeviceWaveFormat.Channels },
@@ -632,7 +690,7 @@ namespace BetterLiveScreen
                         foreach (var info in infos)
                         {
                             info.ExtraBuffer = ClientOne.Encode(json.ToString());
-                            SendBufferFinal(info, User.ToString());
+                            SendBufferFinal(info, User.FullName);
                         }
                     }
                     Thread.Sleep(1);
@@ -643,26 +701,26 @@ namespace BetterLiveScreen
         #endregion
         #region Receive Screen & Audio
         #region Screen
-        private void ClientBufferRefreshedVideo()
+        private void ClientBufferRefreshedVideo(string user)
         {
             //Nvenc
-            Dictionary<string, NvDecoder> decoderMap = new Dictionary<string, NvDecoder>();
+            NvDecoder nvDecoder = null;
 
             //OpenH264
-            H264Decoder h264Decoder = null;
-            Dictionary<string, (bool, DateTime)> wasNullMap = new Dictionary<string, (bool, DateTime)>();
+            bool wasNull = false;
+            DateTime wasNullTime = DateTime.Now;
 
             const double CLEAR_BUFFER_INTERVAL = 5.0; //unit: seconds
             const bool CLEAR_BUFFER_DECODING = true;
             var startCleared = DateTime.Now;
 
-            void ClearBuffer(VideoLike stream, EncodingType encoding)
+            void ClearBuffer(VideoLike stream2, EncodingType encoding)
             {
                 long timestamp = Timestamp.Now;
 
-                while (stream.ScreenQueue.Count > 0)
+                while (stream2.ScreenQueue.Count > 0)
                 {
-                    if (stream.ScreenQueue.TryPeek(out var video))
+                    if (stream2.ScreenQueue.TryPeek(out var video))
                     {
                         if (video.Item2 >= timestamp) break;
 
@@ -673,141 +731,137 @@ namespace BetterLiveScreen
                                 case EncodingType.OpenH264:
                                     byte[] preview = video.Item1.Decompress();
 
-                                    if (h264Decoder == null) h264Decoder = new H264Decoder("openh264-2.3.1-win64.dll");
-                                    h264Decoder.Decode(preview, preview.Length);
+                                    if (_h264Decoder == null) _h264Decoder = new H264Decoder("openh264-2.3.1-win64.dll");
+                                    _h264Decoder.Decode(preview, preview.Length);
                                     break;
                             }
                         }
-                        stream.ScreenQueue.TryDequeue(out _);
+                        stream2.ScreenQueue.TryDequeue(out _);
                     }
                 }
             }
 
-            while (Watches.Count > 0)
+            while (Watches.Contains(user))
             {
-                foreach (var livedUserName in Watches)
+                var livedUser = GetUserByName(user);
+
+                if (livedUser != null && Rescreen.VideoStreams.TryGetValue(user, out var stream))
                 {
-                    var livedUser = Users.Where(x => x.Equals(livedUserName)).FirstOrDefault();
+                    Enum.TryParse(stream.Info.Encoding, out EncodingType encoding);
 
-                    if (livedUser != null && Rescreen.VideoStreams.TryGetValue(livedUserName, out var videoStream))
+                    if (Settings.ClearVideoBufferEnabled && (DateTime.Now - startCleared).TotalSeconds >= CLEAR_BUFFER_INTERVAL)
                     {
-                        Enum.TryParse(videoStream.Info.Encoding, out EncodingType encoding);
+                        ClearBuffer(stream, encoding);
+                        startCleared = DateTime.Now;
+                    }
 
-                        if (Settings.ClearVideoBufferEnabled && (DateTime.Now - startCleared).TotalSeconds >= CLEAR_BUFFER_INTERVAL)
+                    try
+                    {
+                        while (stream.ScreenQueue.Count > 0)
                         {
-                            ClearBuffer(videoStream, encoding);
-                            startCleared = DateTime.Now;
-                        }
-
-                        try
-                        {
-                            while (videoStream.ScreenQueue.Count > 0)
+                            if (stream.ScreenQueue.TryDequeue(out var screen)) //compressed
                             {
-                                if (videoStream.ScreenQueue.TryDequeue(out var screen)) //compressed
+                                byte[] preview = screen.Item1.Decompress();
+
+                                switch (encoding)
                                 {
-                                    byte[] preview = screen.Item1.Decompress();
-
-                                    switch (encoding)
-                                    {
-                                        #region Nvenc
-                                        case EncodingType.Nvenc:
-                                            NvDecoder nvDecoder = null;
-
-                                            if (!decoderMap.TryGetValue(livedUser.ToString(), out nvDecoder))
+                                    #region Nvenc
+                                    case EncodingType.Nvenc:
+                                        if (nvDecoder == null)
+                                        {
+                                            nvDecoder = new NvDecoder(stream.Info.Width, stream.Info.Height, Codec.H264, Format.RGBA32);
+                                            nvDecoder.onDecoded += (s, e) =>
                                             {
-                                                nvDecoder = new NvDecoder(videoStream.Info.Width, videoStream.Info.Height, Codec.H264, Format.RGBA32);
-                                                nvDecoder.onDecoded += (s, e) =>
+                                                Mat mat1 = new Mat(nvDecoder.height, nvDecoder.width, MatType.CV_8UC4);
+                                                Kernel32.CopyMemory(mat1.Data, e.Item1, (uint)e.Item2);
+
+                                                Mat mat12 = new Mat();
+                                                //Mat mat13 = new Mat();
+
+                                                Cv2.CvtColor(mat1, mat12, ColorConversionCodes.RGBA2BGR);
+                                                //Cv2.Resize(mat12, mat13, new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest);
+
+                                                if (PreviewMap.TryGetValue(user, out int index))
                                                 {
-                                                    Mat mat1 = new Mat(nvDecoder.height, nvDecoder.width, MatType.CV_8UC4);
-                                                    Kernel32.CopyMemory(mat1.Data, e.Item1, (uint)e.Item2);
-
-                                                    Mat mat12 = new Mat();
-                                                    Mat mat13 = new Mat();
-
-                                                    Cv2.CvtColor(mat1, mat12, ColorConversionCodes.RGBA2BGR);
-                                                    Cv2.Resize(mat12, mat13, new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest);
-
-                                                    ScreenPreview(mat13, PreviewMap[livedUserName]);
-
-                                                    mat1.Dispose();
-                                                    mat12.Dispose();
-                                                };
-
-                                                decoderMap.Add(livedUser.ToString(), nvDecoder);
-                                            }
-
-                                            var handle = GCHandle.Alloc(preview, GCHandleType.Pinned);
-                                            var ptr = handle.AddrOfPinnedObject();
-
-                                            nvDecoder.Decode(ptr, preview.Length);
-                                            handle.Free();
-
-                                            break;
-                                        #endregion
-                                        #region OpenH264
-                                        case EncodingType.OpenH264:
-                                            if (h264Decoder == null) h264Decoder = new H264Decoder("openh264-2.3.1-win64.dll");
-
-                                            var bitmap = h264Decoder.Decode(preview, preview.Length);
-
-                                            if (bitmap == null)
-                                            {
-                                                if (!wasNullMap.ContainsKey(livedUserName)) wasNullMap.Add(livedUserName, (false, DateTime.Now));
-                                                if (!wasNullMap[livedUserName].Item1)
-                                                {
-                                                    log.Warn("Decoded bitmap returned null. skipping to next frame.");
-                                                    wasNullMap[livedUserName] = (true, DateTime.Now);
+                                                    ScreenPreview(mat12, index);
                                                 }
-                                                continue;
-                                            }
-                                            else
+
+                                                mat1.Dispose();
+                                                //mat12.Dispose();
+                                            };
+                                        }
+
+                                        var handle = GCHandle.Alloc(preview, GCHandleType.Pinned);
+                                        var ptr = handle.AddrOfPinnedObject();
+
+                                        nvDecoder.Decode(ptr, preview.Length);
+                                        handle.Free();
+
+                                        break;
+                                    #endregion
+                                    #region OpenH264
+                                    case EncodingType.OpenH264:
+                                        if (_h264Decoder == null) _h264Decoder = new H264Decoder("openh264-2.3.1-win64.dll");
+
+                                        var bitmap = CurrentDispatcher.Invoke(() => _h264Decoder.Decode(preview, preview.Length));
+
+                                        if (bitmap == null)
+                                        {
+                                            if (!wasNull)
                                             {
-                                                if (wasNullMap.TryGetValue(livedUserName, out var wasNull))
-                                                {
-                                                    if (wasNull.Item1)
-                                                    {
-                                                        var delta = DateTime.Now - wasNull.Item2;
-                                                        log.Info($"Decoded bitmap now returns properly. skipped duration: {delta.TotalSeconds:0.##}");
-                                                    }
-                                                    wasNullMap[livedUserName] = (false, DateTime.Now);
-                                                }
-                                                else wasNullMap.Add(livedUserName, (false, DateTime.Now));
+                                                wasNull = true;
+                                                wasNullTime = DateTime.Now;
+
+                                                log.Warn("Decoded bitmap returned null. skipping to next frame.");
+                                            }
+                                            continue;
+                                        }
+                                        else
+                                        {
+                                            if (wasNull)
+                                            {
+                                                var delta = DateTime.Now - wasNullTime;
+                                                log.Info($"Decoded bitmap now returns properly. skipped duration: {delta.TotalSeconds:0.##}");
                                             }
 
-                                            if (PreviewMap.TryGetValue(livedUserName, out int index))
-                                            {
-                                                ScreenPreview(bitmap, index);
-                                            }
-                                            break;
+                                            wasNull = false;
+                                            wasNullTime = DateTime.Now;
+                                        }
+
+                                        if (PreviewMap.TryGetValue(user, out int index2))
+                                        {
+                                            ScreenPreview(bitmap, index2);
+                                        }
+                                        break;
+                                    #endregion
+                                    #region CompressOnly
+                                    case EncodingType.CompressOnly:
+                                        var mat2 = new Mat(stream.Info.Height, stream.Info.Width, MatType.CV_8UC4);
+                                        int length = stream.Info.Width * stream.Info.Height * 4; // or src.Height * src.Step;
+
+                                        Marshal.Copy(preview, 0, mat2.Data, length);
+                                        //var mat22 = mat2.Resize(new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest);
+
+                                        if (PreviewMap.TryGetValue(user, out int index3))
+                                        {
+                                            ScreenPreview(mat2, index3);
+                                        }
+                                        mat2.Dispose();
+
+                                        break;
                                         #endregion
-                                        #region CompressOnly
-                                        case EncodingType.CompressOnly:
-                                            var mat2 = new Mat(videoStream.Info.Height, videoStream.Info.Width, MatType.CV_8UC4);
-                                            int length = videoStream.Info.Width * videoStream.Info.Height * 4; // or src.Height * src.Step;
-
-                                            Marshal.Copy(preview, 0, mat2.Data, length);
-                                            var mat22 = mat2.Resize(new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest);
-
-                                            ScreenPreview(mat22, PreviewMap[livedUserName]);
-                                            mat2.Dispose();
-
-                                            break;
-                                            #endregion
-                                    }
                                 }
                             }
                             Thread.Sleep(1);
                         }
-                        catch (MessagePackSerializationException)
-                        {
-                            continue; //udp packet loss
-                        }
+                    }
+                    catch (MessagePackSerializationException)
+                    {
+                        return; //udp packet loss
                     }
                 }
-                Thread.Sleep(10);
+                Thread.Sleep(1);
             }
-            foreach (var decoder in decoderMap.Values) decoder.Close();
-            h264Decoder?.Dispose();
         }
         #endregion
         #region Audio
@@ -853,9 +907,9 @@ namespace BetterLiveScreen
                                     byte[] decompressed = audio.Item1.Decompress();
 
                                     if (!WasapiRealtimePlay.IsInitialized) WasapiRealtimePlay.Initialize();
-                                    if (!WasapiRealtimePlay.BufferMap.ContainsKey(livedUser.ToString())) WasapiRealtimePlay.AddToBufferMap(livedUser.ToString(), videoStream.AudioFormat);
+                                    if (!WasapiRealtimePlay.BufferMap.ContainsKey(livedUser.FullName)) WasapiRealtimePlay.AddToBufferMap(livedUser.FullName, videoStream.AudioFormat);
 
-                                    WasapiRealtimePlay.AddData(livedUser.ToString(), decompressed);
+                                    WasapiRealtimePlay.AddData(livedUser.FullName, decompressed);
                                     WasapiRealtimePlay.Play();
                                 }
                             }
@@ -873,13 +927,32 @@ namespace BetterLiveScreen
         }
         #endregion
         #endregion
-
-        private void ScreenPreview(BitmapSource source, int index)
+        private void ScreenPreviewInternal(BitmapSource source, int index)
         {
+            if (index == 11) //Popup
+            {
+                PopupWindow.Instance.ScreenPreview(source);
+                return;
+            }
+
             System.Windows.Controls.Image[] thumbnails = new System.Windows.Controls.Image[5] { screen_main, thumbnail1, thumbnail2, thumbnail3, thumbnail4 };
             var thumbnail = thumbnails[index];
 
             thumbnail.Source = source;
+        }
+
+        private void ScreenPreview((byte[], int, int, PixelFormat, int) e, int index) //byte[] -> BitmapSource -> WriteableBitmap
+        {
+            //(buffer, width, height, format, stride)
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                WriteableBitmap wbtmMap = new WriteableBitmap(e.Item2, e.Item3, 96, 96, e.Item4, null);
+                wbtmMap.WritePixels(new Int32Rect(0, 0, e.Item2, e.Item3), e.Item1, e.Item5, 0);
+                //var bitmap = BitmapImage.Create(e.Item2, e.Item3, 96, 96, e.Item4, null, e.Item1, e.Item5);
+                //WriteableBitmap wbtmMap = BitmapConverter.ConvertToPbgra32Format(bitmap);
+
+                ScreenPreviewInternal(wbtmMap, index);
+            }), DispatcherPriority.Render);
         }
 
         private void ScreenPreview(Mat mat, int index)
@@ -888,7 +961,7 @@ namespace BetterLiveScreen
             {
                 var source = mat.ToWriteableBitmap();
 
-                ScreenPreview(source, index);
+                ScreenPreviewInternal(source, index);
                 mat.Dispose();
             }), DispatcherPriority.Render);
         }
@@ -899,7 +972,7 @@ namespace BetterLiveScreen
             {
                 var source = bitmap.ToImage();
 
-                ScreenPreview(source, index);
+                ScreenPreviewInternal(source, index);
                 bitmap.Dispose();
             }), DispatcherPriority.Render);
         }
@@ -1130,12 +1203,13 @@ namespace BetterLiveScreen
                 buffer = ClientOne.Encode(user);
                 info = new ReceiveInfo(SendTypes.WatchStarted, buffer, BufferTypes.String);
 
-                SendBufferFinal(info, User.ToString());
+                SendBufferFinal(info, User.FullName);
                 Watches.Add(user);
+
+                _ = Task.Run(() => ClientBufferRefreshedVideo(user));
 
                 if (prevWatchesCount == 0 && Watches.Count > 0)
                 {
-                    _ = Task.Run(ClientBufferRefreshedVideo);
                     _ = Task.Run(ClientBufferRefreshedAudio);
                 }
                 #endregion
@@ -1159,7 +1233,7 @@ namespace BetterLiveScreen
             byte[] buffer = ClientOne.Encode(user);
             var info = new ReceiveInfo(SendTypes.WatchEnded, buffer, BufferTypes.String);
 
-            SendBufferFinal(info, User.ToString());
+            SendBufferFinal(info, User.FullName);
             Watches.TryRemove(user);
         }
 
@@ -1177,7 +1251,7 @@ namespace BetterLiveScreen
         /// <param name="info"></param>
         public static void SendBufferFinal(ReceiveInfo info, string userName = "")
         {
-            if (string.IsNullOrEmpty(userName)) userName = User.ToString();
+            if (string.IsNullOrEmpty(userName)) userName = User.FullName;
 
             if (!RoomManager.IsHost)
             {
@@ -1281,6 +1355,18 @@ namespace BetterLiveScreen
                         usericon.Fill = BitmapConverter.CreateImageBrush(source);
                     }
                 }
+            }
+        }
+
+        private void Popup()
+        {
+            if (!PopupWindow.IsOpened)
+            {
+                PopupWindow.Instance.Show();
+            }
+            else
+            {
+                PopupWindow.Instance.Focus();
             }
         }
     }

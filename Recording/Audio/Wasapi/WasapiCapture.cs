@@ -92,6 +92,9 @@ namespace BetterLiveScreen.Recording.Audio.Wasapi
 
             _capture.StopRecording();
             _capture.DataAvailable -= WhenDataAvailable;
+            _capture.Dispose();
+            
+            IsInitialized = false;
 
             _sw.Stop();
             _sw.Reset();
@@ -116,8 +119,7 @@ namespace BetterLiveScreen.Recording.Audio.Wasapi
             }
             DataAvailable?.Invoke(sender, buffer);
 
-            _sw.Reset();
-            _sw.Start();
+            _sw.Restart();
         }
     }
 }

@@ -209,7 +209,7 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
             result = _client.Start();
             Marshal.ThrowExceptionForHR(result);
 
-            while (!shutdown)
+            while (!shutdown && IsRunning)
             {
                 HelperEvents eventId = (HelperEvents)Kernel32.WaitForMultipleObjects((uint)_events.Length, _events, false, uint.MaxValue);
 
@@ -228,6 +228,8 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
                         shutdown = true;
                         break;
                 }
+
+                Thread.Sleep(3);
             }
 
             result = _client.Stop();
@@ -242,8 +244,8 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
             }
             catch (Exception ex)
             {
+                Stop();
                 MessageBox.Show(ex.ToString(), "BetterLiveScreen : Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                IsRunning = false;
             }
         }
 

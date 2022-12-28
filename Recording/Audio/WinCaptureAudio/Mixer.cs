@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -28,7 +29,7 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
     {
         private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-        private Dictionary<string, MixHandler> _sessionMap;
+        private ConcurrentDictionary<string, MixHandler> _sessionMap;
         private Thread _mixThread;
         private MixingSampleProvider _mixer;
 
@@ -41,7 +42,7 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
 
         public Mixer()
         {
-            _sessionMap = new Dictionary<string, MixHandler>();
+            _sessionMap = new ConcurrentDictionary<string, MixHandler>();
 
             var excludes = new string[] {
                 //Discord
@@ -55,6 +56,9 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
 
                 //System
                 "Idle",
+
+                //NVIDIA
+                "nvcontainer", 
 
                 //Virtual Machine
                 "VirtualBoxVM"
@@ -102,7 +106,7 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
             var handler = new MixHandler(helper, p);
 
             helper.HandleMix(handler);
-            _sessionMap.Add(p.ProcessName, handler);
+            _sessionMap.TryAdd(p.ProcessName, handler);
 
             try
             {
@@ -161,7 +165,7 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
             while (!handler.Buffer.IsEmpty) handler.Buffer.TryDequeue(out _);
             handler.BufferedWave.ClearBuffer();
 
-            _sessionMap.Remove(processName);
+            _sessionMap.TryRemove(processName, out _);
         }
 
         public void Start()
@@ -179,7 +183,7 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
         private void Mix()
         {
             _mixer = new MixingSampleProvider(WasapiCapture.DeviceWaveFormat);
-            int waitToRefresh = 0;
+            var startRefreshed = DateTime.Now;
 
             while (IsRunning)
             {
@@ -194,7 +198,11 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
 
                 foreach (var session in _sessionMap.Values)
                 {
-                    if (!session.Buffer.TryDequeue(out byte[] buffer)) continue;
+                    if (!session.Buffer.TryDequeue(out byte[] buffer))
+                    {
+                        Thread.Sleep(30);
+                        continue;
+                    }
 
                     VolumeSampleProvider volumed;
 
@@ -221,13 +229,15 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
                     DataAvailable?.Invoke(null, bufferMixed);
                     _mixer.RemoveAllMixerInputs();
                 }
-                Thread.Sleep(1);
+                Thread.Sleep(3);
+                var delta = DateTime.Now - startRefreshed;
 
-                if (++waitToRefresh == 10 && IsRunning)
+                if (delta.TotalMilliseconds >= 3000.0 && IsRunning)
                 {
                     AddAsAllPlayingSessions();
                     StartAllHelper();
-                    waitToRefresh = 0;
+
+                    startRefreshed = DateTime.Now;
                 }
             }
         }

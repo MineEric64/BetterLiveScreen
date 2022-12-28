@@ -16,6 +16,7 @@ namespace BetterLiveScreen.Recording.Video.NvPipe
     public enum Format
     {
         RGBA32,
+        BGRA32,
         UINT4,
         UINT8,
         UINT16,

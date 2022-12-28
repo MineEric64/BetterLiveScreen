@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
 using MessagePack;
@@ -62,7 +63,7 @@ namespace BetterLiveScreen.Extensions
             return byteData;
         }
 
-        public static Bitmap ToBitmap(this byte[] data, int width, int height, PixelFormat pixelFormat)
+        public static Bitmap ToBitmap(this byte[] data, int width, int height, System.Drawing.Imaging.PixelFormat pixelFormat)
         {
             Bitmap bitmap = new Bitmap(width, height, pixelFormat);
             BitmapData bmpData =
@@ -100,7 +101,7 @@ namespace BetterLiveScreen.Extensions
                 height,
                 96,
                 96,
-                System.Windows.Media.PixelFormats.Indexed1,
+                PixelFormats.Indexed1,
                 myPalette,
                 pixels,
                 stride);
@@ -108,9 +109,9 @@ namespace BetterLiveScreen.Extensions
             return image;
         }
 
-        public static System.Windows.Media.ImageBrush CreateImageBrush(System.Windows.Media.ImageSource source)
+        public static ImageBrush CreateImageBrush(ImageSource source)
         {
-            System.Windows.Media.ImageBrush brush = new System.Windows.Media.ImageBrush();
+            ImageBrush brush = new ImageBrush();
             brush.ImageSource = source;
 
             return brush;
@@ -124,6 +125,27 @@ namespace BetterLiveScreen.Extensions
         public static Size DivideBy(this Size size, int divideBy)
         {
             return new Size(size.Width / divideBy, size.Height / divideBy);
+        }
+
+        /// <summary>
+        /// Converts the input BitmapSource to the Pbgra32 format WriteableBitmap which is internally used by the WriteableBitmapEx.
+        /// </summary>
+        /// <param name="source">The source bitmap.</param>
+        /// <returns></returns>
+        public static WriteableBitmap ConvertToPbgra32Format(BitmapSource source)
+        {
+            // Convert to Pbgra32 if it's a different format
+            if (source.Format == PixelFormats.Pbgra32)
+            {
+                return new WriteableBitmap(source);
+            }
+
+            var formatedBitmapSource = new FormatConvertedBitmap();
+            formatedBitmapSource.BeginInit();
+            formatedBitmapSource.Source = source;
+            formatedBitmapSource.DestinationFormat = PixelFormats.Pbgra32;
+            formatedBitmapSource.EndInit();
+            return new WriteableBitmap(formatedBitmapSource);
         }
     }
 }

@@ -143,7 +143,7 @@ namespace BetterLiveScreen.Clients
 
                 if (UserMap.TryGetValue(peer.EndPoint, out var user))
                 {
-                    userName = user.ToString();
+                    userName = user.FullName;
                     UserMap.Remove(peer.EndPoint);
                 }
                 UserDisconnected?.Invoke(null, userName);
@@ -227,7 +227,7 @@ namespace BetterLiveScreen.Clients
 
                             break;
                         }
-                        if (userName == null)
+                        if (userName == null || My.Users.Where(x => x.Equals(userName)).Any()) //duplicated user name
                         {
                             info = receivedInfo.GetFailed(ResponseCodes.Failed);
                             SendBuffer(info, peer);
@@ -243,7 +243,7 @@ namespace BetterLiveScreen.Clients
                         {
                             jsonUsers.Add(new JObject()
                                 {
-                                    { "full_name", user.ToString() },
+                                    { "full_name", user.FullName },
                                     { "avatar_url", user.AvatarURL },
                                     { "is_lived", user.IsLived }
                                 });
