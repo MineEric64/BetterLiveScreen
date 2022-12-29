@@ -67,6 +67,7 @@ using Window = System.Windows.Window;
 using NvDecoder = BetterLiveScreen.Recording.Video.NvPipe.Decoder;
 using H264Encoder = OpenH264Lib.Encoder;
 using H264Decoder = OpenH264Lib.Decoder;
+using Debugger = BetterLiveScreen.Extensions.Debugger;
 
 namespace BetterLiveScreen
 {
@@ -99,6 +100,8 @@ namespace BetterLiveScreen
         public static bool IsEnabledVideo { get; set; } = true;
         public static bool IsEnabledAudio { get; set; } = true;
         public static bool IsEnabledLivePreview { get; set; } = true;
+        public static bool IsEnabledZOrderOptimization { get; set; } = true;
+        public static bool IsEnabledZOrderPreview { get; set; } = true;
 
         public static Dictionary<string, int> PreviewMap { get; set; } = new Dictionary<string, int>(); //(userName, preview index)
         public static ConcurrentHashSet<string> Watches { get; private set; } = new ConcurrentHashSet<string>();
@@ -156,6 +159,20 @@ namespace BetterLiveScreen
             RenderOptions.SetBitmapScalingMode(thumbnail2, BitmapScalingMode.LowQuality);
             RenderOptions.SetBitmapScalingMode(thumbnail3, BitmapScalingMode.LowQuality);
             RenderOptions.SetBitmapScalingMode(thumbnail4, BitmapScalingMode.LowQuality);
+
+            //Z-Order
+            Task.Run(() =>
+            {
+                while (true)
+                {
+                    if (IsEnabledZOrderOptimization && IsEnabledLivePreview)
+                    {
+                        ZOrderHelper.Refresh();
+                        IsEnabledZOrderPreview = !ZOrderHelper.IsOverlapped();
+                    }
+                    Thread.Sleep(100);
+                }
+            });
         }
 
         private void InitializeClient()
@@ -508,31 +525,7 @@ namespace BetterLiveScreen
 
                 return mat2;
             }
-            (byte[], int, int, PixelFormat, int) ConvertNew(int width, int height, IntPtr ptr, int length)
-            {
-                int stride = length / height;
-                byte[] buffer = new byte[length];
-
-                int outStride = 3 * width;
-                byte[] outBuffer = new byte[outStride * height];
-
-                Marshal.Copy(ptr, buffer, 0, length);
-
-                //TODO: RGBA -> BGR
-                void ConvertColor(int i)
-                {
-                    int std = i * 4;
-                    int stdout = i * 3;
-
-                    outBuffer[stdout] = buffer[std + 2];
-                    outBuffer[stdout + 1] = buffer[std + 1];
-                    outBuffer[stdout + 2] = buffer[std];
-                }
-                Parallel.For(0, width * height, ConvertColor);
-
-                return (outBuffer, width, height, PixelFormats.Bgr24, outStride);
-            }
-            (byte[], int, int, PixelFormat, int) ConvertNvColorSpace(int width, int height, IntPtr ptr, int length)
+            PreviewBuffer ConvertNvColorSpace(int width, int height, IntPtr ptr, int length)
             {
                 int size = width * height * 3;
                 IntPtr bgr = Marshal.AllocHGlobal(size);
@@ -542,7 +535,7 @@ namespace BetterLiveScreen
                 Marshal.Copy(bgr, buffer, 0, size);
                 Marshal.FreeHGlobal(bgr);
 
-                return (buffer, width, height, PixelFormats.Bgr24, width * 3);
+                return new PreviewBuffer(buffer, width, height, PixelFormats.Bgr24, width * 3);
             }
 
             switch (Rescreen.Settings.Encoding)
@@ -620,7 +613,7 @@ namespace BetterLiveScreen
 
                         //Live Preview
                         #region Live Preview
-                        if (IsEnabledLivePreview)
+                        if (IsEnabledLivePreview && IsEnabledZOrderPreview)
                         {
                             switch (Rescreen.Settings.Encoding)
                             {
@@ -759,7 +752,7 @@ namespace BetterLiveScreen
                     {
                         while (stream.ScreenQueue.Count > 0)
                         {
-                            if (stream.ScreenQueue.TryDequeue(out var screen)) //compressed
+                            if (stream.ScreenQueue.TryDequeue(out var screen) && IsEnabledZOrderPreview) //compressed
                             {
                                 byte[] preview = screen.Item1.Decompress();
 
@@ -941,15 +934,12 @@ namespace BetterLiveScreen
             thumbnail.Source = source;
         }
 
-        private void ScreenPreview((byte[], int, int, PixelFormat, int) e, int index) //byte[] -> BitmapSource -> WriteableBitmap
+        private void ScreenPreview(PreviewBuffer e, int index) //byte[] -> BitmapSource -> WriteableBitmap
         {
-            //(buffer, width, height, format, stride)
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                WriteableBitmap wbtmMap = new WriteableBitmap(e.Item2, e.Item3, 96, 96, e.Item4, null);
-                wbtmMap.WritePixels(new Int32Rect(0, 0, e.Item2, e.Item3), e.Item1, e.Item5, 0);
-                //var bitmap = BitmapImage.Create(e.Item2, e.Item3, 96, 96, e.Item4, null, e.Item1, e.Item5);
-                //WriteableBitmap wbtmMap = BitmapConverter.ConvertToPbgra32Format(bitmap);
+                WriteableBitmap wbtmMap = new WriteableBitmap(e.Width, e.Height, 96, 96, e.Format, null);
+                wbtmMap.WritePixels(new Int32Rect(0, 0, e.Width, e.Height), e.Buffer, e.Stride, 0);
 
                 ScreenPreviewInternal(wbtmMap, index);
             }), DispatcherPriority.Render);

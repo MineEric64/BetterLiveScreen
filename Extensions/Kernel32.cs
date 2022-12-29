@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using static BetterLiveScreen.Extensions.DLLInjector;
 
 namespace BetterLiveScreen.Extensions
 {
@@ -27,5 +28,11 @@ namespace BetterLiveScreen.Extensions
 
         [DllImport("kernel32.dll")]
         public static extern int GetProcessId(IntPtr handle);
+
+        [DllImport("kernel32.dll")]
+        public static extern IntPtr OpenProcess(ProcessAccessFlags dwDesiredAccess, bool bInheritHandle, int dwProcessId);
+
+        [DllImport("kernel32.dll")]
+        public static extern bool QueryFullProcessImageName(IntPtr hprocess, int dwFlags, StringBuilder lpExeName, out int size);
     }
 }
