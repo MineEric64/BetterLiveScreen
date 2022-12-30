@@ -32,7 +32,7 @@ namespace BetterLiveScreen.Recording.Types
 
         public void ChangeFormat(WaveFormat format)
         {
-            if (format.SampleRate != AudioFormat?.SampleRate || format.Channels != AudioFormat?.SampleRate) AudioFormat = format;
+            if (format.SampleRate != AudioFormat?.SampleRate || format.Channels != AudioFormat?.Channels) AudioFormat = format;
         }
 
         public static BitmapInfo FromRescreenSettings()
