@@ -68,7 +68,6 @@ using NvDecoder = BetterLiveScreen.Recording.Video.NvPipe.Decoder;
 using H264Encoder = OpenH264Lib.Encoder;
 using H264Decoder = OpenH264Lib.Decoder;
 using Debugger = BetterLiveScreen.Extensions.Debugger;
-using OpenCvSharp.Flann;
 
 namespace BetterLiveScreen
 {
