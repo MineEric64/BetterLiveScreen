@@ -18,5 +18,8 @@ namespace BetterLiveScreen.Recording.Video.NvColorSpace
 
         [DllImport(DLL_NAME, EntryPoint = "RGBA32ToBGR24")]
         public static extern int RGBA32ToBGR24(IntPtr rgba, IntPtr bgr, int width, int height);
+
+        [DllImport(DLL_NAME, EntryPoint = "BGRA32ToYUV420")]
+        public static extern int BGRA32ToYUV420(IntPtr bgra, IntPtr yuv420, int width, int height);
     }
 }

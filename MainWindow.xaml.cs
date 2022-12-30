@@ -68,6 +68,7 @@ using NvDecoder = BetterLiveScreen.Recording.Video.NvPipe.Decoder;
 using H264Encoder = OpenH264Lib.Encoder;
 using H264Decoder = OpenH264Lib.Decoder;
 using Debugger = BetterLiveScreen.Extensions.Debugger;
+using OpenCvSharp.Flann;
 
 namespace BetterLiveScreen
 {
@@ -512,32 +513,6 @@ namespace BetterLiveScreen
             var sw = new Stopwatch();
 
             //initialize encoder & decoder
-            Mat ConvertLegacy(int width, int height, IntPtr ptr, int length)
-            {
-                Mat mat = new Mat(decoder.height, decoder.width, MatType.CV_8UC4);
-                Kernel32.CopyMemory(mat.Data, ptr, (uint)length);
-
-                Mat mat2 = mat.CvtColor(ColorConversionCodes.RGBA2BGR);
-                //Mat mat3 = mat2.Resize(new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest); //for preview
-
-                mat.Dispose();
-                //mat2.Dispose();
-
-                return mat2;
-            }
-            PreviewBuffer ConvertNvColorSpace(int width, int height, IntPtr ptr, int length)
-            {
-                int size = width * height * 3;
-                IntPtr bgr = Marshal.AllocHGlobal(size);
-                int status = NvColorSpace.RGBA32ToBGR24(ptr, bgr, width, height);
-                byte[] buffer = new byte[size];
-
-                Marshal.Copy(bgr, buffer, 0, size);
-                Marshal.FreeHGlobal(bgr);
-
-                return new PreviewBuffer(buffer, width, height, PixelFormats.Bgr24, width * 3);
-            }
-
             switch (Rescreen.Settings.Encoding)
             {
                 case EncodingType.Nvenc:
@@ -549,8 +524,47 @@ namespace BetterLiveScreen
                         {
                             if (PreviewMap.TryGetValue(User.FullName, out int index))
                             {
-                                var converted = ConvertNvColorSpace(decoder.width, decoder.height, e.Item1, e.Item2);
-                                ScreenPreview(converted, index);
+                                void FinalPreview()
+                                {
+                                    Mat ConvertLegacy(int width, int height, IntPtr ptr, int length)
+                                    {
+                                        Mat mat = new Mat(decoder.height, decoder.width, MatType.CV_8UC4);
+                                        Kernel32.CopyMemory(mat.Data, ptr, (uint)length);
+
+                                        Mat mat2 = mat.CvtColor(ColorConversionCodes.RGBA2BGR);
+                                        //Mat mat3 = mat2.Resize(new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest); //for preview
+
+                                        mat.Dispose();
+                                        //mat2.Dispose();
+
+                                        return mat2;
+                                    }
+                                    PreviewBuffer ConvertNvColorSpace(int width, int height, IntPtr ptr, int length)
+                                    {
+                                        int size = width * height * 3;
+                                        IntPtr bgr = Marshal.AllocHGlobal(size);
+                                        int status = NvColorSpace.RGBA32ToBGR24(ptr, bgr, width, height);
+                                        byte[] buffer = new byte[size];
+
+                                        Marshal.Copy(bgr, buffer, 0, size);
+                                        Marshal.FreeHGlobal(bgr);
+
+                                        return new PreviewBuffer(buffer, width, height, PixelFormats.Bgr24, width * 3);
+                                    }
+
+                                    if (Rescreen.Settings.SelectedMonitor.GPU == GPUSelect.Nvidia)
+                                    {
+                                        var converted = ConvertNvColorSpace(decoder.width, decoder.height, e.Item1, e.Item2);
+                                        ScreenPreview(converted, index);
+                                    }
+                                    else
+                                    {
+                                        var converted = ConvertLegacy(decoder.width, decoder.height, e.Item1, e.Item2);
+                                        ScreenPreview(converted, index);
+                                    }
+                                }
+
+                                FinalPreview();
                             }
 
                             sw.Restart();
@@ -594,19 +608,55 @@ namespace BetterLiveScreen
                                 break;
 
                             case EncodingType.OpenH264:
-                                Mat mat = new Mat(Rescreen.ScreenActualSize.Height, Rescreen.ScreenActualSize.Width, MatType.CV_8UC4);
-                                int length = Rescreen.ScreenActualSize.Width * Rescreen.ScreenActualSize.Height * 4;
-
-                                Marshal.Copy(preview, 0, mat.Data, length);
-                                Mat mat2 = mat.CvtColor(ColorConversionCodes.BGRA2YUV_I420);
-
-                                unsafe
+                                void FinalEncode()
                                 {
-                                    encoder.Encode(mat2.DataPointer);
-                                }
-                                mat2.Dispose();
-                                mat.Dispose();
+                                    void ConvertLegacy()
+                                    {
+                                        Mat mat = new Mat(Rescreen.ScreenActualSize.Height, Rescreen.ScreenActualSize.Width, MatType.CV_8UC4);
+                                        int length = Rescreen.ScreenActualSize.Width * Rescreen.ScreenActualSize.Height * 4;
 
+                                        Marshal.Copy(preview, 0, mat.Data, length);
+                                        Mat mat2 = mat.CvtColor(ColorConversionCodes.BGRA2YUV_I420);
+
+                                        unsafe
+                                        {
+                                            encoder.Encode(mat2.DataPointer);
+                                        }
+
+                                        mat2.Dispose();
+                                        mat.Dispose();
+                                    }
+                                    void ConvertNvColorSpace()
+                                    {
+                                        int size = Rescreen.ScreenActualSize.Width * Rescreen.ScreenActualSize.Height * 3;
+
+                                        GCHandle bgraHandle = GCHandle.Alloc(preview, GCHandleType.Pinned);
+                                        IntPtr bgra = bgraHandle.AddrOfPinnedObject();
+                                        IntPtr yuv420 = Marshal.AllocHGlobal(size);
+
+                                        int status = NvColorSpace.BGRA32ToYUV420(bgra, yuv420, Rescreen.ScreenActualSize.Width, Rescreen.ScreenActualSize.Height);
+
+                                        unsafe
+                                        {
+                                            byte* ptr = (byte*)yuv420.ToPointer();
+                                            encoder.Encode(ptr);
+                                        }
+
+                                        bgraHandle.Free();
+                                        Marshal.FreeHGlobal(yuv420);
+                                    }
+
+                                    if (Rescreen.Settings.SelectedMonitor.GPU == GPUSelect.Nvidia)
+                                    {
+                                        ConvertNvColorSpace();
+                                    }
+                                    else
+                                    {
+                                        ConvertLegacy();
+                                    }
+                                }
+
+                                FinalEncode();
                                 break;
                         }
                         #endregion
@@ -762,11 +812,10 @@ namespace BetterLiveScreen
                                     case EncodingType.Nvenc:
                                         if (nvDecoder == null)
                                         {
-                                            nvDecoder = new NvDecoder(stream.Info.Width, stream.Info.Height, Codec.H264, Format.RGBA32);
-                                            nvDecoder.onDecoded += (s, e) =>
+                                            Mat ConvertLegacy(IntPtr ptr_, int length_)
                                             {
                                                 Mat mat1 = new Mat(nvDecoder.height, nvDecoder.width, MatType.CV_8UC4);
-                                                Kernel32.CopyMemory(mat1.Data, e.Item1, (uint)e.Item2);
+                                                Kernel32.CopyMemory(mat1.Data, ptr_, (uint)length_);
 
                                                 Mat mat12 = new Mat();
                                                 //Mat mat13 = new Mat();
@@ -774,13 +823,44 @@ namespace BetterLiveScreen
                                                 Cv2.CvtColor(mat1, mat12, ColorConversionCodes.RGBA2BGR);
                                                 //Cv2.Resize(mat12, mat13, new CvSize(900, 500), 0, 0, InterpolationFlags.Nearest);
 
-                                                if (PreviewMap.TryGetValue(user, out int index))
-                                                {
-                                                    ScreenPreview(mat12, index);
-                                                }
-
                                                 mat1.Dispose();
                                                 //mat12.Dispose();
+
+                                                return mat12;
+                                            }
+                                            PreviewBuffer ConvertNvColorSpace(IntPtr ptr_, int length_)
+                                            {
+                                                int size = nvDecoder.width * nvDecoder.height * 3;
+                                                IntPtr bgr = Marshal.AllocHGlobal(size);
+                                                int status = NvColorSpace.RGBA32ToBGR24(ptr_, bgr, nvDecoder.width, nvDecoder.height);
+                                                byte[] buffer = new byte[size];
+
+                                                Marshal.Copy(bgr, buffer, 0, size);
+                                                Marshal.FreeHGlobal(bgr);
+
+                                                return new PreviewBuffer(buffer, nvDecoder.width, nvDecoder.height, PixelFormats.Bgr24, nvDecoder.width * 3);
+                                            }
+                                            void FinalPreview(IntPtr ptr_, int length_, int index)
+                                            {
+                                                if (Rescreen.Settings.SelectedMonitor.GPU == GPUSelect.Nvidia)
+                                                {
+                                                    var converted = ConvertNvColorSpace(ptr_, length_);
+                                                    ScreenPreview(converted, index);
+                                                }
+                                                else
+                                                {
+                                                    var converted = ConvertLegacy(ptr_, length_);
+                                                    ScreenPreview(converted, index);
+                                                }
+                                            }
+
+                                            nvDecoder = new NvDecoder(stream.Info.Width, stream.Info.Height, Codec.H264, Format.RGBA32);
+                                            nvDecoder.onDecoded += (s, e) =>
+                                            {
+                                                if (PreviewMap.TryGetValue(user, out int index))
+                                                {
+                                                    FinalPreview(e.Item1, e.Item2, index);
+                                                }
                                             };
                                         }
 

@@ -44,7 +44,7 @@ namespace BetterLiveScreen.Extensions
         private static int GetZOrder(IntPtr hWnd)
         {
             const uint GW_HWNDPREV = 3;
-            const uint GW_HWNDLAST = 1;
+            //const uint GW_HWNDLAST = 1;
 
             var z = 0;
             for (var h = hWnd; h != IntPtr.Zero; h = User32.GetWindow(h, GW_HWNDPREV)) z++;
