@@ -369,6 +369,7 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
+    <None Include="Resources\DefaultSettings.txt" />
     <ContentWithTargetPath Include="DLLs\openh264-2.3.1-win64.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>openh264-2.3.1-win64.dll</TargetPath>

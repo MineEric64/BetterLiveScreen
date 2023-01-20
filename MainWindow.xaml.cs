@@ -81,9 +81,7 @@ namespace BetterLiveScreen
         private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         private static H264Decoder _h264Decoder = null;
 
-        public static ISettings Settings { get; private set; } = new ConfigurationBuilder<ISettings>()
-            .UseJsonFile("settings.json")
-            .Build();
+        public static ISettings Settings { get; private set; } = null;
 
         public static UserInfo User { get; set; }
         internal static string UserToken { get; } = Guid.NewGuid().ToString();
@@ -116,6 +114,14 @@ namespace BetterLiveScreen
 
             InitializeClient();
             Rescreen.Initialize();
+
+            if (!File.Exists("settings.json"))
+            {
+                File.WriteAllText("settings.json", Properties.Resources.DefaultSettings);
+            }
+            Settings = new ConfigurationBuilder<ISettings>()
+            .UseJsonFile("settings.json")
+            .Build();
 
             this.Closing += MainWindow_Closing;
             AppDomain.CurrentDomain.UnhandledException += MainWindow_UnhandledException;

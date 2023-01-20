@@ -1,0 +1,6 @@
+{
+    "clear_buffer_enabled": {
+        "video": false,
+        "audio": true
+    }
+}
