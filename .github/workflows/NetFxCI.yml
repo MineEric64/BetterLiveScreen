@@ -31,11 +31,13 @@ jobs:
       uses: actions/download-artifact@v3
       with:
         name: static-site
+        path: bin/Debug
     
     - name: Archive site content
       uses: thedoctor0/zip-release@master
       with:
         filename: site.zip
+        exclusions: '*.pdb'
     
     - name: Create GitHub release
       id: create-new-release
