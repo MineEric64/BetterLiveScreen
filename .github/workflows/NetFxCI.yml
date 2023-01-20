@@ -27,6 +27,11 @@ jobs:
     - name: Build the solution
       run: msbuild BetterLiveScreen.sln /p:AllowUnsafeBlocks=true
 
+  release:
+    runs-on: windows-latest
+    name: Release on GitHub
+    needs: build
+    steps:
     - name: Download artifact
       uses: actions/download-artifact@v3
       with:
