@@ -25,13 +25,13 @@ jobs:
       run: nuget restore BetterLiveScreen.sln
       
     - name: Build the solution
-      run: msbuild BetterLiveScreen.sln /p:AllowUnsafeBlocks=true
+      run: msbuild BetterLiveScreen.sln /p:AllowUnsafeBlocks=true /property:Configuration=Release /property:Platform=x64
       
     - name: Upload artifact
       uses: actions/upload-artifact@v3
       with:
         name: static-site
-        path: bin/Debug
+        path: bin/x64/Release
 
   release:
     runs-on: windows-latest
