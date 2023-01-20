@@ -26,6 +26,12 @@ jobs:
       
     - name: Build the solution
       run: msbuild BetterLiveScreen.sln /p:AllowUnsafeBlocks=true
+      
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: static-site
+        path: bin/Debug
 
   release:
     runs-on: windows-latest
@@ -36,7 +42,6 @@ jobs:
       uses: actions/download-artifact@v3
       with:
         name: static-site
-        path: bin/Debug
     
     - name: Archive site content
       uses: thedoctor0/zip-release@master
