@@ -26,10 +26,32 @@ jobs:
       
     - name: Build the solution
       run: msbuild BetterLiveScreen.sln /p:AllowUnsafeBlocks=true
-  
-    - name: Github Release
-      uses: elgohr/Github-Release-Action@v4
-      env:
-        GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+
+    - name: Download artifact
+      uses: actions/download-artifact@v3
       with:
-        title: Latest Build
+        name: static-site
+    
+    - name: Archive site content
+      uses: thedoctor0/zip-release@master
+      with:
+        filename: site.zip
+    
+    - name: Create GitHub release
+      id: create-new-release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.run_number }}
+        release_name: Latest Build (site-v${{ github.run_number}})
+    
+    - name: Upload release asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: $ {{ steps.create-new-release.outputs.upload_url }}
+        asset_path: ./site.zip
+        asset_name: BetterLiveScreen.zip
+        asset_content_type: application/zip
