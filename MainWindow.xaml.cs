@@ -65,6 +65,8 @@ using CvSize = OpenCvSharp.Size;
 using BitmapConverter = BetterLiveScreen.Extensions.BitmapConverter;
 using Window = System.Windows.Window;
 using NvDecoder = BetterLiveScreen.Recording.Video.NvPipe.Decoder;
+using NvPipeFormat = BetterLiveScreen.Recording.Video.NvPipe.Format;
+using NvPipeCodec = BetterLiveScreen.Recording.Video.NvPipe.Codec;
 using H264Encoder = OpenH264Lib.Encoder;
 using H264Decoder = OpenH264Lib.Decoder;
 using Debugger = BetterLiveScreen.Extensions.Debugger;
@@ -516,7 +518,7 @@ namespace BetterLiveScreen
             {
                 case EncodingType.Nvenc:
                     //Format : RGBA
-                    decoder = new NvDecoder(Rescreen.ScreenActualSize.Width, Rescreen.ScreenActualSize.Height, Codec.H264, Format.RGBA32);
+                    decoder = new NvDecoder(Rescreen.ScreenActualSize.Width, Rescreen.ScreenActualSize.Height, NvPipeCodec.H264, NvPipeFormat.RGBA32);
                     decoder.onDecoded += (s, e) =>
                     {
                         if (sw.ElapsedMilliseconds > PREVIEW_DPF)
@@ -634,6 +636,7 @@ namespace BetterLiveScreen
                                         IntPtr yuv420 = Marshal.AllocHGlobal(size);
 
                                         int status = NvColorSpace.BGRA32ToYUV420(bgra, yuv420, Rescreen.ScreenActualSize.Width, Rescreen.ScreenActualSize.Height);
+                                        //Debug.WriteLine(status);
 
                                         unsafe
                                         {
@@ -645,14 +648,15 @@ namespace BetterLiveScreen
                                         Marshal.FreeHGlobal(yuv420);
                                     }
 
-                                    if (Rescreen.Settings.SelectedMonitor.GPU == GPUSelect.Nvidia)
-                                    {
-                                        ConvertNvColorSpace();
-                                    }
-                                    else
-                                    {
-                                        ConvertLegacy();
-                                    }
+                                    ConvertLegacy();
+                                    //if (Rescreen.Settings.SelectedMonitor.GPU == GPUSelect.Nvidia)
+                                    //{
+                                    //    ConvertNvColorSpace();
+                                    //}
+                                    //else
+                                    //{
+                                    //    ConvertLegacy();
+                                    //}
                                 }
 
                                 FinalEncode();
