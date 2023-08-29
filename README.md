@@ -13,7 +13,9 @@ Screen Share that is better than discord
 
 you can share screen with original source and max to 60fps.
 
-also you can share the screen including audio!
+also you can share the screen including the specific program's audio!
+
+sharing the screen including the whole program's audio? Of Course!
 
 and it's free!!
 
