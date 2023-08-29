@@ -1,6 +1,6 @@
 # Better Live Screen
 ![Main](https://i.imgur.com/R05OgoMh.png)
-> **Note** 제작자 : **MineEric64**
+> 제작자 : **MineEric64**
 
 디스코드보다 나은 화면 공유 프로그램
 
