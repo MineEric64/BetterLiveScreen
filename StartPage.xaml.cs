@@ -1,7 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Drawing;
+using System.IO;
 using System.Linq;
+using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,12 +19,14 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 
 using DiscordRPC;
+using log4net;
 
 using BetterLiveScreen.Clients;
 using BetterLiveScreen.Extensions;
 using BetterLiveScreen.Interfaces;
 using BetterLiveScreen.Interfaces.Users;
 using BetterLiveScreen.Users;
+using Windows.Security.Authentication.OnlineId;
 
 namespace BetterLiveScreen
 {
@@ -30,6 +36,8 @@ namespace BetterLiveScreen
     public partial class StartPage : Window
     {
         public bool IsAccepted { get; set; } = false;
+
+        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         public StartPage()
         {
@@ -51,8 +59,11 @@ namespace BetterLiveScreen
         public void ApplyUserInfo()
         {
             username.Text = MainWindow.User.NameInfo.Name;
-            userauth.Content = $"#{MainWindow.User.NameInfo.Discriminator}";
-            usericon.Fill = BitmapConverter.CreateImageBrush(MainWindow.User.GetAvatarImage());
+            userauth.Content = MainWindow.User.NameInfo.UniqueName;
+
+            //User Icon
+            var source = MainWindow.GetUserIcon();
+            usericon.Fill = BitmapConverter.CreateImageBrush(source);
         }
 
         public bool TryDiscord()
@@ -61,7 +72,19 @@ namespace BetterLiveScreen
 
             if (user != null)
             {
-                MainWindow.User = new UserInfo(user.Username, user.Discriminator.ToString(), user.GetAvatarURL(User.AvatarFormat.JPEG));
+                string avatarUrl = string.Empty;
+
+                try
+                {
+                    avatarUrl = user.GetAvatarURL(User.AvatarFormat.JPEG);
+                }
+                catch  //it means it's the default avatar
+                {
+                    log.Warn("Error occured while requesting the user's icon. It might be by default. Requesting it for PNG...");
+                    avatarUrl = user.GetAvatarURL(User.AvatarFormat.PNG); //because the default avatar is only supported for PNG
+                }
+
+                MainWindow.User = new UserInfo(user.DisplayName, user.Username, avatarUrl);
                 return true;
             }
 
@@ -97,6 +120,8 @@ namespace BetterLiveScreen
 
         private void WaitForLogin()
         {
+            if (!MainWindow.User.IsGuest) return;
+
             for (int i = 0; i < 100; i++)
             {
                 if (TryDiscord())

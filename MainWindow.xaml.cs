@@ -144,7 +144,7 @@ namespace BetterLiveScreen
                 {
                     usericon.Fill = BitmapConverter.CreateImageBrush(User.GetAvatarImage());
                     username.Content = User.NameInfo.Name;
-                    username.ToolTip = $"#{User.NameInfo.Discriminator}";
+                    username.ToolTip = User.NameInfo.UniqueName;
 
                     Users.Add(User);
                     PreviewMap.Add(User.FullName, 0);
@@ -190,7 +190,10 @@ namespace BetterLiveScreen
             #region Peer
             Client.Connected += (s, e) =>
             {
-                log.Info($"Connected to {RoomManager.CurrentRoom.Name}");
+                var room = RoomManager.CurrentRoom;
+                string name = room?.Name ?? "Unknown User's Server";
+
+                log.Info($"Connected to {name}");
                 //MessageBox.Show("Connected!", "Better Live Screen", MessageBoxButton.OK, MessageBoxImage.Information);
             };
             #endregion
@@ -458,7 +461,7 @@ namespace BetterLiveScreen
 
             for (int i = 0; i < Users.Count; i++)
             {
-                string userName = Users[i].ToString();
+                string userName = Users[i].FullName;
 
                 if (!PreviewMap.TryGetValue(userName, out var index))
                 {
@@ -1344,8 +1347,8 @@ namespace BetterLiveScreen
 
         private void credit_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            Clipboard.SetText("세연#7997");
-            MessageBox.Show("Copied to Clipboard!", "Better Live Screen", MessageBoxButton.OK, MessageBoxImage.Information);
+            Clipboard.SetText("MineEric64");
+            MessageBox.Show("You can also send the discord's friend request to this ID (MineEric64).\nCopied it from Clipboard!", "Better Live Screen", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void thumbnail1_MouseUp(object sender, MouseButtonEventArgs e)
@@ -1422,19 +1425,40 @@ namespace BetterLiveScreen
 
         private void usericon_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(User.AvatarURL)) return;
+            var source = GetUserIcon();
+            usericon.Fill = BitmapConverter.CreateImageBrush(source);
+        }
 
-            using (WebClient wc = new WebClient())
+        public static BitmapSource GetUserIcon()
+        {
+            if (string.IsNullOrWhiteSpace(User.AvatarURL)) return BitmapConverter.BLACK_IMAGE;
+
+            BitmapSource source = BitmapConverter.BLACK_IMAGE;
+            
+            WebClient wc = null;
+            Stream s = null;
+            Bitmap bmp = null;
+
+            try
             {
-                using (Stream s = wc.OpenRead(User.AvatarURL))
-                {
-                    using (Bitmap bmp = new Bitmap(s))
-                    {
-                        var source = bmp.ToImage();
-                        usericon.Fill = BitmapConverter.CreateImageBrush(source);
-                    }
-                }
+                wc = new WebClient();
+                s = wc.OpenRead(User.AvatarURL);
+                bmp = new Bitmap(s);
+
+                source = bmp.ToImage();
             }
+            catch (WebException ex)
+            {
+                log.Error("Error occured when requesting the user's icon. Message: " + ex.ToCleanString());
+            }
+            finally
+            {
+                bmp?.Dispose();
+                s?.Dispose();
+                wc?.Dispose();
+            }
+
+            return source;
         }
 
         private void Popup()

@@ -8,11 +8,11 @@ using System.Windows;
 // 제어됩니다. 어셈블리와 관련된 정보를 수정하려면
 // 이러한 특성 값을 변경하세요.
 [assembly: AssemblyTitle("Better Live Screen")]
-[assembly: AssemblyDescription("screen share that is better than discord")]
+[assembly: AssemblyDescription("Screen share that is better than discord")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("Better Live Screen")]
-[assembly: AssemblyCopyright("Copyright © 2022 MineEric64 All Right Reserved.")]
+[assembly: AssemblyCopyright("Copyright © 2022~2023 MineEric64 All Right Reserved.")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -51,6 +51,6 @@ using System.Windows;
 // 모든 값을 지정하거나 아래와 같이 '*'를 사용하여 빌드 번호 및 수정 번호를
 // 기본값으로 할 수 있습니다.
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.2.2.0")]
-[assembly: AssemblyFileVersion("1.2.2.0")]
+[assembly: AssemblyVersion("1.2.3.0")]
+[assembly: AssemblyFileVersion("1.2.3.0")]
 [assembly: log4net.Config.XmlConfigurator(ConfigFile = "setlog.config", Watch = true)]

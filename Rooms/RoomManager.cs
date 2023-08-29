@@ -48,7 +48,7 @@ namespace BetterLiveScreen.Rooms
             var json = new JObject
             {
                 { "password", !string.IsNullOrEmpty(password) ? SHA512.Hash(password).Substring(0, MAX_PASSWORD_LENGTH) : string.Empty },
-                { "user", My.User.NameInfo.ToString() },
+                { "user", My.User.FullName },
                 { "user_avatar_url", My.User.AvatarURL }
             };
             byte[] buffer = ClientOne.Encode(json.ToString());

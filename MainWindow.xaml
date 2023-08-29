@@ -14,7 +14,7 @@
             <Image x:Name="thumbnail3" HorizontalAlignment="Left" Height="90" Margin="731,290,0,0" VerticalAlignment="Top" Width="150" Stretch="UniformToFill" Source="/Resources/black_screen.png" Cursor="Hand" MouseUp="thumbnail3_MouseUp"/>
             <Image x:Name="thumbnail4" HorizontalAlignment="Left" Height="90" Margin="731,393,0,0" VerticalAlignment="Top" Width="150" Stretch="UniformToFill" Source="/Resources/black_screen.png" Cursor="Hand" MouseUp="thumbnail4_MouseUp"/>
             <Image x:Name="screen_main" HorizontalAlignment="Left" Height="365" Margin="20,71,0,0" VerticalAlignment="Top" Width="644" Source="/Resources/black_screen.png" Stretch="UniformToFill"/>
-            <Label x:Name="credit" Content="Made by 세연#7997" HorizontalAlignment="Left" Margin="906,547,0,0" VerticalAlignment="Top" Cursor="Hand" Background="#00000000" MouseDown="credit_MouseDown">
+            <Label x:Name="credit" Content="Made by MineEric64" HorizontalAlignment="Left" Margin="906,547,0,0" VerticalAlignment="Top" Cursor="Hand" Background="#00000000" MouseDown="credit_MouseDown">
                 <Label.Foreground>
                     <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
                         <GradientStop Color="Black" Offset="0"/>

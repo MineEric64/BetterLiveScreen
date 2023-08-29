@@ -19,19 +19,19 @@ namespace BetterLiveScreen.Users
         public bool IsLived { get; set; } //Go Live
 
         public static UserInfo GuestUser => new UserInfo(UserNameInfo.GuestUser, string.Empty);
-        public bool IsGuest => NameInfo.Discriminator == "Guest" && string.IsNullOrEmpty(AvatarURL);
-        public string FullName => ToString();
+        public bool IsGuest => NameInfo.UniqueName.StartsWith("Guest") && string.IsNullOrEmpty(AvatarURL);
+        public string FullName => NameInfo.UniqueName;
 
         public UserInfo(string user, string avatarUrl, bool isLived = false)
         {
-            NameInfo = new UserNameInfo(user);
+            NameInfo = new UserNameInfo(user, string.Empty);
             AvatarURL = avatarUrl;
             IsLived = isLived;
         }
 
-        public UserInfo(string name, string discriminator, string avatarUrl, bool isLived = false)
+        public UserInfo(string name, string uniqueName, string avatarUrl, bool isLived = false)
         {
-            NameInfo = new UserNameInfo(name, discriminator);
+            NameInfo = new UserNameInfo(name, uniqueName);
             AvatarURL = avatarUrl;
             IsLived = isLived;
         }
@@ -71,7 +71,7 @@ namespace BetterLiveScreen.Users
 
         public override string ToString()
         {
-            return NameInfo.ToString();
+            return NameInfo.UniqueName;
         }
 
         public bool Equals(UserInfo a)

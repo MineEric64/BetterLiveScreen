@@ -9,37 +9,24 @@ namespace BetterLiveScreen.Interfaces.Users
     public class UserNameInfo
     {
         public string Name { get; set; }
-        public string Discriminator { get; set; }
+        public string UniqueName { get; set; }
 
-        public static UserNameInfo GuestUser => new UserNameInfo(GetGuestUserName(), "Guest");
+        public static UserNameInfo GuestUser => new UserNameInfo(GetGuestUserName(), string.Empty);
 
-        public UserNameInfo(string user)
-        {
-            string[] info = user.Split('#');
-
-            if (info.Length < 2)
-            {
-                var guest = GuestUser;
-
-                Name = guest.Name;
-                Discriminator = guest.Discriminator;
-
-                return;
-            }
-
-            Name = info[0];
-            Discriminator = info[1];
-        }
-
-        public UserNameInfo(string name, string discriminator)
+        public UserNameInfo(string name, string uniqueName)
         {
             Name = name;
-            Discriminator = discriminator;
+            UniqueName = uniqueName;
+
+            if (string.IsNullOrWhiteSpace(uniqueName))
+            {
+                UniqueName = name;
+            }
         }
 
         public override string ToString()
         {
-            return string.Join("#", Name, Discriminator);
+            return Name;
         }
 
         private static string GetGuestUserName()

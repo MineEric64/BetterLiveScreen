@@ -8,10 +8,9 @@
         Title="Login" Height="275" Width="346" PreviewKeyDown="StartPage_PreviewKeyDown">
     <Grid>
         <TextBox x:Name="username" HorizontalAlignment="Left" Margin="18,165,0,0" TextWrapping="Wrap" Text="Guest" VerticalAlignment="Top" Width="235" FontSize="20"/>
-        <Label x:Name="userauth" Content="#Guest" HorizontalAlignment="Left" Margin="18,195,0,0" VerticalAlignment="Top"/>
         <Button x:Name="ok" Content="OK!" HorizontalAlignment="Left" Margin="266,165,0,0" VerticalAlignment="Top" Height="25" Width="41" Click="ok_Click" FontSize="16"/>
         <Button x:Name="loginFromDiscord" Content="Login from Discord" HorizontalAlignment="Left" Margin="198,198,0,0" Click="loginFromDiscord_Click" VerticalAlignment="Top"/>
         <Ellipse x:Name="usericon" HorizontalAlignment="Left" Height="100" Margin="109,25,0,0" VerticalAlignment="Top" Width="100" Fill="Black" Stretch="UniformToFill"/>
-
+        <Label x:Name="userauth" Content="Guest" HorizontalAlignment="Left" Margin="14,195,0,0" VerticalAlignment="Top"/>
     </Grid>
 </Window>

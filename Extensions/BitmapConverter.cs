@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,6 +11,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
 using MessagePack;
+using log4net;
 
 namespace BetterLiveScreen.Extensions
 {
@@ -20,6 +22,8 @@ namespace BetterLiveScreen.Extensions
         /// </summary>
         public static MessagePackSerializerOptions LZ4_OPTIONS = MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray);
         public static BitmapSource BLACK_IMAGE { get; } = CreateBlackImage();
+
+        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         public static BitmapImage ToImage(this byte[] array)
         {
@@ -40,11 +44,21 @@ namespace BetterLiveScreen.Extensions
                 new Rectangle(0, 0, bitmap.Width, bitmap.Height),
                 ImageLockMode.ReadOnly, bitmap.PixelFormat);
 
-            var bitmapSource = BitmapSource.Create(
+            BitmapSource bitmapSource = null;
+            
+            try
+            {
+                bitmapSource = BitmapSource.Create(
                 bitmapData.Width, bitmapData.Height,
                 bitmap.HorizontalResolution, bitmap.VerticalResolution,
                 System.Windows.Media.PixelFormats.Bgr24, null,
                 bitmapData.Scan0, bitmapData.Stride * bitmapData.Height, bitmapData.Stride);
+            }
+            catch (ArgumentException)
+            {
+                log.Warn("Error occured while converting Bitmap to BitmapSource. The user's icon might be by default. Trying the other method...");
+                bitmapSource = (BitmapSource)MainWindow.User.GetAvatarImage();
+            }
 
             bitmap.UnlockBits(bitmapData);
 
