@@ -17,7 +17,7 @@ using NAudio.Wasapi.CoreAudioApi.Interfaces;
 using NAudio.Wave;
 
 using BetterLiveScreen.Extensions;
-using BetterLiveScreen.Recording.Audio.Wasapi;
+using BetterLiveScreen.Interfaces;
 
 using WasapiCapture = BetterLiveScreen.Recording.Audio.Wasapi.WasapiCapture;
 using IAudioClient = NAudio.CoreAudioApi.Interfaces.IAudioClient;
@@ -39,6 +39,8 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
         public WaveFormat Format { get; } = null;
         public bool IsRunning { get; private set; } = false;
         public bool IsInitialized { get; private set; } = false;
+
+        private Stopwatch _sw = new Stopwatch(); //because of detecting silent
 
         public AudioCaptureHelper(int id)
         {
@@ -197,7 +199,42 @@ namespace BetterLiveScreen.Recording.Audio.WinCaptureAudio
         {
             if (_mixHandler == null) return;
 
-            _mixHandler.Buffer.Enqueue(buffer);
+            string settings = MainWindow.Settings.WinCaptureAudioDetectSilent;
+
+            bool zero = settings == "zero";
+            bool db = settings == "db";
+            bool hybrid = settings == "hybrid";
+            bool run = true;
+
+            if (settings != "none")
+            {
+                if (zero || hybrid) run = buffer.Any(x => x != 0);
+                if (run && (db || hybrid))
+                {
+                    double sample16Bit = BitConverter.ToSingle(buffer, 0);
+                    double volume = Math.Abs(sample16Bit / 32768.0);
+                    double decibels = 20 * Math.Log10(volume);
+
+                    run = decibels > -200;
+                    
+                    if (!run)
+                    {
+                        if (!_sw.IsRunning) _sw.Start();
+                        else run = _sw.ElapsedMilliseconds < 1000;
+                    }
+                    else if (_sw.IsRunning)
+                    {
+                        _sw.Stop();
+                        _sw.Reset();
+                    }
+                }
+            }
+
+            if (run)
+            {
+                _mixHandler.Buffer.Enqueue(buffer);
+                Debug.WriteLine(timestamp.ToString());
+            }
         }
 
         private void Capture()

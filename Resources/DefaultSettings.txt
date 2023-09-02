@@ -1,6 +1,7 @@
 {
     "clear_buffer_enabled": {
         "video": false,
-        "audio": true
-    }
+        "audio": false
+    },
+    "win_capture_audio_detect_silent": "zero"
 }

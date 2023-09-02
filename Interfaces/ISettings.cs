@@ -16,5 +16,8 @@ namespace BetterLiveScreen.Interfaces
 
         [Option(Alias = "clear_buffer_enabled.audio", DefaultValue = true)]
         bool ClearAudioBufferEnabled { get; }
+
+        [Option(Alias = "win_capture_audio_detect_silent", DefaultValue = "zero")]  //[none, zero, db, hybrid] | *hybrid: not recommended, inefficient
+       string WinCaptureAudioDetectSilent { get; }
     }
 }
